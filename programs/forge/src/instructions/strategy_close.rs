@@ -56,6 +56,7 @@ pub fn begin_close<'info>(ctx: Context<'info, BeginClose<'info>>) -> Result<()> 
     s.state = StrategyState::PendingClose;
     s.close_by_keeper = by_keeper;
     s.keeper = caller;
+    s.close_started_at = now;
     Ok(())
 }
 
@@ -96,6 +97,7 @@ pub fn abort_open<'info>(ctx: Context<'info, AbortOpen<'info>>) -> Result<()> {
         s.legs[i].restored = true;
     }
     s.aborting = true;
+    s.close_started_at = now;
     s.state = StrategyState::PendingClose;
     s.keeper = ctx.accounts.caller.key();
     write_back(&mut ctx.accounts.strategy, &mut s);
@@ -561,7 +563,11 @@ pub fn record_recovery(ctx: Context<RecordRecovery>, leg_index: u8) -> Result<()
             !(target_ok && swap_ok && funded)
         }
     };
-    require!(blocked, ForgeError::RecoveryNotNeeded);
+    // A restoration that cannot execute within limits (for example a swap that would exceed
+    // the slippage bound) fails without persisting anything; once the close has stalled past
+    // the grace period it may be flagged so the exposure is visible and borrowing pauses.
+    let stalled = now - s.close_started_at > market.params.pending_open_deadline_s as i64;
+    require!(blocked || stalled, ForgeError::RecoveryNotNeeded);
     let first = !ctx.accounts.strategy.recovery_recorded;
     let m = &mut ctx.accounts.market;
     m.borrow_paused = true;
@@ -671,7 +677,10 @@ pub fn finalize_close<'info>(ctx: Context<'info, FinalizeClose<'info>>) -> Resul
     let a = &ctx.accounts;
     let market_key = a.market.key();
     let mut s: Box<Strategy> = Box::new((**a.strategy).clone());
-    require!(s.state == StrategyState::PendingClose, ForgeError::InvalidState);
+    require!(
+        matches!(s.state, StrategyState::PendingClose | StrategyState::Recovery),
+        ForgeError::InvalidState
+    );
     require!(s.all_restored(), ForgeError::InvalidState);
 
     let (ub_mint, ub_owner, _) = token_util::read_token_account(&a.user_base.to_account_info())?;
@@ -703,14 +712,16 @@ pub fn finalize_close<'info>(ctx: Context<'info, FinalizeClose<'info>>) -> Resul
             let (imax, _) = unpaid.iter().enumerate().fold((0, 0), |acc, (i, u)| if *u > acc.1 { (i, *u) } else { acc });
             alloc[imax] += dust;
         }
-        let mut k = 0;
         for i in 0..s.leg_count as usize {
             if unpaid[i] == 0 {
                 continue;
             }
-            let info = ctx.remaining_accounts.get(k).ok_or(error!(ForgeError::LegAccountMismatch))?;
-            k += 1;
-            require_keys_eq!(*info.key, s.legs[i].bucket, ForgeError::LegAccountMismatch);
+            // bucket accounts may be passed in any order (the client passes every leg's bucket)
+            let info = ctx
+                .remaining_accounts
+                .iter()
+                .find(|x| *x.key == s.legs[i].bucket)
+                .ok_or(error!(ForgeError::LegAccountMismatch))?;
             let mut b: Account<Bucket> = Account::try_from(info)?;
             if alloc[i] > 0 {
                 token_util::transfer_signed(&tp, &a.budget.to_account_info(), &a.premium_vault.to_account_info(), &vault, alloc[i], signer)?;

@@ -330,6 +330,9 @@ pub struct Strategy {
     pub aborting: bool,
     /// Counted in market.unresolved_strategies while true.
     pub recovery_recorded: bool,
+    /// When the close (or abort) was authorized; a close stalled longer than the market's
+    /// pending deadline may be flagged as Recovery by anyone.
+    pub close_started_at: i64,
     pub leg_count: u8,
     pub legs: [Leg; MAX_LEGS],
     pub bump: u8,
