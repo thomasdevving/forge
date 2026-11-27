@@ -33,6 +33,15 @@ liquidity back plus at least the fees you would have earned in Orca. That is con
   until they complete.
 - Utilization per bucket is capped at 80%.
 
+## The keeper
+
+A borrower's premium budget is finite, so someone has to close a position before it runs out. The
+program lets anyone close a position once 80% of its premium budget is used, once it has expired, or
+once an LP's withdrawal notice on one of its buckets has passed; the closer earns a bounty of 1% of the
+budget. FORGE runs a keeper that checks every position every 30 seconds, brings its premium up to date
+on-chain and closes it when one of those holds. Without a keeper, long borrows can cost LPs more in
+missed fees than the budget pays (Benchmark 4 shows how much).
+
 ## Withdrawals
 
 Unborrowed liquidity withdraws immediately. Borrowed liquidity needs a 24-hour notice; after it,

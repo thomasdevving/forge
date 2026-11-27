@@ -28,6 +28,7 @@ One container (`deploy/railway/Dockerfile`, configured in `.railway/railway.ts`)
 | Transaction builder | 8788 | `/tx` |
 | Compiler API | 8000 | `/compiler` |
 | Demo control (faucet, mirror, markets) | 8791 | `/control` |
+| Keeper (closes positions at their on-chain triggers, collects the bounty) | — | — |
 | Gateway | `$PORT` | everything above, plus `/health` |
 
 On start (`deploy/railway/start.sh`) the container creates fork-only keys, starts the fork, writes the

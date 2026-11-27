@@ -67,8 +67,8 @@ export function LpEvidence() {
         </div>
         <ul className="grid gap-x-8 gap-y-3 border-t border-line p-6 text-[12.5px] leading-relaxed text-ink-2 md:grid-cols-3">
           <li>
-            <span className="text-ink">It needs a keeper.</span> These numbers assume a position is closed once 80% of the borrower&apos;s premium budget is
-            used, which anyone may do for a 1% bounty. Without that, FORGE LPs trailed plain Orca in most windows (worst {bps(worstNoKeeper)}).
+            <span className="text-ink">It relies on the keeper.</span> Positions are closed once 80% of the borrower&apos;s premium budget is used. FORGE runs
+            a keeper that does this (anyone else may too, for a 1% bounty). Without one, FORGE LPs trailed plain Orca in most windows (worst {bps(worstNoKeeper)}).
           </li>
           <li>
             <span className="text-ink">It does not remove impermanent loss.</span> Like any Orca position it can lose to just holding: plain Orca beat
