@@ -75,8 +75,23 @@ export async function setTokenBalance(owner: Address, mint: Address, amount: big
   await rawRpc("surfnet_setTokenAccount", [owner, mint, { amount: Number(amount), state: "initialized" }]);
 }
 
-export async function timeTravel(unixTimestamp: number): Promise<void> {
-  await rawRpc("surfnet_timeTravel", [{ absoluteTimestamp: unixTimestamp * 1000 }]);
+/** The fork's on-chain clock (Clock sysvar), which time travel moves ahead of wall time. */
+export async function forkClock(url = FORK_RPC_URL): Promise<{ unixTimestamp: number; slot: bigint }> {
+  const r = await rawRpc<{ value: { data: [string, string] } }>("getAccountInfo", ["SysvarC1ock11111111111111111111111111111111", { encoding: "base64" }], url);
+  const b = Buffer.from(r.value.data[0], "base64");
+  return { slot: b.readBigUInt64LE(0), unixTimestamp: Number(b.readBigInt64LE(32)) };
+}
+
+/** Move the fork clock forward by `seconds` (fork-only cheatcode). */
+export async function timeTravel(seconds: number): Promise<number> {
+  const now = (await forkClock()).unixTimestamp;
+  await rawRpc("surfnet_timeTravel", [{ absoluteTimestamp: (now + seconds) * 1000 }]);
+  for (let i = 0; i < 40; i++) {
+    const c = await forkClock();
+    if (c.unixTimestamp >= now + seconds) return c.unixTimestamp;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error("time travel did not take effect");
 }
 
 export async function sendInstructions(

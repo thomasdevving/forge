@@ -128,8 +128,7 @@ async function main() {
   for (const b of buckets) {
     const bk = await fetchBucket(rpc, b.address);
     if (bk.total_liquidity > 0n) continue;
-    const pool = await readPool(rpc, SOL_USDC_TS64);
-    const ix = await depositLiquidityIx({ lp, market, m, bucket: b.address, b: bk, pool, liquidity: L, lpBase: lpAcc.wsol, lpQuote: lpAcc.usdc });
+    const ix = await depositLiquidityIx({ rpc, lp, market, bucket: b.address, liquidity: L, lpBase: lpAcc.wsol, lpQuote: lpAcc.usdc });
     await sendInstructions(rpc, lp, [getSetComputeUnitLimitInstruction({ units: 400_000 }), ix]);
   }
   console.log(`seeded L=${L} per bucket from LP ${lp.address}`);

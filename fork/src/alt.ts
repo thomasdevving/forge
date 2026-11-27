@@ -26,6 +26,7 @@ export async function marketAddresses(rpc: Rpc<SolanaRpcApi>, market: Address, m
   const set = new Set<Address>([
     FORGE_PROGRAM_ID, WHIRLPOOL_PROGRAM_ID, TOKEN_PROGRAM_ID, SYSTEM_PROGRAM_ID, RENT_SYSVAR_ID, ASSOCIATED_TOKEN_PROGRAM_ID, COMPUTE_BUDGET,
     await pdas.config(), market, await pdas.vault(market), m.premium_vault, await pdas.stagingBase(market), await pdas.stagingQuote(market),
+    m.fee_vault_base, m.fee_vault_quote,
     m.base_mint, m.quote_mint, m.whirlpool, target.vaultA, target.vaultB, m.swap_pool, swap.vaultA, swap.vaultB, await pdas.oracle(m.swap_pool),
     m.reference.base_account,
   ]);

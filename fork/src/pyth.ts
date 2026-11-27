@@ -11,7 +11,7 @@
  * confidence, pool deviation); nothing here disables a guard.
  */
 import { type Address } from "@solana/kit";
-import { rawRpc } from "./surfnet.js";
+import { forkClock, rawRpc } from "./surfnet.js";
 
 export const PYTH_RECEIVER = "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ" as Address;
 export const PYTH_SOL_USD = "7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE" as Address;
@@ -76,9 +76,8 @@ async function writeAccount(addr: Address, data: Uint8Array, lamports: number, o
 }
 
 async function forkNow(): Promise<{ ts: bigint; slot: bigint }> {
-  const slot = await rawRpc<number>("getSlot", []);
-  const ts = await rawRpc<number>("getBlockTime", [slot]).catch(() => Math.floor(Date.now() / 1000));
-  return { ts: BigInt(ts ?? Math.floor(Date.now() / 1000)), slot: BigInt(slot) };
+  const c = await forkClock();
+  return { ts: BigInt(c.unixTimestamp), slot: c.slot };
 }
 
 /** Labelled fork scenario: set a feed to `usd` with a confidence of `confBps`, published now. */
