@@ -1,0 +1,23 @@
+{
+  "name": "@forge/tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run --passWithNoTests --dir unit",
+    "test:fork": "vitest run --dir fork"
+  },
+  "dependencies": {
+    "@forge/fork": "workspace:*",
+    "@forge/txbuilder": "workspace:*",
+    "@orca-so/whirlpools-client": "7.0.0",
+    "@orca-so/whirlpools-core": "3.1.0",
+    "@solana-program/token": "0.9.0",
+    "@solana/kit": "5.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}
