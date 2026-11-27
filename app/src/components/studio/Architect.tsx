@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { fmtPrice, fmtUsd } from "@/lib/format";
 import type { Point } from "@/lib/payoff";
 
@@ -46,7 +48,7 @@ const STEP_LABEL: Record<string, string> = {
 };
 
 const EXAMPLES = [
-  "I hold JUP. Protect it against a crash, I can give up some upside, and spend no more than $20 on premium.",
+  "I hold 20,000 JUP. Protect it against a crash, I can give up some upside, and spend no more than $20 on premium.",
   "Floor 10 SOL at 90% of today's price for a week, cheapest way.",
 ];
 
@@ -192,7 +194,13 @@ export function Architect({ open, onClose, owner, onLoad }: { open: boolean; onC
             case "user":
               return <p key={i} className="ml-8 border border-line bg-panel/60 px-3 py-2">{it.text}</p>;
             case "text":
-              return <p key={i} className="whitespace-pre-wrap text-ink-2">{it.text}</p>;
+              return (
+                <div key={i} className="space-y-2 text-ink-2 [&_li]:ml-4 [&_li]:list-disc [&_strong]:font-semibold [&_strong]:text-ink [&_ul]:space-y-1">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ children }) => <span>{children}</span>, img: () => null }}>
+                    {it.text}
+                  </ReactMarkdown>
+                </div>
+              );
             case "step":
               return (
                 <div key={i} className="flex items-baseline gap-2 text-[12px]">
