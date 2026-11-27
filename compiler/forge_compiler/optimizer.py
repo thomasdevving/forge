@@ -30,7 +30,7 @@ def _diagnose(payoff: Payoff, grid: MarketGrid, limits: UserLimits, sol, cands, 
     reasons = []
     spot_bucket = next((b for b in grid.buckets if grid.side(b) is None), None)
     if spot_bucket:
-        for k, ds in payoff.kinks():
+        for k, _ds in payoff.kinks():
             if spot_bucket.price_lower <= k <= spot_bucket.price_upper:
                 reasons.append(f"kink at {k:g} lies in the range containing the current price; "
                                "borrowed and provided ranges must be strictly out of range")

@@ -24,6 +24,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
+
 from forge_math.lpsim import SimParams, gbm_path, ohlc_path, simulate_path
 
 HERE = Path(__file__).resolve().parent
@@ -141,7 +142,8 @@ def main(argv=None) -> int:
     }, indent=1) + "\n")
     lines = ["# Benchmark 3: conditional LP guarantee", "",
              "Per borrow (the guarantee is per borrowed range): eligible = restored and fully funded.", "",
-             "| slice | borrows | eligible | guarantee holds | violations | premium shortfalls | restoration failures |",
+             "| slice | borrows | eligible | guarantee holds | violations | premium shortfalls "
+             "| restoration failures |",
              "|---|---|---|---|---|---|---|"]
     for k, s in summary.items():
         lines.append(f"| {k} | {s['borrows']} | {s['borrows_eligible']} | {s['borrows_guarantee_holds']} | "

@@ -1,10 +1,11 @@
 import math
 
 import pytest
-from forge_verifier.certificate import build_certificate, verify_certificate
-from forge_verifier.exact import VConstruction, VLeg, construction_value, max_error, tick_to_price
 from hypothesis import given, settings
 from hypothesis import strategies as st
+
+from forge_verifier.certificate import build_certificate, verify_certificate
+from forge_verifier.exact import VConstruction, VLeg, construction_value, max_error, tick_to_price
 
 BD, QD = 9, 6
 SCALE = 10 ** (-(BD + QD) / 2)

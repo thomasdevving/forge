@@ -51,4 +51,8 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
-ignore = ["E741"]
+# B905: pairwise zip(xs, xs[1:]) is intentional throughout the math code
+ignore = ["E741", "B905"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["forge_math", "forge_compiler", "forge_verifier", "forge_api"]

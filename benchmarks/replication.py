@@ -17,6 +17,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+
 from forge_compiler import presets
 from forge_compiler.baseline import compile_baseline
 from forge_compiler.model import UserLimits, grid_for_market

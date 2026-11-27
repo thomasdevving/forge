@@ -17,9 +17,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from forge_math.clmm import unit_value
 
 from forge_compiler.model import GridBucket, LegKind, MarketGrid
+from forge_math.clmm import unit_value
 
 
 @dataclass(frozen=True)

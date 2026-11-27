@@ -57,7 +57,6 @@ def compile_baseline(payoff: Payoff, grid: MarketGrid, limits: UserLimits,
     edges = [b.price_lower for b in grid.buckets] + [b.price_upper for b in grid.buckets]
     S = evaluation_grid(lo, hi, [b[0] for b in payoff.breakpoints] + edges, n_grid)
     f = payoff(S)
-    scale = max(1.0, float(np.max(np.abs(f))))
     tol = tolerance if tolerance is not None else payoff.default_tolerance()
     legs_only = build_construction(grid, 0.0, 0.0, chosen)
     by_kind = {(c.bucket.tick_lower, c.kind): c for c, _ in chosen}
