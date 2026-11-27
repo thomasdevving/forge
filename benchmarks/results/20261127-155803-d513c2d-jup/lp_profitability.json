@@ -24,11 +24,12 @@
  },
  "not_a_replay": "Binance bars drive a simulated pool (arbitrage to each price, optional noise volume); not a replay of Orca swaps. Borrow demand and budgets are assumptions swept below.",
  "seed": 20261127,
- "seconds": 542.5,
+ "seconds": 1105.4,
  "capital_usd": 10000.0,
  "params": {
   "fee_rate": 0.003,
   "protocol_fee_share": 0.13,
+  "fee_model": "band",
   "bucket_width_ticks": 256,
   "n_buckets": 8,
   "lp_liquidity": 1.0,
@@ -46,6 +47,12 @@
   "restoration_buffer": 0.02,
   "restore_cost_bps_mean": 6.0,
   "restore_cost_bps_max": 60.0,
+  "swap_slippage_bps": 50.0,
+  "restore_retry_s": 3600.0,
+  "bounty_bps": 100,
+  "keeper": false,
+  "keeper_trigger_bps": 8000,
+  "keeper_delay_s": 300.0,
   "curve": {
    "base_ppm": 1000000,
    "slope1_ppm": 1000000,
@@ -61,7 +68,6 @@
    "swap_slippage_bps": 50,
    "keeper_trigger_bps": 8000,
    "bounty_bps": 100,
-   "max_buckets_per_strategy": 8,
    "curve": {
     "base_ppm": 1000000,
     "slope1_ppm": 1000000,
@@ -76,7 +82,6 @@
    "swap_slippage_bps": 50,
    "keeper_trigger_bps": 8000,
    "bounty_bps": 100,
-   "max_buckets_per_strategy": 8,
    "curve": {
     "base_ppm": 1000000,
     "slope1_ppm": 1000000,
@@ -87,42 +92,40 @@
   },
   "match": true
  },
- "lpsim_deviations": [
-  "Time-floor notional of a call (borrowed base) is valued at the open reference price, as strategy_open.rs stores notional_quote; lpsim values it at the close price.",
-  "Keeper trigger modeled (budgets *+keeper): anyone may close once accrued premium >= 80% of the LP cap (keeper_trigger_bps = 8000); lpsim never closes early.",
-  "Restoration guard: besides lpsim's buffer-vs-cost test, a restoration whose swap cost exceeds swap_slippage_bps (50) is refused and retried after 1 h with the liquidity still out of the pool and premium still accruing (the program's Recovery path); lpsim only counts the failure.",
-  "Borrow utilization is fixed per demand level (0.2 / 0.5 / 0.8) instead of uniform(0.2, 0.8), and open/hold rates are set by the demand sweep instead of open_prob / mean_hold_steps.",
-  "Fee model 'arb-band' (no-arbitrage band) added; lpsim's model ('arb') charges the fee on every move.",
-  "Noise volume is scaled to the ladder's actual starting value. lpsim's lp_notional is sum(L (sqrt p_b - sqrt p_a)) x sqrt(P0), i.e. sqrt(P0) times the ladder's value, so Benchmark 3's 'base+noise' carries ~10x the stated noise volume on SOL/USDC (sqrt(73) ~ 8.6 at the GBM start, ~11 on 2026 history) and ~0.5x on JUP/USDC."
+ "model_choices": [
+  "Simulator: forge_math.lpsim's event engine (fee_growth, settle_borrows, simulate_demand), which follows the program: floor on the notional stored at open (calls at the open reference price), LP cap = budget less the 1% bounty, keeper close 5 min after accrued premium reaches 80% of the cap (budgets *+keeper), restoration refused above the 0.5% slippage cap or the escrow margin and retried after 1 h.",
+  "Demand sweep (this benchmark's choice): utilization fixed per demand level (0.2 / 0.5 / 0.8) and borrowers return ~1 h after a bucket frees up, instead of Benchmark 3's random uniform(0.2, 0.8) borrowers.",
+  "Fee models: 'arb-band' and 'band+noise' run on the no-arbitrage-band pool path computed over the whole history (Benchmark 3 starts the band at each window's first price; the pool start differs by < 0.3%); 'arb' is lpsim's legacy-every-price model, kept for comparison.",
+  "Noise volume is a multiple of the LP ladder's starting value (lpsim fixed the extra sqrt(P0) factor that earlier Benchmark 3 runs carried)."
  ],
  "self_check": {
-  "arb": {
-   "borrows": 138,
-   "max_rel_error": 1.779100323585717e-15,
-   "ok": true,
-   "lpsim": {
-    "lp_fees_world_a": 0.0010843474100292935,
-    "lp_idle_fees_world_b": 0.0008405832651720024,
-    "premium_paid": 0.0001429091061395721,
-    "shortfall": 0.0002489546072628691,
-    "measured_forgone": 0.00024376414485729087,
-    "final_value_a": 0.0011178747453206976,
-    "final_value_b": 0.0010103584924801086
-   }
+  "arb-band": {
+   "borrows": 143,
+   "keeper_closes": 0,
+   "refusals": 0,
+   "max_rel_error": 1.0514563355615266e-15,
+   "ok": 1.0
   },
-  "arb+noise": {
-   "borrows": 138,
-   "max_rel_error": 6.210892117210851e-14,
-   "ok": true,
-   "lpsim": {
-    "lp_fees_world_a": 0.0011416527729416492,
-    "lp_idle_fees_world_b": 0.0008878046034847482,
-    "premium_paid": 0.00014996442898341367,
-    "shortfall": 0.0002658538546340306,
-    "measured_forgone": 0.00025720951099007246,
-    "final_value_a": 0.0011775146792212337,
-    "final_value_b": 0.0010666120824834129
-   }
+  "band+noise": {
+   "borrows": 143,
+   "keeper_closes": 0,
+   "refusals": 0,
+   "max_rel_error": 6.3463193553715e-14,
+   "ok": true
+  },
+  "band+keeper": {
+   "borrows": 155,
+   "keeper_closes": 65,
+   "refusals": 0,
+   "max_rel_error": 3.609244638484975e-15,
+   "ok": 1.0
+  },
+  "arb (legacy)": {
+   "borrows": 141,
+   "keeper_closes": 0,
+   "refusals": 0,
+   "max_rel_error": 4.5412959246611975e-15,
+   "ok": 1.0
   }
  },
  "design": {
@@ -350,29 +353,29 @@
   "history_span": "2026-01-01 to 2026-10-31",
   "stride_days": 1,
   "n_windows": 1222,
-  "seconds": 542.5,
+  "seconds": 1105.4,
   "refusals": 608,
-  "self_check_max_rel_error": 6.210892117210851e-14,
+  "self_check_max_rel_error": 6.3463193553715e-14,
   "regime_median_return": {
-   "gbm-30d-vol1.4": 0.09838321508324382,
-   "hist-30d-worst-decile-return": -0.2641975460643047,
-   "gbm-7d-vol1.4": -0.02068164148842383,
-   "hist-7d-best-decile-return": 0.24949136456870946,
-   "hist-7d-top-decile-vol": -0.06008002720341693,
-   "stress-30d-vol": 0.2070015220700152,
-   "hist-7d-worst-decile-return": -0.18017806935332703,
-   "gbm-30d-vol0.9": -0.03046349913619284,
    "stress-7d-vol": -0.1755684822845055,
-   "stress-30d-rally": 0.6705084745762713,
-   "hist-7d-all": -0.0011364137720384915,
-   "gbm-7d-vol0.9": 0.002868069203220469,
-   "hist-30d-all": 0.05247326203208558,
-   "hist-all": 0.02224310776942362,
-   "hist-30d-best-decile-return": 0.5218796840735717,
+   "gbm-30d-vol0.9": -0.03046349913619284,
    "stress-7d-drawdown": -0.2985002418964683,
-   "hist-30d-top-decile-vol": -0.19755834680595286,
+   "hist-30d-worst-decile-return": -0.2641975460643047,
+   "stress-30d-rally": 0.6705084745762713,
+   "gbm-7d-vol0.9": 0.002868069203220469,
+   "hist-7d-top-decile-vol": -0.06008002720341693,
+   "stress-7d-rally": 0.43064667291471426,
+   "stress-30d-vol": 0.2070015220700152,
+   "hist-7d-all": -0.0011364137720384915,
+   "hist-7d-best-decile-return": 0.24949136456870946,
+   "hist-all": 0.02224310776942362,
+   "hist-7d-worst-decile-return": -0.18017806935332703,
+   "hist-30d-best-decile-return": 0.5218796840735717,
+   "gbm-30d-vol1.4": 0.09838321508324382,
    "stress-30d-drawdown": -0.39409951563188017,
-   "stress-7d-rally": 0.43064667291471426
+   "hist-30d-all": 0.05247326203208558,
+   "gbm-7d-vol1.4": -0.02068164148842383,
+   "hist-30d-top-decile-vol": -0.19755834680595286
   }
  },
  "summary": [

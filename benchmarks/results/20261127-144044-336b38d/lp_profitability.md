@@ -2,9 +2,9 @@
 
 Historical-price-driven simulation: Binance SOLUSDC 1-minute bars (2026-01-01 to 2026-10-31) drive a simulated Orca pool (fee 0.30%, buckets of 256 ticks, 8-bucket ladder centred on each window's start price, the LP is 25% of active liquidity). This is not a replay of real Orca swaps or of real FORGE borrowing: fees come from simulated arbitrage (and optional noise volume) along the historical price path, and borrow demand and budgets are assumptions, swept below. Each window deploys $10,000; bps are of starting capital. A = plain Orca LP, B = FORGE LP, HODL = hold the starting tokens; all valued at the window-end price (fees in kind, premium in USDC).
 
-Windows: rolling 7-day and 30-day windows starting every 1 day(s), both intrabar orderings; the 3 worst drawdowns, biggest rallies and highest-volatility windows per horizon (hourly starts, non-overlapping); synthetic GBM at 90% and 140% annual vol (10 seeds each). 1222 windows x 3 fee models x 31 demand/budget configs; runtime 539 s.
+Windows: rolling 7-day and 30-day windows starting every 1 day(s), both intrabar orderings; the 3 worst drawdowns, biggest rallies and highest-volatility windows per horizon (hourly starts, non-overlapping); synthetic GBM at 90% and 140% annual vol (10 seeds each). 1222 windows x 3 fee models x 31 demand/budget configs; runtime 1251 s.
 
-Program parameters (asserted equal to the programs/forge defaults): floor 5%/yr on borrowed notional, m(u) = 1 + u to 60%, 1.6 + 6(u - 0.6) to the 80% cap, LP cap = budget - 1% keeper bounty, keeper trigger at 80% of the cap, restoration buffer 2%, swap slippage cap 0.5%. The event engine reproduces forge_math.lpsim exactly on identical borrows (max relative error 2.3e-14).
+Program parameters (asserted equal to the programs/forge defaults): floor 5%/yr on borrowed notional, m(u) = 1 + u to 60%, 1.6 + 6(u - 0.6) to the 80% cap, LP cap = budget - 1% keeper bounty, keeper trigger at 80% of the cap, restoration buffer 2%, swap slippage cap 0.5%. The event engine reproduces forge_math.lpsim.simulate_path exactly on identical borrows (max relative error 4.1e-14).
 
 Fee models: **arb-band** = arbitrage only, pool follows the price only outside the 0.30% no-arbitrage band (conservative lower bound); **band+noise** = arb-band plus round-trip noise volume of 1x the LP's ladder value per day (an assumption; the in-range pool turns over ~2x a day); **arb** = Benchmark 3 / lpsim's model, fee on every 15 s path point, which gives fee APRs of hundreds of percent and is shown only for comparison.
 
@@ -200,11 +200,9 @@ Restoration refusals (swap cost above the 0.5% slippage cap; retried after 1 h):
 
 Every number (all regimes x fee models x demand x budgets, per-config failure lists, per-window values for realistic budgets) is in lp_profitability.json.
 
-Deviations from forge_math.lpsim (this benchmark follows the program):
+Model notes:
 
-- Time-floor notional of a call (borrowed base) is valued at the open reference price, as strategy_open.rs stores notional_quote; lpsim values it at the close price.
-- Keeper trigger modeled (budgets *+keeper): anyone may close once accrued premium >= 80% of the LP cap (keeper_trigger_bps = 8000); lpsim never closes early.
-- Restoration guard: besides lpsim's buffer-vs-cost test, a restoration whose swap cost exceeds swap_slippage_bps (50) is refused and retried after 1 h with the liquidity still out of the pool and premium still accruing (the program's Recovery path); lpsim only counts the failure.
-- Borrow utilization is fixed per demand level (0.2 / 0.5 / 0.8) instead of uniform(0.2, 0.8), and open/hold rates are set by the demand sweep instead of open_prob / mean_hold_steps.
-- Fee model 'arb-band' (no-arbitrage band) added; lpsim's model ('arb') charges the fee on every move.
-- Noise volume is scaled to the ladder's actual starting value. lpsim's lp_notional is sum(L (sqrt p_b - sqrt p_a)) x sqrt(P0), i.e. sqrt(P0) times the ladder's value, so Benchmark 3's 'base+noise' carries ~10x the stated noise volume on SOL/USDC (sqrt(73) ~ 8.6 at the GBM start, ~11 on 2026 history) and ~0.5x on JUP/USDC.
+- Simulator: forge_math.lpsim's event engine (fee_growth, settle_borrows, simulate_demand), which follows the program: floor on the notional stored at open (calls at the open reference price), LP cap = budget less the 1% bounty, keeper close 5 min after accrued premium reaches 80% of the cap (budgets *+keeper), restoration refused above the 0.5% slippage cap or the escrow margin and retried after 1 h.
+- Demand sweep (this benchmark's choice): utilization fixed per demand level (0.2 / 0.5 / 0.8) and borrowers return ~1 h after a bucket frees up, instead of Benchmark 3's random uniform(0.2, 0.8) borrowers.
+- Fee models: 'arb-band' and 'band+noise' run on the no-arbitrage-band pool path computed over the whole history (Benchmark 3 starts the band at each window's first price; the pool start differs by < 0.3%); 'arb' is lpsim's legacy-every-price model, kept for comparison.
+- Noise volume is a multiple of the LP ladder's starting value (lpsim fixed the extra sqrt(P0) factor that earlier Benchmark 3 runs carried).

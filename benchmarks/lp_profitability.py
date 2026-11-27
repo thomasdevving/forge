@@ -14,9 +14,9 @@ Model (a controlled simulation, not a replay of Orca swaps)
 Binance 1-minute bars (benchmarks/data/<SYMBOL>-1m.npz) are expanded to o -> h -> l -> c and o -> l ->
 h -> c (OHLC bars do not record intra-bar order, so both are run). A simulated pool follows that path:
 
-* "arb": the pool is arbitraged to every point of the path and earns the fee on every move (the fee
-  model of forge_math.lpsim and Benchmark 3). Every sub-fee wiggle pays a fee, so this overstates
-  arbitrage income; it is the optimistic end for fee levels.
+* "arb": the pool is arbitraged to every point of the path and earns the fee on every move
+  (forge_math.lpsim's fee_model="legacy-every-price", the model of earlier Benchmark 3 runs). Every
+  sub-fee wiggle pays a fee, so this overstates arbitrage income; it is the optimistic end for fee levels.
 * "arb-band": the pool only moves when the external price leaves the no-arbitrage band
   [p (1 - f), p (1 + f)] and then only to the band edge (the standard arbitrage-with-fees model). This
   is the conservative lower bound for fee income.
@@ -33,13 +33,14 @@ price, next to 3x as much background (non-FORGE) liquidity. Results are scaled t
 capital. World A keeps all of it in Orca. World B is the same, except borrowers take a utilization u of
 each strictly out-of-range bucket (puts below spot, calls above), hold, and restore it exactly. While
 borrowed, that share earns no fees; the borrower pays premium = max(time floor, m(u) x forgone fees),
-capped by the borrower's premium budget (less the 1% keeper bounty). The event engine is a fast
-re-implementation of forge_math.lpsim.simulate_path and is checked against it at the start of every run
-(identical borrow events -> identical fees, premium, shortfall and final values, see "self_check").
+capped by the borrower's premium budget (less the 1% keeper bounty). Settlement uses forge_math.lpsim's
+vectorized event engine, which is checked against lpsim.simulate_path (the step-by-step reference) at the
+start of every run (identical borrows -> identical fees, premium, shortfall and final values, with and
+without noise and keeper closes, see "self_check").
 
-Program parameters come from forge_math.lpsim.SimParams and are asserted equal to the on-chain defaults
-parsed from programs/forge/src/state.rs and programs/forge/src/math/premium.rs. Where this benchmark
-deviates from lpsim it follows the program instead (listed in LPSIM_DEVIATIONS below and in the output).
+Program parameters come from SimParams.from_program(), which reads programs/forge/src/state.rs and
+programs/forge/src/math/premium.rs and fails loudly on any mismatch. Modelling choices specific to this
+benchmark are listed in MODEL_CHOICES below and in the output.
 
 Usage: uv run --project compiler python benchmarks/lp_profitability.py [--market JUP/USDC] [--quick]
        [--out DIR] [--workers N]
@@ -51,27 +52,34 @@ import argparse
 import json
 import math
 import os
-import re
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
 
-from forge_math import lpsim
-from forge_math.lpsim import SimParams, gbm_path, ohlc_path, simulate_path
+from forge_math.lpsim import (
+    SimParams,
+    band_path,
+    fee_growth,
+    gbm_path,
+    ladder_amounts,
+    ohlc_path,
+    program_parity,
+    replay_check,
+    simulate_demand,
+    world_a_fees,
+)
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 import markets  # noqa: E402
 from lp_guarantee import run_id  # noqa: E402
 
 SEED = 20261127
-YEAR_S = 365 * 86_400
 CAPITAL_USD = 10_000.0
 BAR_STEPS = 4                       # ohlc_path: 4 points per 1-minute bar
 OHLC_STEP_S = 15.0
@@ -81,8 +89,6 @@ NOISE_PER_DAY = 1.0                 # round-trip noise volume per day, x the LP 
 OPEN_WAIT_S = 3_600.0               # mean wait (of eligible time) before a free bucket is borrowed again
 HOLDS_S = {"short": 8 * 3_600.0, "long": 7 * 86_400.0}   # mean borrow hold (exponential)
 UTILS = (0.2, 0.5, 0.8)             # per-bucket utilization taken by a borrower (0.8 = program cap)
-KEEPER_DELAY_S = 300.0              # keeper closes this long after the 80%-of-cap trigger
-RESTORE_RETRY_S = 3_600.0           # a refused restoration is retried after this delay
 MIN_BUDGET_USD = 1e-6               # on-chain minimum: premium_budget > 0, i.e. 1 USDC atom
 FEE_MODES = ("arb-band", "band+noise", "arb")
 BUDGETS = ("funded", "realistic", "realistic+keeper", "min", "min+keeper")
@@ -95,278 +101,19 @@ BUDGET_TEXT = {
     "min": "adversarial: every borrower funds the on-chain minimum (1 USDC atom); no keeper ever closes",
     "min+keeper": "adversarial minimum budget, with a keeper closing 5 min after the 80% trigger",
 }
-LPSIM_DEVIATIONS = [
-    "Time-floor notional of a call (borrowed base) is valued at the open reference price, as "
-    "strategy_open.rs stores notional_quote; lpsim values it at the close price.",
-    "Keeper trigger modeled (budgets *+keeper): anyone may close once accrued premium >= 80% of the LP cap "
-    "(keeper_trigger_bps = 8000); lpsim never closes early.",
-    "Restoration guard: besides lpsim's buffer-vs-cost test, a restoration whose swap cost exceeds "
-    "swap_slippage_bps (50) is refused and retried after 1 h with the liquidity still out of the pool and "
-    "premium still accruing (the program's Recovery path); lpsim only counts the failure.",
-    "Borrow utilization is fixed per demand level (0.2 / 0.5 / 0.8) instead of uniform(0.2, 0.8), and "
-    "open/hold rates are set by the demand sweep instead of open_prob / mean_hold_steps.",
-    "Fee model 'arb-band' (no-arbitrage band) added; lpsim's model ('arb') charges the fee on every move.",
-    "Noise volume is scaled to the ladder's actual starting value. lpsim's lp_notional is "
-    "sum(L (sqrt p_b - sqrt p_a)) x sqrt(P0), i.e. sqrt(P0) times the ladder's value, so Benchmark 3's "
-    "'base+noise' carries ~10x the stated noise volume on SOL/USDC (sqrt(73) ~ 8.6 at the GBM start, "
-    "~11 on 2026 history) and ~0.5x on JUP/USDC.",
+MODEL_CHOICES = [
+    "Simulator: forge_math.lpsim's event engine (fee_growth, settle_borrows, simulate_demand), which follows "
+    "the program: floor on the notional stored at open (calls at the open reference price), LP cap = budget "
+    "less the 1% bounty, keeper close 5 min after accrued premium reaches 80% of the cap (budgets *+keeper), "
+    "restoration refused above the 0.5% slippage cap or the escrow margin and retried after 1 h.",
+    "Demand sweep (this benchmark's choice): utilization fixed per demand level (0.2 / 0.5 / 0.8) and borrowers "
+    "return ~1 h after a bucket frees up, instead of Benchmark 3's random uniform(0.2, 0.8) borrowers.",
+    "Fee models: 'arb-band' and 'band+noise' run on the no-arbitrage-band pool path computed over the whole "
+    "history (Benchmark 3 starts the band at each window's first price; the pool start differs by < 0.3%); "
+    "'arb' is lpsim's legacy-every-price model, kept for comparison.",
+    "Noise volume is a multiple of the LP ladder's starting value (lpsim fixed the extra sqrt(P0) factor that "
+    "earlier Benchmark 3 runs carried).",
 ]
-
-
-# ---------------------------------------------------------------------------------------------
-# Program parameters: assert the simulation uses the on-chain defaults
-# ---------------------------------------------------------------------------------------------
-
-
-def program_params(p: SimParams) -> dict:
-    state = (ROOT / "programs/forge/src/state.rs").read_text()
-    prem = (ROOT / "programs/forge/src/math/premium.rs").read_text()
-
-    def num(src: str, name: str) -> int:
-        m = re.search(rf"\b{name}:\s*([\d_]+)", src)
-        if not m:
-            raise SystemExit(f"could not find {name} in program source")
-        return int(m.group(1).replace("_", ""))
-
-    onchain = {k: num(state, k) for k in ("floor_rate_bps", "restoration_buffer_bps", "swap_slippage_bps",
-                                          "keeper_trigger_bps", "bounty_bps", "max_buckets_per_strategy")}
-    onchain["curve"] = {k: num(prem, k) for k in ("base_ppm", "slope1_ppm", "kink_ppm", "slope2_ppm", "cap_ppm")}
-    used = {"floor_rate_bps": round(p.floor_rate * 1e4), "restoration_buffer_bps": round(p.restoration_buffer * 1e4),
-            "swap_slippage_bps": 50, "keeper_trigger_bps": 8_000, "bounty_bps": 100,
-            "max_buckets_per_strategy": p.n_buckets, "curve": asdict(p.curve)}
-    mismatch = {k: (used[k], onchain[k]) for k in onchain if used[k] != onchain[k]}
-    if mismatch:
-        raise SystemExit(f"simulation parameters differ from the program defaults: {mismatch}")
-    return {"onchain_defaults": onchain, "used": used, "match": True}
-
-
-# ---------------------------------------------------------------------------------------------
-# Per-path precomputation: fee growth per bucket as prefix sums over steps
-# ---------------------------------------------------------------------------------------------
-
-
-@dataclass
-class Win:
-    prices: np.ndarray       # pool price path (T+1)
-    s: np.ndarray            # sqrt prices
-    step_s: float
-    sqrt_lo: np.ndarray
-    sqrt_hi: np.ndarray
-    arb_b: np.ndarray        # (T+1, nb) prefix sums of per-unit-L arbitrage fee growth, base
-    arb_q: np.ndarray        # ... quote
-    arb_v: np.ndarray        # ... valued in quote at accrual time
-    nz_b: np.ndarray         # (T+1, nb) prefix sums of noise fees reaching the bucket (total, not per L)
-    nz_q: np.ndarray
-    nz_v: np.ndarray
-    elig: np.ndarray         # (T+1, nb) cumulative count of steps where the bucket is borrowable
-
-    @property
-    def T(self) -> int:
-        return len(self.prices) - 1
-
-
-def ladder(p0: float, p: SimParams) -> tuple[np.ndarray, np.ndarray]:
-    start_tick = math.log(p0) / math.log(1.0001)
-    w = p.bucket_width_ticks
-    center = math.floor(start_tick / w) * w
-    lowers = np.array([center + (k - p.n_buckets // 2) * w for k in range(p.n_buckets)], float)
-    return np.sqrt(lpsim.tick_price(lowers)), np.sqrt(lpsim.tick_price(lowers + w))
-
-
-def lp_notional(w: Win, L: float = 1.0) -> float:
-    return float(np.sum(L * (w.sqrt_hi - w.sqrt_lo) * w.s[0]))
-
-
-def precompute(prices: np.ndarray, step_s: float, p: SimParams, noise_per_step: float,
-               noise_notional: float | None = None) -> Win:
-    """Mirror of lpsim.simulate_path's fee accrual, vectorized over steps. Noise volume is
-    noise_per_step x noise_notional (default: lpsim's lp_notional, for the self-check)."""
-    sqrt_lo, sqrt_hi = ladder(float(prices[0]), p)
-    s = np.sqrt(prices)
-    s0, s1 = s[:-1], s[1:]
-    lo, hi = np.minimum(s0, s1)[:, None], np.maximum(s0, s1)[:, None]
-    ov = np.clip(np.minimum(hi, sqrt_hi) - np.maximum(lo, sqrt_lo), 0.0, None)
-    keep = 1.0 - p.protocol_fee_share
-    up = (s1 > s0)[:, None]
-    down = (s1 < s0)[:, None]
-    dq = np.where(up, p.fee_rate * keep * ov, 0.0)
-    inv = np.clip(np.minimum(1 / lo, 1 / sqrt_lo) - np.maximum(1 / hi, 1 / sqrt_hi), 0.0, None)
-    db = np.where(down & (ov > 0), p.fee_rate * keep * inv, 0.0)
-    pt = prices[1:, None]
-    z = np.zeros((1, len(sqrt_lo)))
-    win = Win(prices=prices, s=s, step_s=step_s, sqrt_lo=sqrt_lo, sqrt_hi=sqrt_hi,
-              arb_b=np.vstack([z, np.cumsum(db, axis=0)]), arb_q=np.vstack([z, np.cumsum(dq, axis=0)]),
-              arb_v=np.vstack([z, np.cumsum(db * pt + dq, axis=0)]),
-              nz_b=z, nz_q=z, nz_v=z, elig=np.zeros(1))
-    if noise_per_step > 0:
-        inside = (s1[:, None] >= sqrt_lo) & (s1[:, None] < sqrt_hi)
-        scale = lp_notional(win) if noise_notional is None else noise_notional
-        fee_q = p.fee_rate * keep * noise_per_step * scale / 2
-        nq = inside * fee_q
-        nb = nq / pt
-        win.nz_q = np.vstack([z, np.cumsum(nq, axis=0)])
-        win.nz_b = np.vstack([z, np.cumsum(nb, axis=0)])
-        win.nz_v = np.vstack([z, np.cumsum(nq + nb * pt, axis=0)])
-    else:
-        win.nz_q = win.nz_b = win.nz_v = np.zeros_like(win.arb_v)
-    el = (s1[:, None] < sqrt_lo) | (s1[:, None] > sqrt_hi)
-    win.elig = np.vstack([np.zeros((1, len(sqrt_lo)), np.int64), np.cumsum(el, axis=0)])
-    return win
-
-
-def band_path(q: np.ndarray, f: float) -> np.ndarray:
-    """Pool price under arbitrage with fee f: it moves only to the edge of the no-arbitrage band."""
-    out = np.empty(len(q))
-    lo_m, hi_m = 1.0 / (1.0 + f), 1.0 / (1.0 - f)
-    pp = float(q[0])
-    for i, x in enumerate(q.tolist()):
-        lo, hi = x * lo_m, x * hi_m
-        if pp < lo:
-            pp = lo
-        elif pp > hi:
-            pp = hi
-        out[i] = pp
-    return out
-
-
-# ---------------------------------------------------------------------------------------------
-# Settlement of a set of borrows (vectorized), the core shared with the lpsim self-check
-# ---------------------------------------------------------------------------------------------
-
-
-def settle(w: Win, p: SimParams, nzf: float, k, to, tc, u, m, put, budget, call_notional_at_close=False) -> dict:
-    """Premium, shortfall and fee loss of borrows (bucket k, open step to, close step tc)."""
-    L, Lbg = p.lp_liquidity, p.background_ratio * p.lp_liquidity
-    k, to, tc = (np.asarray(a, np.int64) for a in (k, to, tc))
-    u, m, put, budget = (np.asarray(a, float) for a in (u, m, put, budget))
-    put = put.astype(bool)
-    den_a, den_b = L + Lbg, L * (1 - u) + Lbg
-
-    def d(arr):
-        return arr[tc, k] - arr[to, k]
-
-    dab, daq, dav = d(w.arb_b), d(w.arb_q), d(w.arb_v)
-    dnb, dnq, dnv = nzf * d(w.nz_b), nzf * d(w.nz_q), nzf * d(w.nz_v)
-    fa_b, fa_q, fa_v = L * (dab + dnb / den_a), L * (daq + dnq / den_a), L * (dav + dnv / den_a)
-    fb_b = L * (1 - u) * (dab + dnb / den_b)
-    fb_q = L * (1 - u) * (daq + dnq / den_b)
-    fb_v = L * (1 - u) * (dav + dnv / den_b)
-    forgone = u * L * (dav + dnv / den_b)
-    sa, sb = w.sqrt_lo[k], w.sqrt_hi[k]
-    px = w.prices[tc] if call_notional_at_close else w.prices[to]
-    notional = np.where(put, L * u * (sb - sa), L * u * (1 / sa - 1 / sb) * px)
-    floor = notional * p.floor_rate * (tc - to) * w.step_s / YEAR_S
-    premium = np.maximum(floor, m * forgone)
-    paid = np.minimum(premium, budget * 0.99)
-    short = premium - paid
-    loss = fa_v - fb_v
-    funded = short <= 1e-15
-    viol = int(np.sum(funded & (paid + 1e-12 * np.maximum(1.0, np.abs(loss)) < loss)))
-    return {"lost_b": float(np.sum(fa_b - fb_b)), "lost_q": float(np.sum(fa_q - fb_q)),
-            "lost_v": float(np.sum(loss)), "fees_a_int": float(np.sum(fa_v)), "idle_b_int": float(np.sum(fb_v)),
-            "premium": float(np.sum(premium)), "paid": float(np.sum(paid)), "short": float(np.sum(short)),
-            "forgone": float(np.sum(forgone)), "short_borrows": int(np.sum(~funded)), "violations": viol,
-            "floor_bound": int(np.sum(floor >= m * forgone)), "util_steps": float(np.sum(u * (tc - to)))}
-
-
-def world_a(w: Win, p: SimParams, nzf: float) -> tuple[float, float, float]:
-    """LP fees in plain Orca over the whole path: (base, quote, quote value at accrual time)."""
-    L, Lbg = p.lp_liquidity, p.background_ratio * p.lp_liquidity
-    den = L + Lbg
-    return (float(L * np.sum(w.arb_b[-1] + nzf * w.nz_b[-1] / den)),
-            float(L * np.sum(w.arb_q[-1] + nzf * w.nz_q[-1] / den)),
-            float(L * np.sum(w.arb_v[-1] + nzf * w.nz_v[-1] / den)))
-
-
-def principal(w: Win, sp: float, L: float = 1.0) -> tuple[float, float]:
-    """(base, quote) held by the ladder at sqrt price sp."""
-    s = np.clip(sp, w.sqrt_lo, w.sqrt_hi)
-    return float(np.sum(L * (1 / s - 1 / w.sqrt_hi))), float(np.sum(L * (s - w.sqrt_lo)))
-
-
-# ---------------------------------------------------------------------------------------------
-# Borrow demand: event generation (sequential per bucket, geometric waits over eligible steps)
-# ---------------------------------------------------------------------------------------------
-
-
-def generate(w: Win, p: SimParams, nzf: float, u: float, hold_s: float, budget_mode: str, seed: int,
-             usd_per_unit: float) -> dict:
-    rng = np.random.default_rng(seed)
-    T, nbk = w.T, len(w.sqrt_lo)
-    p_open = min(1.0, w.step_s / OPEN_WAIT_S)
-    hold_steps = hold_s / w.step_s
-    m = p.curve.multiplier_ppm(math.ceil(u * 1e6)) / 1e6
-    L, Lbg = p.lp_liquidity, p.background_ratio * p.lp_liquidity
-    den_b = L * (1 - u) + Lbg
-    floor_step = p.floor_rate * w.step_s / YEAR_S
-    keeper = budget_mode.endswith("+keeper")
-    keeper_steps = max(1, round(KEEPER_DELAY_S / w.step_s))
-    retry_steps = max(1, round(RESTORE_RETRY_S / w.step_s))
-    min_budget = MIN_BUDGET_USD / usd_per_unit
-    ev = {"k": [], "to": [], "tc": [], "put": [], "budget": []}
-    refusals = keeper_closes = 0
-    for k in range(nbk):
-        E = w.elig[:, k]
-        sa, sb = w.sqrt_lo[k], w.sqrt_hi[k]
-        t_free = 1
-        while True:
-            target = E[t_free - 1] + rng.geometric(p_open)
-            if target > E[T]:
-                break
-            to = int(np.searchsorted(E, target, "left"))
-            put = bool(w.s[to] > sb)
-            hold = max(1, int(rng.exponential(hold_steps)))
-            notional = L * u * (sb - sa) if put else L * u * (1 / sa - 1 / sb) * w.prices[to]
-            exp_floor = notional * floor_step * hold
-            under = rng.random() < p.budget_cap_prob
-            if budget_mode == "funded":
-                budget = notional
-            elif budget_mode.startswith("realistic"):
-                budget = (max(exp_floor * 0.5, 1e-15) if under
-                          else max(exp_floor * p.budget_multiple, notional * p.budget_notional_frac))
-            else:
-                budget = min_budget
-            tc = min(to + hold, T)
-            if keeper:
-                thr = 0.8 * 0.99 * budget
-                t_floor = to + max(1, math.ceil(thr / (notional * floor_step)))
-                seg = w.arb_v[to:tc + 1, k] + nzf * w.nz_v[to:tc + 1, k] / den_b
-                i = int(np.searchsorted(seg - seg[0], thr / (m * u * L), "left"))
-                t_trig = min(t_floor, to + max(i, 1))
-                if t_trig <= tc and t_trig + keeper_steps < tc:
-                    tc = t_trig + keeper_steps
-                    keeper_closes += 1
-            while tc < T:   # guarded restoration (end-of-path closes are forced, as in lpsim)
-                sp = w.s[tc]
-                sc = min(max(sp, sa), sb)
-                x, y = L * u * (1 / sc - 1 / sb), L * u * (sc - sa)
-                if put:
-                    full = L * u * (sb - sa)
-                    deficit = x * w.prices[tc]
-                    margin = full - (x * w.prices[tc] + y) + p.restoration_buffer * full
-                else:
-                    full = L * u * (1 / sa - 1 / sb) * w.prices[tc]
-                    deficit = y
-                    margin = full - (x * w.prices[tc] + y) + p.restoration_buffer * full
-                if deficit <= 0:
-                    break
-                cost = min(rng.exponential(p.restore_cost_bps_mean), p.restore_cost_bps_max)
-                if cost <= 50.0 and deficit * cost / 1e4 <= margin + 1e-15:
-                    break
-                refusals += 1
-                tc = min(tc + retry_steps, T)
-            for key, v in zip(ev, (k, to, tc, put, budget), strict=True):
-                ev[key].append(v)
-            t_free = tc
-    n = len(ev["k"])
-    if n:
-        r = settle(w, p, nzf, ev["k"], ev["to"], ev["tc"], [u] * n, [m] * n, ev["put"], ev["budget"])
-    else:
-        r = {key: 0.0 for key in ("lost_b", "lost_q", "lost_v", "premium", "paid", "short", "forgone",
-                                  "util_steps")}
-        r.update(short_borrows=0, violations=0, floor_bound=0)
-    r.update(borrows=n, refusals=refusals, keeper_closes=keeper_closes, util=r["util_steps"] / (nbk * T))
-    return r
 
 
 # ---------------------------------------------------------------------------------------------
@@ -385,20 +132,18 @@ def run_path(task: dict) -> np.ndarray:
     out = np.zeros((len(FEE_MODES), len(CONFIGS), len(METRICS)))
     noise_step = NOISE_PER_DAY * task["step_s"] / 86_400
     band = task["band"]
-    sl0, sh0 = ladder(float(band[0]), p)
-    xb, yb = principal(Win(band, np.sqrt(band), 0, sl0, sh0, *([None] * 7)), math.sqrt(band[0]))
-    wins = {"tick": precompute(task["tick"], task["step_s"], p, 0.0),
-            "band": precompute(band, task["step_s"], p, noise_step, noise_notional=xb * band[0] + yb)}
+    wins = {"tick": fee_growth(task["tick"], task["step_s"], p, 0.0),
+            "band": fee_growth(band, task["step_s"], p, noise_step)}
     for fi, mode in enumerate(FEE_MODES):
         w = wins["tick" if mode == "arb" else "band"]
         nzf = 1.0 if mode == "band+noise" else 0.0
-        x0, y0 = principal(w, w.s[0])
+        x0, y0 = ladder_amounts(w.sqrt_lo, w.sqrt_hi, w.s[0])
         v0 = x0 * w.prices[0] + y0
         pT = float(w.prices[-1])
         hodl = x0 * pT + y0
-        xT, yT = principal(w, w.s[-1])
+        xT, yT = ladder_amounts(w.sqrt_lo, w.sqrt_hi, w.s[-1])
         pos = xT * pT + yT
-        a_b, a_q, _ = world_a(w, p, nzf)
+        a_b, a_q, _ = world_a_fees(w, p, nzf)
         fees_a = a_b * pT + a_q
         usd = CAPITAL_USD / v0
         days = w.T * w.step_s / 86_400
@@ -409,7 +154,9 @@ def run_path(task: dict) -> np.ndarray:
                      "util": 0.0, "violations": 0, "floor_bound": 0}
             else:
                 di = CONFIGS.index((name, u, hold, "funded"))
-                r = generate(w, p, nzf, u, HOLDS_S[hold], budget, task["seed"] + 1_000 * di, usd)
+                r = simulate_demand(w, p, u, HOLDS_S[hold], budget.removesuffix("+keeper"),
+                                    budget.endswith("+keeper"), task["seed"] + 1_000 * di,
+                                    min_budget=MIN_BUDGET_USD / usd, open_wait_s=OPEN_WAIT_S, nzf=nzf)
             fees_b = (a_b - r["lost_b"]) * pT + (a_q - r["lost_q"]) + r["paid"]
             row = {"v0": v0, "hodl": hodl, "pos": pos, "fees_a": fees_a, "fees_b": fees_b, "days": days, **r}
             out[fi, ci] = [row[mtr] * (usd if mtr in USD_METRICS else 1.0) for mtr in METRICS]
@@ -498,43 +245,23 @@ def gbm_tasks(start: float, p: SimParams, quick: bool) -> tuple[list, list]:
 
 
 def self_check(mk: markets.Market, p: SimParams) -> dict:
-    """Run lpsim on two days of history, record its borrow events, re-settle them here, compare."""
+    """forge_math.lpsim.replay_check on two days of history: the event engine used here must reproduce
+    the reference step simulation (simulate_path) on its exact borrows, with and without noise and
+    keeper closes, under both fee models."""
     d = np.load(mk.history_path())
     n = 2 * 1440
     prices = ohlc_path(d["open"][:n], d["high"][:n], d["low"][:n], d["close"][:n], True)
+    base = replace(p, step_seconds=OHLC_STEP_S, open_prob=0.01, mean_hold_steps=600.0)
+    cases = {"arb-band": base, "band+noise": replace(base, noise_volume_per_step=0.0005),
+             "band+keeper": replace(base, keeper=True, budget_cap_prob=0.5),
+             "arb (legacy)": replace(base, fee_model="legacy-every-price")}
     out = {}
-    for label, noise in (("arb", 0.0), ("arb+noise", 0.0005)):
-        params = replace(p, step_seconds=OHLC_STEP_S, open_prob=0.01, mean_hold_steps=600.0,
-                         restore_cost_bps_mean=0.0, restore_cost_bps_max=0.0, noise_volume_per_step=noise)
-        events: list = []
-        orig = lpsim.Borrow
-
-        class Rec(orig):
-            def __init__(self, *a, _ev=events, **kw):
-                super().__init__(*a, **kw)
-                _ev.append(self)
-
-        lpsim.Borrow = Rec
-        try:
-            ref = simulate_path(prices, params, seed=SEED, path_id="self-check")
-        finally:
-            lpsim.Borrow = orig
-        w = precompute(prices, OHLC_STEP_S, params, noise)
-        T = w.T
-        r = settle(w, params, 1.0, [b.bucket for b in events], [b.opened for b in events],
-                   [min(b.close_at, T) for b in events], [b.util for b in events], [b.multiplier for b in events],
-                   [b.kind == "put" for b in events], [b.budget for b in events], call_notional_at_close=True)
-        a_b, a_q, a_v = world_a(w, params, 1.0)
-        pT = float(prices[-1])
-        mine = {"lp_fees_world_a": a_v, "lp_idle_fees_world_b": a_v - r["lost_v"], "premium_paid": r["paid"],
-                "shortfall": r["short"], "measured_forgone": r["forgone"], "final_value_a": a_b * pT + a_q,
-                "final_value_b": (a_b - r["lost_b"]) * pT + (a_q - r["lost_q"]) + r["paid"]}
-        theirs = {k: getattr(ref, k) for k in mine}
-        rel = {k: abs(mine[k] - theirs[k]) / max(abs(theirs[k]), 1e-30) for k in mine}
-        ok = all(v < 1e-7 for v in rel.values()) and len(events) == ref.borrows
-        out[label] = {"borrows": ref.borrows, "max_rel_error": max(rel.values()), "ok": ok, "lpsim": theirs}
-        if not ok:
-            raise SystemExit(f"self-check against lpsim failed ({label}): {rel}")
+    for label, params in cases.items():
+        r = replay_check(prices, params, seed=SEED)
+        out[label] = {k: r[k] for k in ("borrows", "keeper_closes", "refusals", "max_rel_error")}
+        out[label]["ok"] = r["max_rel_error"] < 1e-7
+        if not out[label]["ok"]:
+            raise SystemExit(f"self-check against lpsim.simulate_path failed ({label}): {r['rel_error']}")
     return out
 
 
@@ -672,7 +399,8 @@ def write_md(path: Path, mk: markets.Market, meta: dict, rows: list[dict], fails
          "Program parameters (asserted equal to the programs/forge defaults): floor 5%/yr on borrowed notional, "
          "m(u) = 1 + u to 60%, 1.6 + 6(u - 0.6) to the 80% cap, LP cap = budget - 1% keeper bounty, keeper "
          "trigger at 80% of the cap, restoration buffer 2%, swap slippage cap 0.5%. The event engine reproduces "
-         f"forge_math.lpsim exactly on identical borrows (max relative error {meta['self_check_max_rel_error']:.1e}).",
+         "forge_math.lpsim.simulate_path exactly on identical borrows "
+         f"(max relative error {meta['self_check_max_rel_error']:.1e}).",
          "",
          f"Fee models: **arb-band** = arbitrage only, pool follows the price only outside the {mk.fee_rate:.2%} "
          "no-arbitrage band (conservative lower bound); **band+noise** = arb-band plus round-trip noise volume of "
@@ -771,8 +499,8 @@ def write_md(path: Path, mk: markets.Market, meta: dict, rows: list[dict], fails
           f"{meta['refusals']} over all runs. They delay restoration; they never reduce the LP's liquidity.", "",
           "Every number (all regimes x fee models x demand x budgets, per-config failure lists, per-window values "
           "for realistic budgets) is in lp_profitability.json.", "",
-          "Deviations from forge_math.lpsim (this benchmark follows the program):", ""]
-    L += [f"- {x}" for x in LPSIM_DEVIATIONS]
+          "Model notes:", ""]
+    L += [f"- {x}" for x in MODEL_CHOICES]
     text = "\n".join(L) + "\n"
     path.write_text(text)
     return text
@@ -794,8 +522,8 @@ def main(argv=None) -> int:
         print(f"missing price data: run benchmarks/fetch_history.py --symbol {mk.symbol} first", file=sys.stderr)
         return 1
     stride = args.stride_days or (30 if args.quick else 1)
-    p = SimParams(fee_rate=mk.fee_rate, bucket_width_ticks=mk.bucket_ticks)
-    prog = program_params(p)
+    p = SimParams.from_program(fee_rate=mk.fee_rate, bucket_width_ticks=mk.bucket_ticks)
+    prog = program_parity(p)
     t0 = time.time()
     check = self_check(mk, p)
     spot, _ = markets.spot(mk)
@@ -852,11 +580,11 @@ def main(argv=None) -> int:
         "not_a_replay": "Binance bars drive a simulated pool (arbitrage to each price, optional noise volume); "
                         "not a replay of Orca swaps. Borrow demand and budgets are assumptions swept below.",
         "seed": SEED, "seconds": seconds, "capital_usd": CAPITAL_USD, "params": params_dict,
-        "program_params": prog, "lpsim_deviations": LPSIM_DEVIATIONS, "self_check": check,
+        "program_params": prog, "model_choices": MODEL_CHOICES, "self_check": check,
         "design": {"horizons_days": HORIZONS, "stride_days": stride, "fee_modes": FEE_MODES,
                    "noise_per_day_x_lp_notional": NOISE_PER_DAY, "utils": UTILS, "holds_s": HOLDS_S,
-                   "open_wait_s": OPEN_WAIT_S, "budgets": BUDGET_TEXT, "keeper_delay_s": KEEPER_DELAY_S,
-                   "restore_retry_s": RESTORE_RETRY_S, "min_budget_usd": MIN_BUDGET_USD,
+                   "open_wait_s": OPEN_WAIT_S, "budgets": BUDGET_TEXT, "keeper_delay_s": p.keeper_delay_s,
+                   "restore_retry_s": p.restore_retry_s, "min_budget_usd": MIN_BUDGET_USD,
                    "configs": [{"demand": c[0], "util": c[1], "hold": c[2], "budget": c[3]} for c in CONFIGS]},
         "meta": meta, "summary": rows, "failure_modes": fails, "windows": per_window,
     }, indent=1, default=float) + "\n")
