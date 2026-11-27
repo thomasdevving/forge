@@ -9,7 +9,8 @@
     "bootstrap": "tsx scripts/bootstrap.ts",
     "observe-orca": "tsx scripts/observe-orca.ts",
     "proxy": "tsx src/proxy.ts",
-    "control": "tsx src/control.ts"
+    "control": "tsx src/control.ts",
+    "keeper": "tsx src/keeper.ts"
   },
   "dependencies": {
     "@fastify/cors": "11.1.0",

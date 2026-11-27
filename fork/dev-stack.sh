@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Local FORGE service stack against a running, bootstrapped fork (fork/start.sh + bootstrap):
-# compiler API :8000, indexer :8787, txbuilder :8788, public RPC proxy :8890, demo control :8791.
+# compiler API :8000, indexer :8787, txbuilder :8788, public RPC proxy :8890, demo control :8791,
+# and the keeper (closes positions at their on-chain triggers).
 # Ctrl-C stops everything. The app: pnpm --filter @forge/app dev (http://localhost:3000).
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -17,4 +18,5 @@ start indexer env PORT=8787 pnpm --dir services/indexer start
 start txbuilder env PORT=8788 FORGE_LOOKUP_TABLES="$ALT" FORGE_DEPLOYMENT_FILE="$PWD/fork/.state/deployment.json" pnpm --dir services/txbuilder start
 start rpc-proxy env PORT=8890 pnpm --dir fork proxy
 start control env PORT=8791 pnpm --dir fork control
+start keeper pnpm --dir fork keeper
 wait

@@ -37,6 +37,7 @@ start indexer env PORT=8787 pnpm --dir services/indexer start
 start txbuilder env PORT=8788 FORGE_LOOKUP_TABLES="$ALT" FORGE_DEPLOYMENT_FILE="$PWD/fork/.state/deployment.json" pnpm --dir services/txbuilder start
 start rpc-proxy env PORT=8890 pnpm --dir fork proxy
 start control env PORT=8791 pnpm --dir fork control
+start keeper pnpm --dir fork keeper
 start gateway env PORT="${PORT:-8080}" pnpm --dir fork exec tsx src/gateway.ts
 
 # any process exiting stops the container, so Railway restarts it cleanly
