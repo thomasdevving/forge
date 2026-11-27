@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import meta from "../../../public/shots/meta.json";
+import { Stars } from "./Stars";
 
 type Meta = { spot: number; target: [number, number][]; certifiedBound: number; maxErrorAt: number; solveMs: number; capitalLocked: number; holdings: { base: number } };
 const m = meta as unknown as Meta;
@@ -53,9 +54,10 @@ export function Hero() {
   const floor = m.target[1]!, cap = m.target[2]!;
 
   return (
-    <section ref={root} className="hero relative isolate flex min-h-dvh items-center overflow-hidden pt-16" aria-label="Introduction">
+    <section ref={root} className="hero relative isolate flex min-h-dvh items-center overflow-hidden pt-14" aria-label="Introduction">
       {/* background */}
       <div className="pointer-events-none absolute inset-0 -z-10 bg-bg" aria-hidden>
+        <Stars className="hero-stars absolute inset-0 h-full w-full [mask-image:radial-gradient(circle_at_86%_30%,transparent_0,transparent_36vh,black_44vh)]" />
         <img src="/bg/moon.jpg" alt="" className="hero-moon absolute -right-[4%] -top-[14%] h-[108%] w-auto max-w-none mix-blend-lighten [mask-image:radial-gradient(80%_75%_at_72%_32%,black_45%,transparent_95%)]" />
         <img src="/bg/terrain.jpg" alt="" className="hero-terrain absolute inset-x-[-4%] bottom-[-12%] w-[108%] max-w-none mix-blend-lighten [mask-image:linear-gradient(90deg,rgba(0,0,0,0.25)_0%,black_40%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(55%_75%_at_18%_50%,var(--bg)_20%,transparent_75%)]" />
@@ -64,7 +66,7 @@ export function Hero() {
         <div className="hero-dots absolute left-[3%] top-[14%] h-28 w-48" />
       </div>
 
-      <div className="mx-auto grid w-full max-w-[1480px] items-center gap-12 px-5 py-16 sm:px-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-6 lg:py-0">
+      <div className="mx-auto grid w-full max-w-[1480px] items-center gap-12 px-5 py-16 sm:px-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-6 lg:py-[4vh]">
         {/* copy */}
         <div className="relative z-10">
           <div className="hero-in flex items-center gap-4" style={{ animationDelay: "80ms" }}>
@@ -77,14 +79,14 @@ export function Hero() {
             <span className="h-px w-10 bg-line-strong" aria-hidden />
             <span className="num text-[11px] uppercase tracking-[0.28em] text-ink-3">Orca liquidity</span>
           </div>
-          <h1 className="hero-in mt-7 font-display text-[clamp(2.6rem,4.4vw,5.2rem)] font-semibold leading-[1.02] tracking-[-0.04em]" style={{ animationDelay: "160ms" }}>
+          <h1 className="hero-in mt-[min(1.75rem,3vh)] font-display text-[clamp(2.2rem,min(4.2vw,7.4vh),5.2rem)] font-semibold leading-[1.02] tracking-[-0.04em]" style={{ animationDelay: "160ms" }}>
             Draw a payoff. Get it built from <span className="text-ink-3">Orca liquidity.</span>
           </h1>
-          <p className="hero-in mt-7 max-w-xl text-[17px] leading-relaxed text-ink-2" style={{ animationDelay: "260ms" }}>
-            Set what your SOL should be worth at close, for example <span className="text-ink">10 SOL never below {usd(floor[1], 0)}, gains capped at {usd(cap[1], 0)}</span>.
-            FORGE builds that payoff from Orca SOL/USDC liquidity ranges, certifies the worst-case error and opens it as your own on-chain position.
+          <p className="hero-in mt-[min(1.75rem,3vh)] max-w-xl text-[clamp(14px,min(1.15vw,2.5vh),17px)] leading-relaxed text-ink-2" style={{ animationDelay: "260ms" }}>
+            Pick any Solana token with Orca liquidity and set what it should be worth at close, for example <span className="text-ink">10 SOL never below {usd(floor[1], 0)}, gains capped at {usd(cap[1], 0)}</span>.
+            FORGE builds that payoff from the token&apos;s own liquidity ranges, certifies the worst-case error and opens it as your on-chain position.
           </p>
-          <div className="hero-in mt-9 flex flex-wrap gap-3" style={{ animationDelay: "360ms" }}>
+          <div className="hero-in mt-[min(2.25rem,4vh)] flex flex-wrap gap-3" style={{ animationDelay: "360ms" }}>
             <Link href="/studio" className="btn btn-primary !px-6 !py-3 !text-[15px]">
               Open the Studio <span aria-hidden>↗</span>
             </Link>
@@ -93,7 +95,7 @@ export function Hero() {
         </div>
 
         {/* tilted Studio with cards from the same compile */}
-        <div className="hero-stage relative z-0 lg:-mr-10">
+        <div className="hero-stage relative z-0 mx-auto w-full max-w-[calc((100dvh-150px)*1.6)] lg:ml-[-2rem] lg:mr-auto lg:w-[94%]">
           <div className="hero-screen relative overflow-hidden rounded-[10px] border border-[rgba(183,196,214,0.16)] bg-bg shadow-[0_50px_140px_-30px_rgba(5,6,8,0.95),0_0_80px_-10px_rgba(183,196,214,0.10)]">
             <img src="/shots/studio-compiled.jpg" alt="The Studio after compiling a collar on 10 SOL: payoff chart, ranges, cost and certificate" className="block w-full" />
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(242,244,248,0.07),transparent_32%)]" />
@@ -101,7 +103,7 @@ export function Hero() {
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-bg/90 to-transparent" />
           </div>
 
-          <div className="hero-card float-a absolute -bottom-10 left-[-4%] w-[min(300px,52%)] sm:left-[-6%]">
+          <div className="hero-card float-a absolute -bottom-6 left-[-4%] w-[min(280px,46%)] sm:left-[-6%]">
             <div className="cap">Collar · {m.holdings.base} SOL</div>
             <div className="mt-1 flex items-end justify-between gap-3">
               <div>
@@ -112,13 +114,13 @@ export function Hero() {
             </div>
           </div>
 
-          <div className="hero-card float-b absolute -right-2 bottom-[18%] hidden w-[250px] sm:block lg:-right-6">
+          <div className="hero-card float-b absolute -right-2 bottom-[18%] hidden w-[min(240px,40%)] sm:block lg:-right-6">
             <div className="cap">Certified max error</div>
             <div className="num mt-1 text-[26px] font-medium leading-none">±{usd(m.certifiedBound)}</div>
             <div className="cap mt-1.5">on a {usd(floor[1], 0)}–{usd(cap[1], 0)} payoff · {m.solveMs} ms</div>
           </div>
 
-          <div className="hero-card float-c absolute -top-8 right-[8%] hidden w-[210px] md:block">
+          <div className="hero-card float-c absolute -top-6 right-[8%] hidden w-[min(200px,34%)] md:block">
             <div className="cap">SOL/USDC at snapshot</div>
             <div className="num mt-1 text-[22px] font-medium leading-none">{usd(m.spot)}</div>
             <div className="cap mt-1.5">Orca Whirlpool</div>

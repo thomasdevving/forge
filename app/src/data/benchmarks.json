@@ -1,302 +1,848 @@
 {
+ "market": "JUP/USDC",
  "replication": {
-  "run": "20261127-144044-336b38d",
+  "run": "20261127-155803-d513c2d-jup",
   "summary": {
    "baseline/deep": {
     "payoffs": 23,
-    "feasible": 15,
-    "feasibility_rate": 0.6521739130434783,
-    "median_relative_error_bps": 27.92035775533431,
-    "max_relative_error_bps": 70.7615602465866,
-    "mean_legs": 1.9333333333333333,
-    "mean_solve_ms": 1.9246032208447224
+    "feasible": 18,
+    "feasibility_rate": 0.782608695652174,
+    "median_relative_error_bps": 25.086833752891398,
+    "max_relative_error_bps": 58.59531872493129,
+    "mean_legs": 2,
+    "mean_solve_ms": 2.0273007634703233
    },
    "optimizer/deep": {
     "payoffs": 23,
     "feasible": 20,
     "feasibility_rate": 0.8695652173913043,
-    "median_relative_error_bps": 17.785579091695787,
-    "max_relative_error_bps": 83.95587506178026,
-    "mean_legs": 3.6,
-    "mean_solve_ms": 442.4511882851062
+    "median_relative_error_bps": 15.139408127527203,
+    "max_relative_error_bps": 86.79021108654217,
+    "mean_legs": 3.8,
+    "mean_solve_ms": 464.5030109677464
    },
    "baseline/thin": {
     "payoffs": 23,
     "feasible": 1,
     "feasibility_rate": 0.043478260869565216,
-    "median_relative_error_bps": 49.59484311073839,
-    "max_relative_error_bps": 49.59484311073839,
+    "median_relative_error_bps": 23.464675443997113,
+    "max_relative_error_bps": 23.464675443997113,
     "mean_legs": 3,
-    "mean_solve_ms": 1.8624439126933399
+    "mean_solve_ms": 2.3467372596749794
    },
    "optimizer/thin": {
     "payoffs": 23,
     "feasible": 19,
     "feasibility_rate": 0.8260869565217391,
-    "median_relative_error_bps": 25.531307947951976,
-    "max_relative_error_bps": 61.96646206793653,
-    "mean_legs": 5.7894736842105265,
-    "mean_solve_ms": 315.07084608260215
+    "median_relative_error_bps": 23.003255270800377,
+    "max_relative_error_bps": 76.02090012081462,
+    "mean_legs": 5.684210526315789,
+    "mean_solve_ms": 281.0872988623526
    }
   },
   "boundViolations": 0,
+  "spot": 0.2582,
+  "units": 2836.1735089078234,
   "payoffs": 23
  },
  "realized": {
-  "run": "20261127-144044-336b38d",
-  "rows": [
+  "run": "20261127-155803-d513c2d-jup",
+  "refused": [
    {
     "payoff": "protective_put",
     "move": 0.9,
-    "close": 65.33913143536383,
-    "target": 667.9111213392748,
-    "construction": 666.4335304000612,
-    "bound": 1.7595826093536535,
-    "gross": 666.1799922978414,
-    "net": 664.6157982978414,
-    "premium": 1.564194,
-    "feeCredits": 0,
-    "swapCost": 0.2535364606698778,
-    "gap": -0.2535381022197498
+    "guard": "SwapSlippage"
    },
    {
+    "payoff": "collar",
+    "move": 0.9,
+    "guard": "PoolDeviation"
+   },
+   {
+    "payoff": "strangle",
+    "move": 0.9,
+    "guard": "PoolDeviation"
+   }
+  ],
+  "rows": [
+   {
+    "units": 3000,
+    "slippageBps": 150,
     "payoff": "protective_put",
     "move": 1,
-    "close": 72.59903492818205,
-    "target": 725.9903492818205,
-    "construction": 724.2564159590898,
-    "bound": 1.7595826093536535,
-    "gross": 724.2564138864908,
-    "net": 724.2564108864908,
+    "close": 0.24557957985493123,
+    "target": 736.7387395647936,
+    "construction": 734.6971010319871,
+    "bound": 2.095686692350874,
+    "gross": 734.6970987864075,
+    "net": 734.6970957864075,
     "premium": 0.000003,
     "feeCredits": 0,
     "swapCost": 0,
-    "gap": -0.0000020725990452774568
+    "gap": -0.0000022455795942732948,
+    "spot": 0.24557957985493123,
+    "legs": [
+     "BorrowQuote@-15104",
+     "BorrowQuote@-14848",
+     "BorrowBase@-13824"
+    ],
+    "detail": {
+     "cash": 0,
+     "base": 2991.686448303183,
+     "legs": [
+      {
+       "kind": "borrow_put",
+       "side": "borrowed",
+       "tick_lower": -15104,
+       "tick_upper": -14848,
+       "price_lower": 0.22083830760624934,
+       "price_upper": 0.2265644640752788,
+       "liquidity_onchain": 71707907015
+      },
+      {
+       "kind": "borrow_put",
+       "side": "borrowed",
+       "tick_lower": -14848,
+       "tick_upper": -14592,
+       "price_lower": 0.2265644640752788,
+       "price_upper": 0.2324390950923304,
+       "liquidity_onchain": 41163929229
+      },
+      {
+       "kind": "borrow_call",
+       "side": "borrowed",
+       "tick_lower": -13824,
+       "tick_upper": -13568,
+       "price_lower": 0.25099283536821243,
+       "price_upper": 0.2575008740481967,
+       "liquidity_onchain": 1521984360
+      }
+     ]
+    },
+    "breakpoints": [
+     [
+      0.1350687689202122,
+      677.7996403996102
+     ],
+     [
+      0.22593321346653675,
+      677.7996403996102
+     ],
+     [
+      0.39292732776788997,
+      1178.78198330367
+     ]
+    ]
    },
    {
+    "units": 3000,
+    "slippageBps": 150,
     "payoff": "protective_put",
     "move": 1.1,
-    "close": 79.85893842100025,
-    "target": 798.5893842100024,
-    "construction": 797.2745101263992,
-    "bound": 1.7595826093536535,
-    "gross": 797.27127277093,
-    "net": 797.2501137709299,
-    "premium": 0.021159,
+    "close": 0.27013753784042444,
+    "target": 810.4126135212733,
+    "construction": 808.7815670706931,
+    "bound": 2.095686692350874,
+    "gross": 808.7745143222375,
+    "net": 808.7487683222374,
+    "premium": 0.025746,
     "feeCredits": 0,
-    "swapCost": 0.003234661204594147,
-    "gap": -0.0032373554691957906
+    "swapCost": 0.007050355598718028,
+    "gap": -0.007052748455635083,
+    "spot": 0.24557957985493123,
+    "legs": [
+     "BorrowQuote@-15104",
+     "BorrowQuote@-14848",
+     "BorrowBase@-13824"
+    ],
+    "detail": {
+     "cash": 0,
+     "base": 2991.686448303183,
+     "legs": [
+      {
+       "kind": "borrow_put",
+       "side": "borrowed",
+       "tick_lower": -15104,
+       "tick_upper": -14848,
+       "price_lower": 0.22083830760624934,
+       "price_upper": 0.2265644640752788,
+       "liquidity_onchain": 71707907015
+      },
+      {
+       "kind": "borrow_put",
+       "side": "borrowed",
+       "tick_lower": -14848,
+       "tick_upper": -14592,
+       "price_lower": 0.2265644640752788,
+       "price_upper": 0.2324390950923304,
+       "liquidity_onchain": 41163929229
+      },
+      {
+       "kind": "borrow_call",
+       "side": "borrowed",
+       "tick_lower": -13824,
+       "tick_upper": -13568,
+       "price_lower": 0.25099283536821243,
+       "price_upper": 0.2575008740481967,
+       "liquidity_onchain": 1521984360
+      }
+     ]
+    },
+    "breakpoints": [
+     [
+      0.1350687689202122,
+      677.7996403996102
+     ],
+     [
+      0.22593321346653675,
+      677.7996403996102
+     ],
+     [
+      0.39292732776788997,
+      1178.78198330367
+     ]
+    ]
    },
    {
-    "payoff": "collar",
-    "move": 0.9,
-    "close": 65.33913143536383,
-    "target": 667.9111213392748,
-    "construction": 665.754521299786,
-    "bound": 2.6154928374262156,
-    "gross": 665.5169647765392,
-    "net": 664.0480247765393,
-    "premium": 1.46894,
-    "feeCredits": 0,
-    "swapCost": 0.23755573063507995,
-    "gap": -0.23755652324678067
-   },
-   {
+    "units": 3000,
+    "slippageBps": 150,
     "payoff": "collar",
     "move": 1,
-    "close": 72.59903492818205,
-    "target": 725.9903492818205,
-    "construction": 725.8449898413336,
-    "bound": 2.6154928374262156,
-    "gross": 725.8449877517105,
-    "net": 725.8449857517105,
+    "close": 0.24557957985493123,
+    "target": 736.7387395647937,
+    "construction": 737.5154470191584,
+    "bound": 2.7392759311879233,
+    "gross": 737.5154447766961,
+    "net": 737.5154427766961,
     "premium": 0.000002,
     "feeCredits": 0,
     "swapCost": 0,
-    "gap": -0.00000208962308079208
+    "gap": -0.000002242462301182968,
+    "spot": 0.24557957985493123,
+    "legs": [
+     "BorrowQuote@-15104",
+     "BorrowQuote@-14848",
+     "ProvideBase@-13568",
+     "ProvideBase@-13312"
+    ],
+    "detail": {
+     "cash": 0.7767074574820423,
+     "base": 0,
+     "legs": [
+      {
+       "kind": "borrow_put",
+       "side": "borrowed",
+       "tick_lower": -15104,
+       "tick_upper": -14848,
+       "price_lower": 0.22083830760624934,
+       "price_upper": 0.2265644640752788,
+       "liquidity_onchain": 93729532224
+      },
+      {
+       "kind": "borrow_put",
+       "side": "borrowed",
+       "tick_lower": -14848,
+       "tick_upper": -14592,
+       "price_lower": 0.2265644640752788,
+       "price_upper": 0.2324390950923304,
+       "liquidity_onchain": 19730535375
+      },
+      {
+       "kind": "provide_call",
+       "side": "provided",
+       "tick_lower": -13568,
+       "tick_upper": -13312,
+       "price_lower": 0.2575008740481967,
+       "price_upper": 0.26417766084164024,
+       "liquidity_onchain": 30126536804
+      },
+      {
+       "kind": "provide_call",
+       "side": "provided",
+       "tick_lower": -13312,
+       "tick_upper": -13056,
+       "price_lower": 0.26417766084164024,
+       "price_upper": 0.2710275712489351,
+       "liquidity_onchain": 90728594307
+      }
+     ]
+    },
+    "breakpoints": [
+     [
+      0.1350687689202122,
+      677.7996403996102
+     ],
+     [
+      0.22593321346653675,
+      677.7996403996102
+     ],
+     [
+      0.26522594624332574,
+      795.6778387299772
+     ],
+     [
+      0.39292732776788997,
+      795.6778387299772
+     ]
+    ]
    },
    {
+    "units": 3000,
+    "slippageBps": 150,
     "payoff": "collar",
     "move": 1.1,
-    "close": 79.85893842100025,
-    "target": 784.0695772243662,
-    "construction": 785.6649675581416,
-    "bound": 2.6154928374262156,
-    "gross": 785.6649645369569,
-    "net": 787.4394695369568,
-    "premium": 0.000007,
-    "feeCredits": 1.774512,
+    "close": 0.27013753784042444,
+    "target": 795.6778387299772,
+    "construction": 798.2850463781547,
+    "bound": 2.7392759311879233,
+    "gross": 798.2850433728123,
+    "net": 800.1699343728123,
+    "premium": 0.000005,
+    "feeCredits": 1.884896,
     "swapCost": 0,
-    "gap": -0.0000030211847388272872
+    "gap": -0.0000030053423643039423,
+    "spot": 0.24557957985493123,
+    "legs": [
+     "BorrowQuote@-15104",
+     "BorrowQuote@-14848",
+     "ProvideBase@-13568",
+     "ProvideBase@-13312"
+    ],
+    "detail": {
+     "cash": 0.7767074574820423,
+     "base": 0,
+     "legs": [
+      {
+       "kind": "borrow_put",
+       "side": "borrowed",
+       "tick_lower": -15104,
+       "tick_upper": -14848,
+       "price_lower": 0.22083830760624934,
+       "price_upper": 0.2265644640752788,
+       "liquidity_onchain": 93729532224
+      },
+      {
+       "kind": "borrow_put",
+       "side": "borrowed",
+       "tick_lower": -14848,
+       "tick_upper": -14592,
+       "price_lower": 0.2265644640752788,
+       "price_upper": 0.2324390950923304,
+       "liquidity_onchain": 19730535375
+      },
+      {
+       "kind": "provide_call",
+       "side": "provided",
+       "tick_lower": -13568,
+       "tick_upper": -13312,
+       "price_lower": 0.2575008740481967,
+       "price_upper": 0.26417766084164024,
+       "liquidity_onchain": 30126536804
+      },
+      {
+       "kind": "provide_call",
+       "side": "provided",
+       "tick_lower": -13312,
+       "tick_upper": -13056,
+       "price_lower": 0.26417766084164024,
+       "price_upper": 0.2710275712489351,
+       "liquidity_onchain": 90728594307
+      }
+     ]
+    },
+    "breakpoints": [
+     [
+      0.1350687689202122,
+      677.7996403996102
+     ],
+     [
+      0.22593321346653675,
+      677.7996403996102
+     ],
+     [
+      0.26522594624332574,
+      795.6778387299772
+     ],
+     [
+      0.39292732776788997,
+      795.6778387299772
+     ]
+    ]
    },
    {
+    "units": 3000,
+    "slippageBps": 150,
     "payoff": "call_spread",
     "move": 0.9,
-    "close": 65.33913143536383,
-    "target": 326.69565717681917,
-    "construction": 325.4966778381769,
-    "bound": 1.3483092566281767,
-    "gross": 325.4966776464062,
-    "net": 325.49667364640624,
+    "close": 0.22102162186943813,
+    "target": 331.5324328041572,
+    "construction": 330.7894529163015,
+    "bound": 1.406257958166993,
+    "gross": 330.78945248766473,
+    "net": 330.78944948766474,
+    "premium": 0.000003,
+    "feeCredits": 0,
+    "swapCost": 0,
+    "gap": -4.2863678118010284e-7,
+    "spot": 0.24557957985493123,
+    "legs": [
+     "BorrowBase@-13824",
+     "ProvideBase@-13312",
+     "ProvideBase@-13056"
+    ],
+    "detail": {
+     "cash": 0,
+     "base": 0,
+     "legs": [
+      {
+       "kind": "borrow_call",
+       "side": "borrowed",
+       "tick_lower": -13824,
+       "tick_upper": -13568,
+       "price_lower": 0.25099283536821243,
+       "price_upper": 0.2575008740481967,
+       "liquidity_onchain": 59089463492
+      },
+      {
+       "kind": "provide_call",
+       "side": "provided",
+       "tick_lower": -13312,
+       "tick_upper": -13056,
+       "price_lower": 0.26417766084164024,
+       "price_upper": 0.2710275712489351,
+       "liquidity_onchain": 34996315299
+      },
+      {
+       "kind": "provide_call",
+       "side": "provided",
+       "tick_lower": -13056,
+       "tick_upper": -12800,
+       "price_lower": 0.2710275712489351,
+       "price_upper": 0.27805509422361546,
+       "liquidity_onchain": 25817778966
+      }
+     ]
+    },
+    "breakpoints": [
+     [
+      0.1350687689202122,
+      202.60315338031828
+     ],
+     [
+      0.2554027630491285,
+      383.1041445736928
+     ],
+     [
+      0.2701375378404244,
+      427.30846894758037
+     ],
+     [
+      0.39292732776788997,
+      611.4931538387788
+     ]
+    ]
+   },
+   {
+    "units": 3000,
+    "slippageBps": 150,
+    "payoff": "call_spread",
+    "move": 1,
+    "close": 0.24557957985493123,
+    "target": 368.36936978239686,
+    "construction": 367.5438365736683,
+    "bound": 1.406257958166993,
+    "gross": 367.5438360974052,
+    "net": 367.5438350974052,
+    "premium": 0.000001,
+    "feeCredits": 0,
+    "swapCost": 0,
+    "gap": -4.762630965160497e-7,
+    "spot": 0.24557957985493123,
+    "legs": [
+     "BorrowBase@-13824",
+     "ProvideBase@-13312",
+     "ProvideBase@-13056"
+    ],
+    "detail": {
+     "cash": 0,
+     "base": 0,
+     "legs": [
+      {
+       "kind": "borrow_call",
+       "side": "borrowed",
+       "tick_lower": -13824,
+       "tick_upper": -13568,
+       "price_lower": 0.25099283536821243,
+       "price_upper": 0.2575008740481967,
+       "liquidity_onchain": 59089463492
+      },
+      {
+       "kind": "provide_call",
+       "side": "provided",
+       "tick_lower": -13312,
+       "tick_upper": -13056,
+       "price_lower": 0.26417766084164024,
+       "price_upper": 0.2710275712489351,
+       "liquidity_onchain": 34996315299
+      },
+      {
+       "kind": "provide_call",
+       "side": "provided",
+       "tick_lower": -13056,
+       "tick_upper": -12800,
+       "price_lower": 0.2710275712489351,
+       "price_upper": 0.27805509422361546,
+       "liquidity_onchain": 25817778966
+      }
+     ]
+    },
+    "breakpoints": [
+     [
+      0.1350687689202122,
+      202.60315338031828
+     ],
+     [
+      0.2554027630491285,
+      383.1041445736928
+     ],
+     [
+      0.2701375378404244,
+      427.30846894758037
+     ],
+     [
+      0.39292732776788997,
+      611.4931538387788
+     ]
+    ]
+   },
+   {
+    "units": 3000,
+    "slippageBps": 150,
+    "payoff": "call_spread",
+    "move": 1.1,
+    "close": 0.27013753784042444,
+    "target": 427.3084689475804,
+    "construction": 425.9022194081166,
+    "bound": 1.406257958166993,
+    "gross": 424.8557081517654,
+    "net": 424.37743115176534,
+    "premium": 1.006476,
+    "feeCredits": 0.528199,
+    "swapCost": 1.0465099823682067,
+    "gap": -1.0465112563512093,
+    "spot": 0.24557957985493123,
+    "legs": [
+     "BorrowBase@-13824",
+     "ProvideBase@-13312",
+     "ProvideBase@-13056"
+    ],
+    "detail": {
+     "cash": 0,
+     "base": 0,
+     "legs": [
+      {
+       "kind": "borrow_call",
+       "side": "borrowed",
+       "tick_lower": -13824,
+       "tick_upper": -13568,
+       "price_lower": 0.25099283536821243,
+       "price_upper": 0.2575008740481967,
+       "liquidity_onchain": 59089463492
+      },
+      {
+       "kind": "provide_call",
+       "side": "provided",
+       "tick_lower": -13312,
+       "tick_upper": -13056,
+       "price_lower": 0.26417766084164024,
+       "price_upper": 0.2710275712489351,
+       "liquidity_onchain": 34996315299
+      },
+      {
+       "kind": "provide_call",
+       "side": "provided",
+       "tick_lower": -13056,
+       "tick_upper": -12800,
+       "price_lower": 0.2710275712489351,
+       "price_upper": 0.27805509422361546,
+       "liquidity_onchain": 25817778966
+      }
+     ]
+    },
+    "breakpoints": [
+     [
+      0.1350687689202122,
+      202.60315338031828
+     ],
+     [
+      0.2554027630491285,
+      383.1041445736928
+     ],
+     [
+      0.2701375378404244,
+      427.30846894758037
+     ],
+     [
+      0.39292732776788997,
+      611.4931538387788
+     ]
+    ]
+   },
+   {
+    "units": 3000,
+    "slippageBps": 150,
+    "payoff": "strangle",
+    "move": 1,
+    "close": 0.24557957985493123,
+    "target": 0,
+    "construction": 0,
+    "bound": 3.3745175458708645,
+    "gross": -0.0000024911591597098625,
+    "net": -0.000006491159159709862,
     "premium": 0.000004,
     "feeCredits": 0,
     "swapCost": 0,
-    "gap": -1.9177065269104787e-7
+    "gap": -0.0000024911591597098625,
+    "spot": 0.24557957985493123,
+    "legs": [
+     "BorrowQuote@-15104",
+     "BorrowQuote@-14848",
+     "BorrowBase@-13568",
+     "BorrowBase@-13312"
+    ],
+    "detail": {
+     "cash": 0,
+     "base": 0,
+     "legs": [
+      {
+       "kind": "borrow_put",
+       "side": "borrowed",
+       "tick_lower": -15104,
+       "tick_upper": -14848,
+       "price_lower": 0.22083830760624934,
+       "price_upper": 0.2265644640752788,
+       "liquidity_onchain": 42402257172
+      },
+      {
+       "kind": "borrow_put",
+       "side": "borrowed",
+       "tick_lower": -14848,
+       "tick_upper": -14592,
+       "price_lower": 0.2265644640752788,
+       "price_upper": 0.2324390950923304,
+       "liquidity_onchain": 69332275662
+      },
+      {
+       "kind": "borrow_call",
+       "side": "borrowed",
+       "tick_lower": -13568,
+       "tick_upper": -13312,
+       "price_lower": 0.2575008740481967,
+       "price_upper": 0.26417766084164024,
+       "liquidity_onchain": 64155920274
+      },
+      {
+       "kind": "borrow_call",
+       "side": "borrowed",
+       "tick_lower": -13312,
+       "tick_upper": -13056,
+       "price_lower": 0.26417766084164024,
+       "price_upper": 0.2710275712489351,
+       "liquidity_onchain": 58495685475
+      }
+     ]
+    },
+    "breakpoints": [
+     [
+      0.1350687689202122,
+      279.96072103462166
+     ],
+     [
+      0.22838900926508607,
+      0
+     ],
+     [
+      0.2627701504447764,
+      0
+     ],
+     [
+      0.39292732776788997,
+      390.4715319693407
+     ]
+    ]
    },
    {
-    "payoff": "call_spread",
-    "move": 1,
-    "close": 72.59903492818205,
-    "target": 362.99517464091025,
-    "construction": 361.6629753757522,
-    "bound": 1.3483092566281767,
-    "gross": 361.66297516267366,
-    "net": 361.66297316267367,
-    "premium": 0.000002,
-    "feeCredits": 0,
-    "swapCost": 0,
-    "gap": -2.1307852193785948e-7
-   },
-   {
-    "payoff": "call_spread",
+    "units": 3000,
+    "slippageBps": 150,
+    "payoff": "strangle",
     "move": 1.1,
-    "close": 79.85893842100025,
-    "target": 421.0744025834558,
-    "construction": 419.7264789470157,
-    "bound": 1.3483092566281767,
-    "gross": 419.5724196001765,
-    "net": 418.7012936001765,
-    "premium": 1.147317,
-    "feeCredits": 0.276191,
-    "swapCost": 0.15405791215638942,
-    "gap": -0.15405934683923306
-   },
-   {
-    "payoff": "strangle",
-    "move": 0.9,
-    "close": 65.33913143536383,
-    "target": 21.779710478454888,
-    "construction": 19.116344540528416,
-    "bound": 2.665369311518636,
-    "gross": 18.834576869321737,
-    "net": 17.101682869321735,
-    "premium": 1.732894,
+    "close": 0.27013753784042444,
+    "target": 22.102162186944053,
+    "construction": 18.76804870663932,
+    "bound": 3.3745175458708645,
+    "gross": 15.932140531898465,
+    "net": 13.843896531898466,
+    "premium": 2.088244,
     "feeCredits": 0,
-    "swapCost": 0.28176658102261953,
-    "gap": -0.2817676712066799
-   },
-   {
-    "payoff": "strangle",
-    "move": 1,
-    "close": 72.59903492818205,
-    "target": 0,
-    "construction": 0,
-    "bound": 2.665369311518636,
-    "gross": -0.000002145198069856363,
-    "net": -0.000008145198069856363,
-    "premium": 0.000006,
-    "feeCredits": 0,
-    "swapCost": 0,
-    "gap": -0.000002145198069856363
-   },
-   {
-    "payoff": "strangle",
-    "move": 1.1,
-    "close": 79.85893842100025,
-    "target": 21.77971047845446,
-    "construction": 19.194912243458162,
-    "bound": 2.665369311518636,
-    "gross": 18.858073310907887,
-    "net": 16.64778531090789,
-    "premium": 2.210288,
-    "feeCredits": 0,
-    "swapCost": 0.33683597415102895,
-    "gap": -0.3368389325502754
+    "swapCost": 2.835904942144282,
+    "gap": -2.8359081747408545,
+    "spot": 0.24557957985493123,
+    "legs": [
+     "BorrowQuote@-15104",
+     "BorrowQuote@-14848",
+     "BorrowBase@-13568",
+     "BorrowBase@-13312"
+    ],
+    "detail": {
+     "cash": 0,
+     "base": 0,
+     "legs": [
+      {
+       "kind": "borrow_put",
+       "side": "borrowed",
+       "tick_lower": -15104,
+       "tick_upper": -14848,
+       "price_lower": 0.22083830760624934,
+       "price_upper": 0.2265644640752788,
+       "liquidity_onchain": 42402257172
+      },
+      {
+       "kind": "borrow_put",
+       "side": "borrowed",
+       "tick_lower": -14848,
+       "tick_upper": -14592,
+       "price_lower": 0.2265644640752788,
+       "price_upper": 0.2324390950923304,
+       "liquidity_onchain": 69332275662
+      },
+      {
+       "kind": "borrow_call",
+       "side": "borrowed",
+       "tick_lower": -13568,
+       "tick_upper": -13312,
+       "price_lower": 0.2575008740481967,
+       "price_upper": 0.26417766084164024,
+       "liquidity_onchain": 64155920274
+      },
+      {
+       "kind": "borrow_call",
+       "side": "borrowed",
+       "tick_lower": -13312,
+       "tick_upper": -13056,
+       "price_lower": 0.26417766084164024,
+       "price_upper": 0.2710275712489351,
+       "liquidity_onchain": 58495685475
+      }
+     ]
+    },
+    "breakpoints": [
+     [
+      0.1350687689202122,
+      279.96072103462166
+     ],
+     [
+      0.22838900926508607,
+      0
+     ],
+     [
+      0.2627701504447764,
+      0
+     ],
+     [
+      0.39292732776788997,
+      390.4715319693407
+     ]
+    ]
    }
   ]
  },
  "lpGuarantee": {
-  "run": "20261127-144044-336b38d",
+  "run": "20261127-155803-d513c2d-jup",
   "seed": 20261127,
+  "history": {
+   "path": "data/JUPUSDC-1m.npz",
+   "manifest": "data/manifest-JUPUSDC.json",
+   "label": "Binance JUPUSDC 1m bars"
+  },
   "summary": {
    "historical-price-driven/base": {
     "paths": 86,
-    "borrows_eligible": 8905,
-    "borrows_guarantee_holds": 8905,
+    "borrows_eligible": 8964,
+    "borrows_guarantee_holds": 8964,
     "borrows_guarantee_violations": 0,
-    "borrows_premium_shortfall": 1870,
+    "borrows_premium_shortfall": 2037,
     "eligible": 0,
     "guarantee_holds_on_eligible": 0,
     "guarantee_violations_on_eligible": [],
     "ineligible_shortfall": 86,
     "ineligible_restoration_failure": 0,
     "restoration_failures_total": 0,
-    "final_value_dominance_counterexamples": 86,
-    "borrows": 10775,
-    "lp_fees_world_a": 17.17413658546978,
-    "lp_idle_plus_premium_world_b": 14.042329696720921,
-    "premium_shortfall_total": 6.165313555545251
+    "final_value_dominance_counterexamples": 84,
+    "borrows": 11001,
+    "lp_fees_world_a": 0.45074818666393773,
+    "lp_idle_plus_premium_world_b": 0.35640382590578157,
+    "premium_shortfall_total": 0.20038725122612766
    },
    "historical-price-driven/base+noise": {
     "paths": 86,
-    "borrows_eligible": 8837,
-    "borrows_guarantee_holds": 8837,
+    "borrows_eligible": 8952,
+    "borrows_guarantee_holds": 8952,
     "borrows_guarantee_violations": 0,
-    "borrows_premium_shortfall": 1938,
+    "borrows_premium_shortfall": 2049,
     "eligible": 0,
     "guarantee_holds_on_eligible": 0,
     "guarantee_violations_on_eligible": [],
     "ineligible_shortfall": 86,
     "ineligible_restoration_failure": 0,
     "restoration_failures_total": 0,
-    "final_value_dominance_counterexamples": 86,
-    "borrows": 10775,
-    "lp_fees_world_a": 26.750635278940067,
-    "lp_idle_plus_premium_world_b": 22.12328588018927,
-    "premium_shortfall_total": 9.837561362445372
+    "final_value_dominance_counterexamples": 84,
+    "borrows": 11001,
+    "lp_fees_world_a": 0.4682143052393457,
+    "lp_idle_plus_premium_world_b": 0.3703979562614118,
+    "premium_shortfall_total": 0.20929182374766858
    },
    "historical-price-driven/fully-funded": {
     "paths": 86,
-    "borrows_eligible": 10774,
-    "borrows_guarantee_holds": 10774,
+    "borrows_eligible": 11001,
+    "borrows_guarantee_holds": 11001,
     "borrows_guarantee_violations": 0,
-    "borrows_premium_shortfall": 1,
-    "eligible": 85,
-    "guarantee_holds_on_eligible": 85,
+    "borrows_premium_shortfall": 0,
+    "eligible": 86,
+    "guarantee_holds_on_eligible": 86,
     "guarantee_violations_on_eligible": [],
-    "ineligible_shortfall": 1,
+    "ineligible_shortfall": 0,
     "ineligible_restoration_failure": 0,
     "restoration_failures_total": 0,
     "final_value_dominance_counterexamples": 0,
-    "borrows": 10775,
-    "lp_fees_world_a": 17.17413658546978,
-    "lp_idle_plus_premium_world_b": 20.187834453260656,
-    "premium_shortfall_total": 0.019808799005515007
+    "borrows": 11001,
+    "lp_fees_world_a": 0.45074818666393773,
+    "lp_idle_plus_premium_world_b": 0.5567910771319092,
+    "premium_shortfall_total": 0
    },
    "historical-price-driven/stress-restoration": {
     "paths": 86,
-    "borrows_eligible": 8901,
-    "borrows_guarantee_holds": 8901,
+    "borrows_eligible": 8948,
+    "borrows_guarantee_holds": 8948,
     "borrows_guarantee_violations": 0,
-    "borrows_premium_shortfall": 1870,
+    "borrows_premium_shortfall": 2037,
     "eligible": 0,
     "guarantee_holds_on_eligible": 0,
     "guarantee_violations_on_eligible": [],
     "ineligible_shortfall": 86,
-    "ineligible_restoration_failure": 44,
-    "restoration_failures_total": 61,
-    "final_value_dominance_counterexamples": 86,
-    "borrows": 10775,
-    "lp_fees_world_a": 17.17413658546978,
-    "lp_idle_plus_premium_world_b": 14.042329696720921,
-    "premium_shortfall_total": 6.165313555545251
+    "ineligible_restoration_failure": 41,
+    "restoration_failures_total": 58,
+    "final_value_dominance_counterexamples": 84,
+    "borrows": 11001,
+    "lp_fees_world_a": 0.45074818666393773,
+    "lp_idle_plus_premium_world_b": 0.35640382590578157,
+    "premium_shortfall_total": 0.20038725122612766
    },
    "synthetic-gbm/base": {
     "paths": 60,
-    "borrows_eligible": 1535,
-    "borrows_guarantee_holds": 1535,
+    "borrows_eligible": 1493,
+    "borrows_guarantee_holds": 1493,
     "borrows_guarantee_violations": 0,
-    "borrows_premium_shortfall": 605,
+    "borrows_premium_shortfall": 630,
     "eligible": 0,
     "guarantee_holds_on_eligible": 0,
     "guarantee_violations_on_eligible": [],
@@ -304,17 +850,17 @@
     "ineligible_restoration_failure": 0,
     "restoration_failures_total": 0,
     "final_value_dominance_counterexamples": 60,
-    "borrows": 2140,
-    "lp_fees_world_a": 4.535613516539189,
-    "lp_idle_plus_premium_world_b": 3.4536764043806376,
-    "premium_shortfall_total": 2.1448490946817813
+    "borrows": 2123,
+    "lp_fees_world_a": 0.27977983652302135,
+    "lp_idle_plus_premium_world_b": 0.20992343041979983,
+    "premium_shortfall_total": 0.14003650071689439
    },
    "synthetic-gbm/base+noise": {
     "paths": 60,
-    "borrows_eligible": 1524,
-    "borrows_guarantee_holds": 1524,
+    "borrows_eligible": 1489,
+    "borrows_guarantee_holds": 1489,
     "borrows_guarantee_violations": 0,
-    "borrows_premium_shortfall": 616,
+    "borrows_premium_shortfall": 634,
     "eligible": 0,
     "guarantee_holds_on_eligible": 0,
     "guarantee_violations_on_eligible": [],
@@ -322,15 +868,15 @@
     "ineligible_restoration_failure": 0,
     "restoration_failures_total": 0,
     "final_value_dominance_counterexamples": 60,
-    "borrows": 2140,
-    "lp_fees_world_a": 5.582814358564889,
-    "lp_idle_plus_premium_world_b": 4.248984651484613,
-    "premium_shortfall_total": 2.7602611022953223
+    "borrows": 2123,
+    "lp_fees_world_a": 0.2836745401531341,
+    "lp_idle_plus_premium_world_b": 0.21285855804181214,
+    "premium_shortfall_total": 0.14239458074913866
    },
    "synthetic-gbm/fully-funded": {
     "paths": 60,
-    "borrows_eligible": 2140,
-    "borrows_guarantee_holds": 2140,
+    "borrows_eligible": 2123,
+    "borrows_guarantee_holds": 2123,
     "borrows_guarantee_violations": 0,
     "borrows_premium_shortfall": 0,
     "eligible": 60,
@@ -340,46 +886,46 @@
     "ineligible_restoration_failure": 0,
     "restoration_failures_total": 0,
     "final_value_dominance_counterexamples": 0,
-    "borrows": 2140,
-    "lp_fees_world_a": 4.535613516539189,
-    "lp_idle_plus_premium_world_b": 5.598525499062419,
+    "borrows": 2123,
+    "lp_fees_world_a": 0.27977983652302135,
+    "lp_idle_plus_premium_world_b": 0.3499599311366942,
     "premium_shortfall_total": 0
    },
    "synthetic-gbm/stress-restoration": {
     "paths": 60,
-    "borrows_eligible": 1534,
-    "borrows_guarantee_holds": 1534,
+    "borrows_eligible": 1492,
+    "borrows_guarantee_holds": 1492,
     "borrows_guarantee_violations": 0,
-    "borrows_premium_shortfall": 605,
+    "borrows_premium_shortfall": 630,
     "eligible": 0,
     "guarantee_holds_on_eligible": 0,
     "guarantee_violations_on_eligible": [],
     "ineligible_shortfall": 60,
-    "ineligible_restoration_failure": 8,
-    "restoration_failures_total": 8,
+    "ineligible_restoration_failure": 13,
+    "restoration_failures_total": 14,
     "final_value_dominance_counterexamples": 60,
-    "borrows": 2140,
-    "lp_fees_world_a": 4.535613516539189,
-    "lp_idle_plus_premium_world_b": 3.4536764043806376,
-    "premium_shortfall_total": 2.1448490946817813
+    "borrows": 2123,
+    "lp_fees_world_a": 0.27977983652302135,
+    "lp_idle_plus_premium_world_b": 0.20992343041979983,
+    "premium_shortfall_total": 0.14003650071689439
    },
    "all": {
     "paths": 584,
-    "borrows_eligible": 44150,
-    "borrows_guarantee_holds": 44150,
+    "borrows_eligible": 44462,
+    "borrows_guarantee_holds": 44462,
     "borrows_guarantee_violations": 0,
-    "borrows_premium_shortfall": 7505,
-    "eligible": 145,
-    "guarantee_holds_on_eligible": 145,
+    "borrows_premium_shortfall": 8017,
+    "eligible": 146,
+    "guarantee_holds_on_eligible": 146,
     "guarantee_violations_on_eligible": [],
-    "ineligible_shortfall": 439,
-    "ineligible_restoration_failure": 52,
-    "restoration_failures_total": 69,
-    "final_value_dominance_counterexamples": 438,
-    "borrows": 51660,
-    "lp_fees_world_a": 97.46269994353186,
-    "lp_idle_plus_premium_world_b": 87.15064268620007,
-    "premium_shortfall_total": 29.237956564200275
+    "ineligible_shortfall": 438,
+    "ineligible_restoration_failure": 54,
+    "restoration_failures_total": 72,
+    "final_value_dominance_counterexamples": 432,
+    "borrows": 52496,
+    "lp_fees_world_a": 2.943472914953357,
+    "lp_idle_plus_premium_world_b": 2.6226620352229904,
+    "premium_shortfall_total": 1.0325339083828513
    }
   }
  }

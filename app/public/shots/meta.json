@@ -1,5 +1,5 @@
 {
- "capturedAt": "2026-11-27T15:49:16.363Z",
+ "capturedAt": "2026-11-27T16:18:12.162Z",
  "market": "SOL/USDC",
  "spot": 63.499999999999986,
  "holdings": {
@@ -45,7 +45,7 @@
  "capitalLocked": 645.0769139636183,
  "certifiedBound": 3.6520713839502803,
  "maxErrorAt": 71.11999999999999,
- "solveMs": 150,
- "hash": "7125a1fe9eb619b0778a5145ae8f0b59c40168303d0e2652d0bca6eec7cd6ada",
+ "solveMs": 104,
+ "hash": "d5177e7034a62932b65f8fdfa4e600cb01d5b267ce568db3679e8097045eb628",
  "openTransactions": 4
 }

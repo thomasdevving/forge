@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 export type Step = { title: string; body: string; shot: string; path: string; alt: string };
 
@@ -10,7 +10,7 @@ const clamp = (v: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
  * Pinned, scroll-driven walkthrough: numbered steps on one side with a progress hairline,
  * a browser frame on the other that swaps real screenshots from the fork.
  */
-export function Walkthrough({ steps, flip = false }: { steps: Step[]; flip?: boolean }) {
+export function Walkthrough({ steps, flip = false, head }: { steps: Step[]; flip?: boolean; head?: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [p, setP] = useState(0);
   useEffect(() => {
@@ -36,7 +36,9 @@ export function Walkthrough({ steps, flip = false }: { steps: Step[]; flip?: boo
     <div ref={ref} style={{ height: `${n * 75 + 40}vh` }} className="relative">
       <div className="sticky top-0 flex h-dvh items-center">
         <div className={`mx-auto grid w-full max-w-[1480px] items-center gap-8 px-5 sm:px-8 lg:gap-14 ${flip ? "lg:grid-cols-[1.55fr_1fr]" : "lg:grid-cols-[1fr_1.55fr]"}`}>
-          <ol className={`${flip ? "lg:order-2" : ""}`}>
+          <div className={flip ? "lg:order-2" : ""}>
+          {head && <div className="mb-8">{head}</div>}
+          <ol>
             {steps.map((s, i) => {
               const on = i === active;
               const done = i < active;
@@ -58,6 +60,7 @@ export function Walkthrough({ steps, flip = false }: { steps: Step[]; flip?: boo
               );
             })}
           </ol>
+          </div>
           <figure className={`overflow-hidden rounded-[6px] border border-line-strong bg-bg ${flip ? "lg:order-1" : ""}`}>
             <div className="flex h-8 items-center gap-3 border-b border-line px-3">
               <span className="flex gap-1.5" aria-hidden>

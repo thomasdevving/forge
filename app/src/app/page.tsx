@@ -11,8 +11,10 @@ import { config } from "@/lib/config";
 import shotMeta from "../../public/shots/meta.json";
 
 type Summary = Record<string, { payoffs: number; feasible: number; median_relative_error_bps: number | null; mean_legs: number | null }>;
-const rep = bench.replication as unknown as { run: string; summary: Summary; boundViolations: number } | null;
-const real = bench.realized as unknown as { run: string; rows: { payoff: string; move: number; construction: number; gross: number; swapCost: number; bound: number; target: number }[] } | null;
+const PROOF_MARKET = (bench as { market?: string }).market ?? "SOL/USDC";
+const PROOF_BASE = PROOF_MARKET.split("/")[0]!;
+const rep = bench.replication as unknown as { run: string; summary: Summary; boundViolations: number; units?: number | null } | null;
+const real = bench.realized as unknown as { run: string; refused?: { payoff: string; move: number; guard: string }[]; rows: { slippageBps?: number | null; units?: number | null; payoff: string; move: number; construction: number; gross: number; swapCost: number; bound: number; target: number }[] } | null;
 const lp = bench.lpGuarantee as unknown as {
   run: string;
   summary: Record<string, { borrows: number; borrows_eligible: number; borrows_guarantee_holds: number; borrows_guarantee_violations: number; borrows_premium_shortfall: number; restoration_failures_total: number; paths: number }>;
@@ -66,7 +68,7 @@ const TRADER: Step[] = [
 
 const FAQ = [
   ["Is this an options exchange?", "No order book. Each position is built from Orca liquidity ranges: a borrowed range below the price acts as a put, one above as a call. LPs who deposit into FORGE buckets are the other side and are paid a premium."],
-  ["Which tokens work?", "The demo runs one market, SOL/USDC. A market is set up per Orca Whirlpool, so other pools can be added the same way."],
+  ["Which tokens work?", "Any token with an Orca Whirlpool and a Pyth price feed. The math is the same for every pool, so a new market is one command: point it at the pool, a second pool for restoration swaps, and the feed. The demo fork runs SOL/USDC and JUP/USDC."],
   ["Where do the numbers on this page come from?", "From committed benchmark runs on a Surfpool mainnet fork and ten months of Binance SOL/USDC prices. Nothing is typed in by hand; rerun them with benchmarks/run_all.py --fork."],
   ["What does an LP risk?", "Borrowed liquidity needs a 24-hour notice to withdraw. The guarantee is conditional: finite buffers, capped premium budgets and failed restorations can produce shortfalls, which are recorded and pause new borrowing."],
   ["Is the certified bound the whole cost?", "No. It covers replication error over the stated price range. Premium, pool fees and settlement swap costs are reported separately."],
@@ -79,6 +81,7 @@ export default function Landing() {
   const base = rep?.summary["baseline/thin"];
   const lpAll = lp?.summary["all"];
   const realRows = real?.rows ?? [];
+  const refused = real?.refused ?? [];
 
   return (
     <div className="overflow-x-clip bg-bg">
@@ -123,9 +126,21 @@ export default function Landing() {
       </section>
 
       {/* how */}
-      <section id="how" className="scroll-mt-14 pt-28">
-        <Head n="01" kicker="How it works" title={<>One example,<br />start to finish.</>} intro="Protecting 10 SOL with a collar. These are real screens from the Studio, captured on the fork." />
-        <Walkthrough steps={TRADER} />
+      <section id="how" className="scroll-mt-14">
+        <Walkthrough
+          steps={TRADER}
+          head={
+            <>
+              <div className="num flex items-center gap-3 text-[12px] text-ink-3">
+                <span className="text-ink">01</span>
+                <span className="h-px w-8 bg-line-strong" />
+                How it works
+              </div>
+              <h2 className="mt-4 font-display text-[clamp(1.9rem,3.2vw,2.9rem)] font-semibold leading-[1] tracking-[-0.03em]">One example, start to finish.</h2>
+              <p className="mt-3 max-w-md text-[14px] leading-relaxed text-ink-2">Protecting 10 SOL with a collar. Real screens from the Studio, captured on the fork.</p>
+            </>
+          }
+        />
       </section>
 
       {/* idea */}
@@ -187,7 +202,7 @@ export default function Landing() {
 
       {/* proof */}
       <section id="proof" className="glow-top scroll-mt-14 pt-28 pb-24">
-        <Head n="04" kicker="Proof" title={<>Measured,<br />not promised.</>} intro="Numbers from benchmark runs on the fork and ten months of SOL prices. One command reproduces them." />
+        <Head n="04" kicker="Proof" title={<>Measured on {PROOF_BASE},<br />not promised.</>} intro={`FORGE works on any Orca Whirlpool. The proof runs on ${PROOF_MARKET}, a long-tail market whose pools hold a fraction of SOL’s liquidity, so every number is earned the hard way. Real positions on the fork, ten months of Binance ${PROOF_BASE} prices, one command to reproduce.`} />
         <div className="mx-auto mt-14 max-w-[1480px] px-5 sm:px-8">
           <Reveal>
             <div className="grid border border-line bg-panel/60 md:grid-cols-3">
@@ -204,8 +219,11 @@ export default function Landing() {
                 <div className="cap">Real positions settled on the fork</div>
                 {realRows.length ? (
                   <>
-                    <div className="num mt-3 text-5xl font-medium tracking-tight"><CountUp value={realRows.length} /></div>
-                    <p className="mt-3 text-[13px] text-ink-2">Realized payoff equals the certified construction minus the measured swap cost. Largest cost <span className="num">${fmt(Math.max(...realRows.map((r) => r.swapCost)), 2)}</span>.</p>
+                    <div className="num mt-3 text-5xl font-medium tracking-tight"><CountUp value={realRows.length} />{refused.length > 0 && <span className="text-ink-3">/{realRows.length + refused.length}</span>}</div>
+                    <p className="mt-3 text-[13px] text-ink-2">
+                      Each settled payoff equals the certified construction minus the measured swap cost (largest <span className="num">${fmt(Math.max(...realRows.map((r) => r.swapCost)), 2)}</span>).
+                      {refused.length > 0 && <> The other {refused.length}, all closed after a 10% drop, were refused by the program’s price guards: the thin pool could not restore them at a fair price, so FORGE waited instead of overpaying. They stay recoverable.</>}
+                    </p>
                   </>
                 ) : <p className="cap mt-3">No results recorded.</p>}
               </div>
@@ -241,7 +259,7 @@ export default function Landing() {
                     ))}
                   </tbody>
                 </table>
-                <p className="cap border-t border-line px-5 py-3">USD. Run {real?.run}. Premium, fees and swap costs are outside the certified bound.</p>
+                <p className="cap border-t border-line px-5 py-3">{PROOF_MARKET} on the fork, about $730 notional per position{real?.rows[0]?.slippageBps ? `, restoration slippage cap ${(real.rows[0].slippageBps / 100).toFixed(1)}%` : ""}. USD. Run {real?.run}. Premium, fees and swap costs are outside the certified bound.</p>
               </div>
             </Reveal>
           )}

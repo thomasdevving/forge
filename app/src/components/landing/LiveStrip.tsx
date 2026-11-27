@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, type BucketInfo, type MarketInfo } from "@/lib/api";
 import { ago, fmtCompact, fmtUsd } from "@/lib/format";
+import { DEFAULT_MARKET, pickMarket } from "@/lib/market";
 
 type Stats = { price: number; outOfRange: { outOfRangeQuoteValue: number; window: { low: number; high: number } } };
 
@@ -18,7 +19,7 @@ export function LiveStrip() {
     const load = async () => {
       try {
         const ms = await api<MarketInfo[]>("indexer/markets");
-        const mk = ms[0];
+        const mk = pickMarket(ms, DEFAULT_MARKET);
         if (!mk || !alive) return;
         setM(mk);
         const [b, s] = await Promise.all([

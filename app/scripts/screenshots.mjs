@@ -19,7 +19,7 @@ const shot = async (name) => {
 };
 const button = (name) => page.getByRole("button", { name, exact: true });
 
-await page.goto(`${BASE}/studio`);
+await page.goto(`${BASE}/studio?market=SOL/USDC`);
 await page.getByText("Feasible", { exact: true }).waitFor({ timeout: 60_000 });
 
 // wallet: fresh demo key, fork test funds
@@ -52,13 +52,13 @@ await page.getByText("Premium / cap").first().waitFor({ timeout: 60_000 });
 await page.evaluate(() => window.scrollTo(0, 0));
 await shot("positions");
 
-await page.goto(`${BASE}/earn`);
+await page.goto(`${BASE}/earn?market=SOL/USDC`);
 await page.locator("table tbody tr").nth(5).waitFor({ timeout: 60_000 });
 await page.getByText(/^\$[\d.]+K$/).first().waitFor({ timeout: 60_000 }).catch(() => {});
 await shot("earn");
 
 // the numbers behind the snapshots, so the landing page can quote them exactly
-const market = (await (await fetch(`${BASE}/api/indexer/markets`)).json())[0];
+const market = (await (await fetch(`${BASE}/api/indexer/markets`)).json()).find((m) => m.name === "SOL/USDC");
 const c = compile.result.construction;
 const meta = {
   capturedAt: new Date().toISOString(),
