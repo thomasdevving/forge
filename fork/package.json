@@ -5,12 +5,17 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
     "test": "echo 'fork scripts are exercised by integration tests'",
-    "vectors": "tsx scripts/orca-vectors.ts"
+    "vectors": "tsx scripts/orca-vectors.ts",
+    "bootstrap": "tsx scripts/bootstrap.ts",
+    "observe-orca": "tsx scripts/observe-orca.ts"
   },
   "dependencies": {
+    "@forge/txbuilder": "workspace:*",
     "@orca-so/whirlpools": "8.0.1",
     "@orca-so/whirlpools-client": "7.0.0",
     "@orca-so/whirlpools-core": "3.1.0",
+    "@solana-program/address-lookup-table": "0.10.0",
+    "@solana-program/compute-budget": "0.12.0",
     "@solana-program/system": "0.10.0",
     "@solana-program/token": "0.9.0",
     "@solana/kit": "5.5.1"
@@ -19,5 +24,8 @@
     "@types/node": "22.19.1",
     "tsx": "4.23.15",
     "typescript": "5.9.3"
+  },
+  "exports": {
+    "./*": "./src/*.ts"
   }
 }

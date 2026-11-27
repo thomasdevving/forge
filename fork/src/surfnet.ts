@@ -61,8 +61,13 @@ export async function assertFork(url = FORK_RPC_URL): Promise<string> {
   return surf;
 }
 
+/** Fund a fork wallet with SOL. Uses the cheatcode so large fork-only balances don't drain
+ *  the local faucet; adds to any existing balance. */
 export async function airdrop(rpc: Rpc<SolanaRpcApi>, to: Address, sol: number): Promise<void> {
-  await rpc.requestAirdrop(to, lamports(BigInt(Math.round(sol * 1e9)))).send();
+  const { value: current } = await rpc.getBalance(to).send();
+  const add = BigInt(Math.round(sol * 1e9));
+  await rawRpc("surfnet_setAccount", [to, { lamports: Number(current + add) }]);
+  void lamports;
 }
 
 /** Set an SPL token balance for `owner` on the fork (creates the ATA if needed). */
