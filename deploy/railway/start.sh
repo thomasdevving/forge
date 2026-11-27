@@ -24,12 +24,8 @@ for i in $(seq 1 120); do
 done
 log "fork is up"
 
-# 3. program (cheatcode install) and markets: the built-in ones, then any extra mints
+# 3. program (cheatcode install) and the built-in markets (extra mints are added once the services run)
 pnpm --filter @forge/fork bootstrap
-# BONK, KMNO and JLP by default (KMNO and JLP make up the treasury-agent demo portfolio with JUP)
-for mint in ${FORGE_EXTRA_MINTS:-DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS 27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4}; do
-  FORGE_SKIP_DEPLOY=1 pnpm --filter @forge/fork bootstrap -- --mint "$mint" || log "could not add $mint (skipped)"
-done
 
 # 4. services, as in fork/dev-stack.sh, plus the public gateway
 ALT="$(node -e 'const d=require("./fork/.state/deployment.json");console.log(Object.values(d.markets).map(m=>m.lookupTable).join(","))')"
@@ -43,7 +39,17 @@ start keeper pnpm --dir fork keeper
 start agent env PORT=8792 pnpm --dir services/agent start
 start gateway env PORT="${PORT:-8080}" pnpm --dir fork exec tsx src/gateway.ts
 
-# any process exiting stops the container, so Railway restarts it cleanly
-wait -n
+# 5. extra markets, in the background so the health check passes meanwhile; the services pick them up
+#    from the chain and from deployment.json as each one lands
+(
+  # BONK, KMNO and JLP by default (KMNO and JLP make up the treasury-agent demo portfolio with JUP)
+  for mint in ${FORGE_EXTRA_MINTS:-DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS 27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4}; do
+    FORGE_SKIP_DEPLOY=1 pnpm --filter @forge/fork bootstrap -- --mint "$mint" || log "could not add $mint (skipped)"
+  done
+  log "extra markets done"
+) &
+
+# any service exiting stops the container, so Railway restarts it cleanly (onboarding is not watched)
+wait -n "${pids[@]}"
 log "a process exited; stopping"
 exit 1

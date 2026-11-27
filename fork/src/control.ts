@@ -56,7 +56,23 @@ const feeds = (name: string) => {
   };
 };
 
+/** Adopt markets another process added to deployment.json (e.g. extra mints onboarded after start). */
+function adoptNewMarkets() {
+  let fresh: ReturnType<typeof readDeployment>;
+  try {
+    fresh = readDeployment();
+  } catch {
+    return;
+  }
+  for (const [k, v] of Object.entries(fresh.markets)) {
+    if (dep.markets[k]) continue;
+    dep.markets[k] = v;
+    scenarios[k] = v.scenarioPrice;
+  }
+}
+
 async function publish() {
+  adoptNewMarkets();
   for (const [name, d] of Object.entries(dep.markets)) {
     const f = feeds(name);
     await setScenarioPrice(d.referenceBase, f.base, scenarios[name]!);
