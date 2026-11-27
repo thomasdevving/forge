@@ -1,0 +1,23 @@
+{
+  "name": "@forge/treasury-agent",
+  "private": true,
+  "type": "module",
+  "description": "An external AI treasury agent that buys hedges from FORGE over x402. Fork funds only.",
+  "scripts": {
+    "fund": "tsx src/fund.ts",
+    "start": "tsx src/agent.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "smoke": "tsx src/smoke.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.8.0",
+    "@forge/fork": "workspace:*",
+    "@solana/kit": "5.5.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

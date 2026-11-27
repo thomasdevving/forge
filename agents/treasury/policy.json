@@ -1,0 +1,14 @@
+{
+  "name": "Example DAO treasury (simulated)",
+  "holdings": [
+    { "symbol": "JUP", "amount": 20000 },
+    { "symbol": "KMNO", "amount": 100000 },
+    { "symbol": "JLP", "amount": 600 }
+  ],
+  "usdc": 300,
+  "objective": "Protect the treasury against a 30% decline in its largest token exposure, keep as much upside as possible, and stay within the hedging budget.",
+  "max_decline": 0.3,
+  "hedge_premium_budget_usd": 40,
+  "api_budget_usd": 0.25,
+  "api_max_per_call_usd": 0.05
+}
