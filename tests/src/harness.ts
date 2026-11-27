@@ -16,7 +16,7 @@ import { loadLookupTables, prepareTransaction, readPool, type Prepared } from "@
 import { ata, fundWallet, readDeployment } from "@forge/fork/env";
 import { FEED_SOL_USD, FEED_USDC_USD, PYTH_SOL_USD, PYTH_USDC_USD, setScenarioPrice } from "@forge/fork/pyth";
 import { movePoolTo } from "@forge/fork/price";
-import { assertFork, forkRpc, rawRpc, USDC, WSOL } from "@forge/fork/surfnet";
+import { assertFork, forkClock, forkRpc, timeTravel, USDC, WSOL } from "@forge/fork/surfnet";
 
 export const rpc = forkRpc();
 export const deployment = readDeployment();
@@ -45,7 +45,7 @@ export async function send(payer: KeyPairSigner, ixs: Instruction[]): Promise<{ 
 
 export async function newUser(opts: { wsol?: bigint; usdc?: bigint } = {}) {
   const user = await generateKeyPairSigner();
-  const acc = await fundWallet(rpc, user, { sol: 5, wsol: opts.wsol ?? 200_000_000_000n, usdc: opts.usdc ?? 200_000_000_000n, usdcMint: USDC });
+  const acc = await fundWallet(rpc, user, { sol: 25, wsol: opts.wsol ?? 200_000_000_000n, usdc: opts.usdc ?? 200_000_000_000n, usdcMint: USDC });
   return { user, wsol: acc.wsol, usdc: acc.usdc };
 }
 
@@ -85,8 +85,13 @@ export async function moveMarket(target: number, opts: { swapPool?: number; refe
 }
 
 export async function forkTime(): Promise<number> {
-  const slot = await rawRpc<number>("getSlot", []);
-  return (await rawRpc<number>("getBlockTime", [slot])) ?? Math.floor(Date.now() / 1000);
+  return (await forkClock()).unixTimestamp;
+}
+
+/** Advance the fork clock and republish the reference at the current pool price. */
+export async function advance(seconds: number) {
+  await timeTravel(seconds);
+  await publishReference(await humanPrice(sol.whirlpool));
 }
 
 export { ata, USDC, WSOL };
@@ -98,7 +103,7 @@ export async function openPut(
   u: { user: KeyPairSigner; wsol: Address; usdc: Address },
   bucketLowers: number[],
   nonce: bigint,
-  opts: { fraction?: bigint; budget?: bigint; slippageBps?: number; extraBuffer?: bigint } = {},
+  opts: { fraction?: bigint; liquidity?: bigint; budget?: bigint; slippageBps?: number; extraBuffer?: bigint } = {},
 ) {
   const m = await fetchMarket(rpc, sol.market);
   const price = await humanPrice(sol.whirlpool);
@@ -107,7 +112,7 @@ export async function openPut(
   for (const tl of bucketLowers) {
     const b = sol.buckets.find((x) => x.tickLower === tl)!;
     const bk = await fetchBucket(rpc, b.address);
-    legs.push({ kind: "BorrowQuote" as const, tickLower: tl, liquidity: bk.total_liquidity / (opts.fraction ?? 4n), extraBuffer: opts.extraBuffer ?? 0n });
+    legs.push({ kind: "BorrowQuote" as const, tickLower: tl, liquidity: opts.liquidity ?? bk.total_liquidity / (opts.fraction ?? 4n), extraBuffer: opts.extraBuffer ?? 0n });
   }
   const { strategy, transactions } = await buildOpen(rpc, {
     owner: u.user,
