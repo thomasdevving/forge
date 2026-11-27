@@ -125,7 +125,7 @@ export default function Earn() {
       )}
 
       {/* how it works, in one line each */}
-      <div className="grid shrink-0 border-b border-line lg:grid-cols-[1fr_1fr_1fr_minmax(0,0.9fr)]">
+      <div data-tour="earn-how" className="grid shrink-0 border-b border-line lg:grid-cols-[1fr_1fr_1fr_minmax(0,0.9fr)]">
         {[
           ["1", "Pick a price range", `Deposit into a range of the ${B}/${Q} Orca pool, like any Orca LP position.`],
           ["2", "Earn Orca fees", `While nobody borrows it, your liquidity trades in the pool and earns normal fees.`],
@@ -148,7 +148,7 @@ export default function Earn() {
 
       <div className="grid min-h-0 flex-1 xl:grid-cols-[minmax(0,1fr)_340px]">
         {/* ranges */}
-        <div className="flex min-h-0 min-w-0 flex-col xl:border-r xl:border-line">
+        <div data-tour="earn-table" className="flex min-h-0 min-w-0 flex-col xl:border-r xl:border-line">
           <div className="flex shrink-0 items-center justify-between px-4 py-2.5 sm:px-5">
             <div className="label">Choose a price range</div>
             <div className="flex items-center gap-4 text-[12px] text-ink-3">
@@ -194,7 +194,7 @@ export default function Earn() {
                       <td className="num">{lp ? fmtPct(lp.shareOfBucket, 1) : "—"}{noticeSince > 0 && <div className="font-sans text-[11px] text-warn">withdrawal requested</div>}</td>
                       <td onClick={(e) => e.stopPropagation()}>
                         {lp && (
-                          <div className="flex gap-1.5">
+                          <div data-tour="earn-claim" className="flex gap-1.5">
                             <button className="btn btn-ghost !px-2 !py-1 !text-[12px]" disabled={busy} onClick={() => run("tx/build/claim", { bucket: b.address }, "Claimed.")}>Claim</button>
                             {BigInt(b.borrowed) + BigInt(b.reserved) === 0n ? (
                               <button className="btn btn-ghost !px-2 !py-1 !text-[12px]" disabled={busy} onClick={() => run("tx/build/withdraw", { bucket: b.address, liquidity: lp.liquidity }, "Withdrawn.")}>Withdraw</button>
@@ -216,7 +216,7 @@ export default function Earn() {
 
         {/* deposit + earnings */}
         <aside className="min-h-0 divide-y divide-line overflow-y-auto border-t border-line text-sm xl:border-t-0">
-          <div className="p-5">
+          <div data-tour="earn-deposit" className="p-5">
             <div className="flex items-baseline justify-between">
               <div className="label">Deposit</div>
               <span className="cap">click a range to change</span>
@@ -249,7 +249,7 @@ export default function Earn() {
             )}
           </div>
 
-          <div className="p-5">
+          <div data-tour="earn-earnings" className="p-5">
             <div className="label">Your earnings</div>
             {!wallet.address ? (
               <p className="cap mt-2">Connect a wallet to see what you&apos;ve earned.</p>

@@ -25,7 +25,8 @@ const STATE_NOTE: Record<string, string> = {
   Recovery: "Restoration blocked. Escrow stays locked; top up or retry.",
 };
 
-function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo; onAction: (kind: "close" | "abort", s: StrategyView) => void; busy: boolean }) {
+function PositionCard({ s, m, onAction, busy, tour }: { s: StrategyView; m: MarketInfo; onAction: (kind: "close" | "abort", s: StrategyView) => void; busy: boolean; tour?: boolean }) {
+  const t = (id: string) => (tour ? id : undefined); // walkthrough anchors, on one card only
   const bd = m.baseDecimals, qd = m.quoteDecimals;
   const P = m.poolPrice;
   const legs = s.legs.map((l) => ({ kind: l.kind_tag, tickLower: l.tick_lower, tickUpper: l.tick_upper, liquidity: Number(BigInt(l.liquidity)) }));
@@ -59,7 +60,7 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
             <a className="num text-[12px] text-ink-2 underline decoration-line-strong underline-offset-4 hover:text-ink" href={`/api/compiler/certificates/${s.certificate_hash}`} target="_blank" rel="noreferrer">certificate {s.certificate_hash.slice(0, 10)}…</a>
           )}
           {(s.state === "Open" || s.state === "PendingClose" || s.state === "Recovery") && (
-            <button className="btn btn-primary !py-1.5" disabled={busy} onClick={() => onAction("close", s)}>
+            <button data-tour={t("pos-close")} className="btn btn-primary !py-1.5" disabled={busy} onClick={() => onAction("close", s)}>
               {s.state === "Open" ? "Close" : "Continue close"}
             </button>
           )}
@@ -71,7 +72,7 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
       {STATE_NOTE[s.state] && <p className="border-b border-line bg-sunk px-4 py-2 text-[12px] text-ink-2 sm:px-5">{STATE_NOTE[s.state]} {s.state === "PendingOpen" ? `${executed}/${s.legs.length} legs done.` : s.state !== "Recovery" ? `${pendingClose} left.` : ""}</p>}
 
       <div className="grid lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="overflow-x-auto">
+        <div data-tour={t("pos-legs")} className="overflow-x-auto">
           <table className="tbl min-w-[620px]">
             <thead>
               <tr>{["Leg", "Range", "Escrow", "Buffer", "Premium", "Status"].map((h) => <th key={h}>{h}</th>)}</tr>
@@ -98,7 +99,7 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
         <aside className="space-y-4 border-t border-line p-4 sm:p-5 lg:border-l lg:border-t-0">
           {!closed ? (
             <>
-              <div>
+              <div data-tour={t("pos-premium")}>
                 <div className="kv"><span>Premium / cap</span><span>{fmtUsd(accrued, 4)} / {fmtUsd(cap, 2)}</span></div>
                 <div className="relative mt-1.5 h-1.5 overflow-hidden bg-line">
                   <div className="h-full bg-accent" style={{ width: `${Math.min(100, (accrued / Math.max(cap, 1e-9)) * 100)}%` }} />
@@ -106,7 +107,7 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
                 </div>
                 <div className="cap mt-1.5">Keeper close at {fmtPct(trigger, 0)}{s.cap_binding ? " · cap reached" : ""}</div>
               </div>
-              <div className="border-t border-line pt-3">
+              <div data-tour={t("pos-greeks")} className="border-t border-line pt-3">
                 <div className="kv"><span>At</span><span>{fmtPrice(P)}</span></div>
                 <div className="kv"><span>Delta</span><span>{fmtNum(g.delta, 3)} {baseSymbol(m)}</span></div>
                 <div className="kv"><span>Gamma</span><span>{fmtNum(g.gamma, 4)}</span></div>
@@ -114,7 +115,7 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
               </div>
             </>
           ) : (
-            <div>
+            <div data-tour={t("pos-result")}>
               <div className="flex items-baseline justify-between">
                 <div className="label">Designed vs realized</div>
                 <span className="cap num">at {fmtPrice(settleP)}</span>
@@ -193,7 +194,7 @@ function PositionsInner() {
         title="Positions"
         meta={list && <><span>{list.length} total</span><span>{list.filter((s) => s.state === "Open").length} open</span>{markets && markets.length > 1 && <span>{new Set(list.map((s) => s.market)).size} markets</span>}</>}
       >
-        <Link href="/studio" className="btn btn-ghost !py-1.5">New</Link>
+        <Link data-tour="pos-new" href="/studio" className="btn btn-ghost !py-1.5">New</Link>
       </Bar>
       {msg && (
         <div className={`border-b border-line px-5 py-2.5 text-[13px] ${msg.ok ? "text-good" : "text-bad"}`}>
@@ -201,15 +202,16 @@ function PositionsInner() {
         </div>
       )}
       {!wallet.address ? (
-        <div className="px-5 py-16 text-center text-sm text-ink-3">Connect a wallet.</div>
+        <div data-tour="positions-list" className="px-5 py-16 text-center text-sm text-ink-3">Connect a wallet.</div>
       ) : !list || !markets ? (
-        <div className="px-5 py-16 text-center text-sm text-ink-3">Loading…</div>
+        <div data-tour="positions-list" className="px-5 py-16 text-center text-sm text-ink-3">Loading…</div>
       ) : list.length === 0 ? (
-        <div className="px-5 py-16 text-center text-sm text-ink-3">No positions. <Link href="/studio" className="text-ink underline underline-offset-4">Open one</Link></div>
+        <div data-tour="positions-list" className="px-5 py-16 text-center text-sm text-ink-3">No positions. <Link href="/studio" className="text-ink underline underline-offset-4">Open one</Link></div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">{list.map((s) => {
+        <div data-tour="positions-list" className="min-h-0 flex-1 overflow-y-auto">{list.map((s) => {
           const mk = markets.find((x) => x.address === s.market);
-          return mk ? <PositionCard key={s.address} s={s} m={mk} onAction={act} busy={busy} /> : null;
+          const featured = (list.find((x) => x.state === "Open") ?? list[0])?.address === s.address;
+          return mk ? <PositionCard key={s.address} s={s} m={mk} onAction={act} busy={busy} tour={featured} /> : null;
         })}</div>
       )}
     </AppShell>

@@ -31,7 +31,7 @@ export function WalletButton() {
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative" ref={ref} data-tour="wallet">
       <button className={`btn !py-1.5 ${w.address ? "btn-ghost" : "btn-primary"}`} onClick={() => setOpen((o) => !o)}>
         {w.address ? (
           <>

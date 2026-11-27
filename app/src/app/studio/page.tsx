@@ -43,6 +43,10 @@ export default function Studio() {
   const [marketName, chooseMarket] = useMarketChoice();
   const [moves, setMoves] = useState<Moves | null>(null);
   const [architectOpen, setArchitectOpen] = useState(false);
+  // /studio?architect=1 (from the landing) opens the Architect straight away
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("architect") === "1") setArchitectOpen(true);
+  }, []);
   // a design handed over by the Architect, applied once its market has loaded
   const pendingDesign = useRef<Design | null>(null);
   const applyDesign = (d: Design) => {
@@ -293,10 +297,10 @@ export default function Studio() {
           </>
         }
       >
-        <button className="btn btn-ghost !py-1 text-[12px]" aria-pressed={architectOpen} onClick={() => setArchitectOpen((x) => !x)} title="Describe what you want; the Architect compiles alternatives">
+        <button data-tour="architect" className="btn btn-ghost !py-1 text-[12px]" aria-pressed={architectOpen} onClick={() => setArchitectOpen((x) => !x)} title="Describe what you want; the Architect compiles alternatives">
           Architect
         </button>
-        <div className="seg">
+        <div className="seg" data-tour="presets">
           {Object.entries(PRESETS).map(([k, v]) => (
             <button
               key={k}
@@ -316,7 +320,7 @@ export default function Studio() {
 
       <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_320px] lg:grid-rows-[minmax(0,1fr)_auto]">
         {/* chart */}
-        <section className="flex min-h-0 min-w-0 flex-col border-line lg:border-r">
+        <section data-tour="chart" className="flex min-h-0 min-w-0 flex-col border-line lg:border-r">
           <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1 px-4 pt-3 sm:px-5">
             <div className="label">Payoff at close</div>
             <div className="cap">Drag · double-click to add · Delete to remove</div>
@@ -360,7 +364,7 @@ export default function Studio() {
 
         {/* controls column, full height */}
         <aside className="flex min-h-0 flex-col border-t border-line text-sm lg:row-span-2 lg:border-t-0">
-          <div className="border-b border-line p-4 sm:p-5">
+          <div data-tour="limits" className="border-b border-line p-4 sm:p-5">
             <div className="label">Limits</div>
             <div className="mt-2.5 grid grid-cols-3 gap-2">
               {[
@@ -392,13 +396,13 @@ export default function Studio() {
               <span>{feas && Number.isFinite(feas.sampled_max_error) ? `${fmtUsd(feas.sampled_max_error)} / ${fmtUsd(feas.tolerance)}` : ""}</span>
             </div>
             {status !== "ok" && feas?.reasons?.length ? <p className="mt-1 line-clamp-2 text-[12px] text-ink-2" title={feas.reasons.join("\n")}>{feas.reasons[0]}</p> : null}
-            <button className="btn btn-primary mt-3 w-full" disabled={!points || busy || !market} onClick={compile}>
+            <button data-tour="compile" className="btn btn-primary mt-3 w-full" disabled={!points || busy || !market} onClick={compile}>
               {busy ? "Compiling…" : "Compile"}
             </button>
             {err && <p className="mt-2 line-clamp-2 text-[12px] text-bad" title={err}>{err}</p>}
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+          <div data-tour="open" className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
             <div className="label">Open</div>
             {!c ? (
               <p className="cap mt-2">Compile first.</p>
@@ -427,7 +431,7 @@ export default function Studio() {
         </aside>
 
         {/* result strip under the chart: ranges, cost, certificate */}
-        <div className="grid min-w-0 border-t border-line md:grid-cols-[minmax(0,1fr)_220px_250px] lg:h-[200px] lg:border-r">
+        <div data-tour="results" className="grid min-w-0 border-t border-line md:grid-cols-[minmax(0,1fr)_220px_250px] lg:h-[200px] lg:border-r">
           <section className="min-w-0">
             <div className="flex items-center justify-between px-4 pb-1 pt-3 sm:px-5">
               <div className="label">Ranges</div>

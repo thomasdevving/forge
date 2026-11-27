@@ -176,7 +176,7 @@ function AddMarket({ onAdded }: { onAdded: (name: string) => void }) {
 export function MarketPicker({ markets: all, value, onChange }: { markets: MarketInfo[]; value: MarketInfo | null; onChange: (name: string) => void }) {
   const markets = [...all].sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
   return (
-    <span className="flex items-center gap-2">
+    <span className="flex items-center gap-2" data-tour="market">
       {markets.length > 3 ? (
         <select className="input !w-auto !py-0.5 !text-[12px]" value={value?.name ?? ""} onChange={(e) => onChange(e.target.value)} aria-label="Market">
           {markets.map((m) => <option key={m.address} value={m.name}>{m.name}</option>)}

@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { Logo } from "./Logo";
+import { Tour } from "./Tour";
 import { WalletButton } from "./WalletButton";
+import { tourFor, tourUnseen } from "@/lib/tour";
 import { useWallet } from "@/lib/wallet";
 
 const NAV = [
@@ -28,15 +30,24 @@ export function AppShell({ children }: { children: ReactNode }) {
     window.addEventListener("resize", on);
     return () => window.removeEventListener("resize", on);
   }, []);
+  // each page has its own walkthrough: it starts by itself on the first visit, and from the Tour button after that
+  const tour = tourFor(path);
+  const [touring, setTouring] = useState(false);
+  const endTour = useCallback(() => setTouring(false), []);
+  useEffect(() => {
+    if (!tour || !tourUnseen(tour)) return;
+    const t = setTimeout(() => setTouring(true), 500);
+    return () => clearTimeout(t);
+  }, [tour]);
   return (
     <div
       className="haze min-h-dvh px-3 py-3 sm:px-6 sm:py-5 lg:h-dvh lg:min-h-0"
       style={zoom < 1 ? { zoom, height: `calc(100dvh / ${zoom})` } : undefined}
     >
       <div className="frame mx-auto flex max-w-[1520px] flex-col overflow-hidden backdrop-blur-sm lg:h-full">
-        <header className="flex h-14 shrink-0 items-center gap-6 border-b border-line px-4 sm:px-5">
+        <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-x-6 gap-y-2 border-b border-line px-4 py-2 sm:h-14 sm:flex-nowrap sm:px-5 sm:py-0">
           <Logo />
-          <nav className="flex h-full items-stretch gap-5 text-[13px]">
+          <nav className="flex items-stretch gap-5 self-stretch text-[13px]">
             {NAV.map((n) => {
               const on = path.startsWith(n.href);
               return (
@@ -48,12 +59,24 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
           <div className="ml-auto flex items-center gap-2">
+            {tour && (
+              <button
+                className="btn btn-ghost !px-2 !py-1.5 !text-[12px] text-ink-2"
+                onClick={() => setTouring(true)}
+                aria-label="Show the tour of this page"
+                title="Walk through this page step by step"
+              >
+                <span aria-hidden className="grid size-4 place-items-center border border-line-strong text-[10px] font-semibold leading-none">?</span>
+                <span className="hidden sm:inline">Tour</span>
+              </button>
+            )}
             <SimulationBadge />
             <WalletButton />
           </div>
         </header>
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </div>
+      {tour && <Tour id={tour} open={touring} onClose={endTour} />}
     </div>
   );
 }
@@ -74,7 +97,7 @@ function SimulationBadge() {
   const w = useWallet();
   const text = w.kind === "mirror" ? "Simulation: your portfolio, no real funds" : w.kind === "demo" ? "Simulation: demo funds" : "Simulation on a mainnet fork";
   return (
-    <span className="tag !border-warn/60 !text-warn" title="Every action runs on a Surfpool fork of Solana mainnet. Nothing touches real funds.">
+    <span data-tour="sim-badge" className="tag !border-warn/60 !text-warn" title="Every action runs on a Surfpool fork of Solana mainnet. Nothing touches real funds.">
       <span className="size-1.5 animate-pulse bg-warn" /> <span className="hidden sm:inline">{text}</span><span className="sm:hidden">Simulation</span>
     </span>
   );
