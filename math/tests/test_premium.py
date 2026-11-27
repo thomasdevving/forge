@@ -1,8 +1,7 @@
 import pytest
+from forge_math import premium as pm
 from hypothesis import given, settings
 from hypothesis import strategies as st
-
-from forge_math import premium as pm
 
 u64 = st.integers(min_value=0, max_value=pm.U64_MAX)
 u128 = st.integers(min_value=0, max_value=pm.U128 - 1)

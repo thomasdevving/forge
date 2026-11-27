@@ -1,10 +1,9 @@
 """Program-specific branches of the Orca port that the SDK quote functions do not cover."""
 
 import pytest
+from forge_math import orca
 from hypothesis import given
 from hypothesis import strategies as st
-
-from forge_math import orca
 
 U128 = orca.U128
 ticks = st.integers(orca.MIN_TICK_INDEX, orca.MAX_TICK_INDEX)

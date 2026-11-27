@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from forge_math import orca
 
 FIXTURE = Path(__file__).parent / "fixtures" / "orca_core_vectors.json"

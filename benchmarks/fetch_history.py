@@ -124,7 +124,8 @@ def main(argv: list[str] | None = None) -> int:
     }
     frames = []
     for month in args.months:
-        url = f"{BASE}/klines/{args.symbol}/{args.interval}/{args.symbol}-{args.interval}-{month}.zip"
+        sym, iv = args.symbol, args.interval
+        url = f"{BASE}/klines/{sym}/{iv}/{sym}-{iv}-{month}.zip"
         try:
             body, sha = fetch_verified(url)
         except urllib.error.HTTPError as e:
