@@ -5,39 +5,11 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import agents from "@/data/agents.json";
 import meta from "../../../public/shots/meta.json";
 import { AgentTerminal } from "./AgentTerminal";
+import { MODE_EVENT, type Mode, writeMode } from "./mode";
 import { LivePrice } from "./LivePrice";
 import { Stars } from "./Stars";
 
-type Mode = "people" | "agents";
-const MODE_EVENT = "forge:hero-mode";
 const tr = agents.treasury.result;
-
-/** Writes the hero mode into the URL (?for=agents) without a navigation, keeping the hash. */
-function writeMode(mode: Mode, dropHash = false) {
-  const url = new URL(window.location.href);
-  if (dropHash) url.hash = "";
-  if (mode === "agents") url.searchParams.set("for", "agents");
-  else url.searchParams.delete("for");
-  window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
-}
-
-/** Link elsewhere on the landing that switches the hero to the agent run and scrolls up to it. */
-export function ShowAgentRun({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <a
-      href="/?for=agents"
-      className={className}
-      onClick={(e) => {
-        e.preventDefault();
-        writeMode("agents", true);
-        window.dispatchEvent(new CustomEvent<Mode>(MODE_EVENT, { detail: "agents" }));
-        window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-      }}
-    >
-      {children}
-    </a>
-  );
-}
 
 /** Small pill switch between the human and the agent story; the highlight slides under the active side. */
 function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
@@ -62,24 +34,6 @@ function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => voi
       ))}
     </div>
   );
-}
-
-/** Shows its children only in one hero mode; follows the toggle and the URL (?for=agents). The server
- * renders the traders' view; the other view stays in the page, hidden, so links and search still find it. */
-export function ForMode({ only, children }: { only: Mode; children: ReactNode }) {
-  const [mode, setMode] = useState<Mode>("people");
-  useEffect(() => {
-    const read = () => setMode(new URLSearchParams(window.location.search).get("for") === "agents" ? "agents" : "people");
-    read();
-    const onEvent = (e: Event) => setMode((e as CustomEvent<Mode>).detail);
-    window.addEventListener("popstate", read);
-    window.addEventListener(MODE_EVENT, onEvent);
-    return () => {
-      window.removeEventListener("popstate", read);
-      window.removeEventListener(MODE_EVENT, onEvent);
-    };
-  }, []);
-  return <div hidden={mode !== only}>{children}</div>;
 }
 
 /** Stacks its children in one grid cell; only the active one is visible, focusable and announced. */
@@ -217,6 +171,19 @@ export function Hero() {
                 </Link>
                 <Link href="/earn" className="btn btn-ghost !px-6 !py-3 !text-[15px]">Earn as an LP</Link>
               </div>
+              <Link
+                href="/studio?architect=1"
+                className="hero-in group mt-5 inline-flex max-w-xl items-center gap-3 border border-line-strong bg-panel/60 px-4 py-3 backdrop-blur-sm transition-colors hover:border-ink-3"
+                style={{ animationDelay: "440ms" }}
+              >
+                <svg viewBox="0 0 16 16" className="size-4 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+                  <path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M3.4 12.6l2.1-2.1M10.5 5.5l2.1-2.1" strokeLinecap="round" />
+                </svg>
+                <span className="text-[13.5px] leading-snug text-ink-2">
+                  <span className="font-medium text-ink">Rather say it in words?</span> Tell the AI Architect what you hold and what you want; it builds the options for you.
+                </span>
+                <span className="text-ink-3 transition-transform group-hover:translate-x-0.5" aria-hidden>→</span>
+              </Link>
             </Layer>
             <Layer on={agentsOn} ready={ready}>
               <Eyebrow right="x402 · USDC per request" />

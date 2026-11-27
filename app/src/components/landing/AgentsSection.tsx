@@ -1,6 +1,6 @@
 import Link from "next/link";
 import data from "@/data/agents.json";
-import { ShowAgentRun } from "./Hero";
+import { ShowAgentRun } from "./mode";
 import { Reveal } from "./Reveal";
 
 const a = data.architect;

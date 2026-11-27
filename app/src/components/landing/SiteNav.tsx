@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { config } from "@/lib/config";
+import { ModeNavLinks } from "./mode";
 import { NavShell } from "./NavShell";
 
 /** Site header for the landing page and the docs. `solid` skips the transparent-over-hero state. */
@@ -10,9 +11,7 @@ export function SiteNav({ solid = false }: { solid?: boolean }) {
       <div className="mx-auto flex h-14 max-w-[1480px] items-center gap-8 px-5 sm:px-8">
         <Logo />
         <nav className="hidden items-center gap-5 whitespace-nowrap text-[14px] text-ink-2 md:flex lg:gap-7">
-          <a href="/#how" className="transition-colors hover:text-ink">How it works</a>
-          <a href="/?for=agents" className="transition-colors hover:text-ink">For agents</a>
-          <a href="/#lps" className="transition-colors hover:text-ink">For LPs</a>
+          <ModeNavLinks className="transition-colors hover:text-ink" />
           <Link href="/proof" className="transition-colors hover:text-ink">Proof</Link>
           <Link href="/docs" className="transition-colors hover:text-ink">Docs</Link>
         </nav>
