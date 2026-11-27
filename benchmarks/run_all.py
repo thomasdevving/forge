@@ -10,6 +10,7 @@ Benchmark 1 (replication) and 3 (LP guarantee) are offline and deterministic. Be
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -34,12 +35,12 @@ def main() -> int:
     steps.append(py + [str(HERE / "replication.py"), "--out", str(out)] + q)
     steps.append(py + [str(HERE / "lp_guarantee.py"), "--out", str(out)] + q)
     if args.fork:
-        steps.append(["pnpm", "--dir", str(HERE.parent / "tests"), "exec", "vitest", "run", "--dir", "bench",
-                      "--", f"--out={out}"])
+        steps.append(["pnpm", "--dir", str(HERE.parent / "tests"), "exec", "vitest", "run", "--dir", "bench"])
     failed = 0
+    env = {**os.environ, "FORGE_BENCH_OUT": str(out)}
     for cmd in steps:
         print(f"\n$ {' '.join(cmd)}", flush=True)
-        failed |= subprocess.run(cmd, cwd=HERE.parent).returncode != 0
+        failed |= subprocess.run(cmd, cwd=HERE.parent, env=env).returncode != 0
     print(f"\nresults: {out}")
     return 1 if failed else 0
 

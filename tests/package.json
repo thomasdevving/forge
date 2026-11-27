@@ -5,7 +5,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run --passWithNoTests --dir unit",
-    "test:fork": "vitest run --dir fork"
+    "test:fork": "vitest run --dir fork",
+    "bench": "vitest run --dir bench"
   },
   "dependencies": {
     "@forge/fork": "workspace:*",

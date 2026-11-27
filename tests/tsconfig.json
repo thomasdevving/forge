@@ -1,1 +1,1 @@
-{ "extends": "../tsconfig.base.json", "compilerOptions": { "noEmit": true }, "include": ["src/**/*.ts", "fork/**/*.ts", "unit/**/*.ts", "vitest.config.ts"] }
+{ "extends": "../tsconfig.base.json", "compilerOptions": { "noEmit": true }, "include": ["src/**/*.ts", "fork/**/*.ts", "unit/**/*.ts", "bench/**/*.ts", "vitest.config.ts"] }
