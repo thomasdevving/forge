@@ -402,6 +402,14 @@ pub struct Strategy {
     /// and returned to the owner at settlement; never used to raise authorized spending.
     pub fee_credit_base: u64,
     pub fee_credit_quote: u64,
+    /// Settlement record (kept after close so designed vs realized can be shown from chain):
+    /// tokens returned to the owner from escrow and provided legs (excluding the budget refund),
+    /// the budget refund, and the validated reference price used for the last restoration.
+    pub payout_base: u64,
+    pub payout_quote: u64,
+    pub budget_refund: u64,
+    pub settlement_reference_x64: u128,
+    pub closed_at: i64,
     pub authority_bump: u8,
     pub provide_base_bump: u8,
     pub provide_quote_bump: u8,

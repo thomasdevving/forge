@@ -133,6 +133,11 @@ export type Strategy = {
   close_started_at: bigint;
   fee_credit_base: bigint;
   fee_credit_quote: bigint;
+  payout_base: bigint;
+  payout_quote: bigint;
+  budget_refund: bigint;
+  settlement_reference_x64: bigint;
+  closed_at: bigint;
   leg_count: number;
   legs: Leg[];
 };

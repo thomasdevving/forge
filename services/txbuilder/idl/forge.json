@@ -4466,6 +4466,31 @@
             "type": "u64"
           },
           {
+            "name": "payout_base",
+            "docs": [
+              "Settlement record (kept after close so designed vs realized can be shown from chain):",
+              "tokens returned to the owner from escrow and provided legs (excluding the budget refund),",
+              "the budget refund, and the validated reference price used for the last restoration."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "payout_quote",
+            "type": "u64"
+          },
+          {
+            "name": "budget_refund",
+            "type": "u64"
+          },
+          {
+            "name": "settlement_reference_x64",
+            "type": "u128"
+          },
+          {
+            "name": "closed_at",
+            "type": "i64"
+          },
+          {
             "name": "authority_bump",
             "type": "u8"
           },

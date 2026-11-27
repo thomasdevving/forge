@@ -57,6 +57,8 @@ class CompileRequest(BaseModel):
     method: Literal["optimizer", "baseline"] = "optimizer"
     tolerance: float | None = None
     market: Market = Market()
+    # result of simulating the open transaction on the fork, recorded in the certificate
+    simulation: dict | None = None
 
 
 class EvaluateRequest(BaseModel):

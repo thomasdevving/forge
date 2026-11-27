@@ -27,8 +27,20 @@ def construction_from_dict(d: dict, base_decimals: int, quote_decimals: int) -> 
     )
 
 
+def _normalize(v):
+    """Integer-valued floats become ints, so the hash survives a JSON round trip through any
+    language (JavaScript has one number type and writes 0.0 as 0)."""
+    if isinstance(v, float) and v.is_integer() and abs(v) < 2**53:
+        return int(v)
+    if isinstance(v, dict):
+        return {k: _normalize(x) for k, x in v.items()}
+    if isinstance(v, list | tuple):
+        return [_normalize(x) for x in v]
+    return v
+
+
 def canonical_json(doc: dict) -> bytes:
-    return json.dumps(doc, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    return json.dumps(_normalize(doc), sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
 def certificate_hash(doc: dict) -> str:

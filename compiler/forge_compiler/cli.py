@@ -67,7 +67,8 @@ def compile_request(req: dict) -> dict:
             market={"whirlpool": m.get("whirlpool", ""), "base_decimals": bd, "quote_decimals": qd,
                     "spot": float(req["spot"])},
             target=list(payoff.breakpoints), construction=res.construction.to_dict(),
-            premium_budget=limits.premium_budget, liquidity_check=liquidity_check)
+            premium_budget=limits.premium_budget, liquidity_check=liquidity_check,
+            simulation=req.get("simulation"))
     tolerance = req.get("tolerance") or payoff.default_tolerance()
     return {"result": res.to_dict(), "certificate": cert, "tolerance": tolerance}
 

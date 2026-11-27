@@ -136,10 +136,25 @@ async function marketSummary(addr: Address, m: Market) {
   };
 }
 
+/** Measured forgone fees per bucket: sum of every borrowed leg's cumulative forgone quote. */
+async function forgoneByBucket(market: Address): Promise<Map<string, bigint>> {
+  const strategies = await programAccounts<Strategy>("Strategy");
+  const out = new Map<string, bigint>();
+  for (const { data: s } of strategies) {
+    if (s.market !== market) continue;
+    for (const l of s.legs.slice(0, s.leg_count)) {
+      if (l.kind_tag > 1 || !l.executed) continue;
+      out.set(l.bucket, (out.get(l.bucket) ?? 0n) + l.cum_forgone_quote);
+    }
+  }
+  return out;
+}
+
 async function buckets(market: Address) {
   const m = await fetchMarket(rpc, market);
   const pool = await readPool(rpc, m.whirlpool);
   const list = await programAccounts<Bucket>("Bucket", { offset: 8, bytes: market });
+  const forgone = await forgoneByBucket(market);
   const scale = 10 ** (m.base_decimals - m.quote_decimals);
   return list
     .map(({ address: a, data: b }) => {
@@ -165,6 +180,10 @@ async function buckets(market: Address) {
         feesCollectedBase: b.fees_collected_base,
         feesCollectedQuote: b.fees_collected_quote,
         lpShortfall: b.lp_shortfall_quote,
+        forgoneMeasured: forgone.get(a) ?? 0n,
+        premiumIndexX64: b.premium_index_x64,
+        feeIndexBaseX64: b.fee_index_base_x64,
+        feeIndexQuoteX64: b.fee_index_quote_x64,
         openLegs: b.open_legs,
         position: b.position,
       };
@@ -244,7 +263,26 @@ app.get<{ Params: { address: string } }>("/strategies/:address", async (req) => 
 app.get<{ Querystring: { owner?: string } }>("/lp", async (req) => {
   if (!req.query.owner) return [];
   const list = await programAccounts<LpPosition>("LpPosition", { offset: 8, bytes: address(req.query.owner) });
-  return serialize(list.map(({ address: a, data }) => ({ address: a, ...data })));
+  const Q = 1n << 64n;
+  const out = await Promise.all(
+    list.map(async ({ address: a, data: lp }) => {
+      const raw = await fetchRaw(rpc, lp.bucket);
+      const b = raw ? decodeAccount<Bucket>("Bucket", raw) : null;
+      const owed = (idx: bigint, then: bigint) => (lp.liquidity * (((idx - then) % (1n << 128n)) + (1n << 128n)) % (1n << 128n)) / Q;
+      return {
+        address: a,
+        ...lp,
+        market: b?.market,
+        tickLower: b?.tick_lower,
+        tickUpper: b?.tick_upper,
+        shareOfBucket: b && b.total_liquidity > 0n ? Number((lp.liquidity * 1_000_000n) / b.total_liquidity) / 1e6 : 0,
+        premiumOwedNow: b ? lp.premium_owed + owed(b.premium_index_x64, lp.premium_index_x64) : lp.premium_owed,
+        feesOwedBaseNow: b ? lp.fee_owed_base + owed(b.fee_index_base_x64, lp.fee_index_base_x64) : lp.fee_owed_base,
+        feesOwedQuoteNow: b ? lp.fee_owed_quote + owed(b.fee_index_quote_x64, lp.fee_index_quote_x64) : lp.fee_owed_quote,
+      };
+    }),
+  );
+  return serialize(out);
 });
 
 await app.listen({ port: PORT, host: process.env.HOST ?? "127.0.0.1" });

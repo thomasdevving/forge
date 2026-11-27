@@ -20,7 +20,8 @@ import {
 } from "@solana/kit";
 import { buildClose, buildOpen, checkpointLegIx, type LegKindName } from "./flows.js";
 import { checkpointIxsForBucket, claimLpIx, depositLiquidityIx, requestWithdrawalIx, withdrawLiquidityIx } from "./lp.js";
-import { fetchMarket } from "./accounts.js";
+import { fetchMarket, fetchStrategy } from "./accounts.js";
+import { forgeIx, rw } from "./program.js";
 import { hexToBytes } from "./idl.js";
 import { humanPriceToX64 } from "./orca.js";
 import { loadLookupTables, prepareTransaction, SimulationError, TransactionLimitError } from "./tx.js";
@@ -61,13 +62,19 @@ type OpenBody = {
   swapSlippageBps: number; certificateHash: string; userBase: string; userQuote: string;
 };
 
+/**
+ * Staged plans are returned one transaction at a time, chosen from chain state, so every
+ * transaction is simulated against the real state it will execute on (a later batch cannot be
+ * simulated before the strategy exists). Clients call again until `done`.
+ */
 app.post<{ Body: OpenBody }>("/build/open", async (req) => {
   const b = req.body;
   const owner = address(b.owner);
-  const m = await fetchMarket(rpc, address(b.market));
+  const market = address(b.market);
+  const m = await fetchMarket(rpc, market);
   const { strategy, transactions } = await buildOpen(rpc, {
     owner: createNoopSigner(owner),
-    market: address(b.market),
+    market,
     nonce: BigInt(b.nonce),
     legs: b.legs.map((l) => ({ kind: l.kind, tickLower: l.tickLower, liquidity: BigInt(l.liquidity), extraBuffer: BigInt(l.extraBuffer ?? "0") })),
     premiumBudget: BigInt(b.premiumBudget),
@@ -79,12 +86,24 @@ app.post<{ Body: OpenBody }>("/build/open", async (req) => {
     userBase: address(b.userBase),
     userQuote: address(b.userQuote),
   });
-  return { strategy, transactions: await encode(owner, transactions) };
+  const exists = await rpc.getAccountInfo(strategy, { encoding: "base64", dataSlice: { offset: 0, length: 0 } }).send();
+  let step = 0;
+  if (exists.value) {
+    const s = await fetchStrategy(rpc, strategy);
+    if (s.state !== "PendingOpen") return { strategy, transactions: [], done: true, state: s.state };
+    const per = m.params.max_ops_per_tx;
+    const batch = s.legs.findIndex((l) => !l.executed);
+    // transactions = [begin], [batch 0], [batch 1], ..., [finalize]
+    step = batch < 0 ? transactions.length - 1 : 1 + Math.floor(batch / per);
+  }
+  return { strategy, transactions: await encode(owner, [transactions[step]!]), done: false, step, steps: transactions.length };
 });
 
 app.post<{ Body: { owner: string; market: string; strategy: string; userBase: string; userQuote: string } }>("/build/close", async (req) => {
   const b = req.body;
   const owner = address(b.owner);
+  const s = await fetchStrategy(rpc, address(b.strategy));
+  if (s.state === "Closed" || s.state === "Cancelled") return { transactions: [], done: true, state: s.state };
   const plan = await buildClose(rpc, {
     caller: createNoopSigner(owner),
     market: address(b.market),
@@ -92,7 +111,18 @@ app.post<{ Body: { owner: string; market: string; strategy: string; userBase: st
     userBase: address(b.userBase),
     userQuote: address(b.userQuote),
   });
-  return { transactions: await encode(owner, plan) };
+  // buildClose already reflects chain state: begin (if open), pending batches, finalize
+  return { transactions: await encode(owner, [plan[0]!]), done: false, steps: plan.length };
+});
+
+app.post<{ Body: { owner: string; market: string; strategy: string } }>("/build/abort", async (req) => {
+  const b = req.body;
+  const owner = address(b.owner);
+  const s = await fetchStrategy(rpc, address(b.strategy));
+  // reservations of unexecuted borrowed legs are released by the abort itself
+  const rem = s.legs.filter((l) => !l.executed && l.kind_tag <= 1).map((l) => rw(l.bucket));
+  const ix = forgeIx("abort_open", { caller: createNoopSigner(owner), strategy: address(b.strategy), market: address(b.market) }, {}, rem);
+  return { transactions: await encode(owner, [[ix]]) };
 });
 
 type LpBody = { owner: string; market: string; bucket: string; liquidity?: string; userBase: string; userQuote: string };

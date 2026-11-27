@@ -1,0 +1,210 @@
+@import "tailwindcss";
+
+/* FORGE design tokens. Ember accent on a near-black forge floor; a warm paper light mode.
+   Dark/light follow the OS unless the user picks one (data-theme on <html>). */
+:root {
+  --bg: #f7f5f0;
+  --bg-elev: #ffffff;
+  --bg-sunk: #efece4;
+  --ink: #17140f;
+  --ink-2: #4a443a;
+  --ink-3: #7c7466;
+  --line: #e2ddd1;
+  --line-strong: #cdc6b6;
+  --ember: #e8541c;
+  --ember-2: #f2902a;
+  --ember-soft: #fbe3d6;
+  --steel: #2f6f9f;
+  --steel-soft: #dcebf6;
+  --good: #1c9e74;
+  --good-soft: #dbf2e8;
+  --bad: #d23b55;
+  --bad-soft: #f8dde2;
+  --warn: #b7791f;
+  --warn-soft: #f7ecd6;
+  --grid: rgba(23, 20, 15, 0.06);
+  --shadow: 0 1px 2px rgba(23, 20, 15, 0.06), 0 8px 24px rgba(23, 20, 15, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c0b0a;
+    --bg-elev: #151311;
+    --bg-sunk: #0a0908;
+    --ink: #f3eee6;
+    --ink-2: #c4bcae;
+    --ink-3: #8a8274;
+    --line: #2a2622;
+    --line-strong: #3a352f;
+    --ember: #ff6a2b;
+    --ember-2: #ffb347;
+    --ember-soft: #3a1d10;
+    --steel: #7cb8e6;
+    --steel-soft: #142636;
+    --good: #3ad7a1;
+    --good-soft: #10291f;
+    --bad: #ff5c78;
+    --bad-soft: #321219;
+    --warn: #f0b552;
+    --warn-soft: #2d2210;
+    --grid: rgba(243, 238, 230, 0.05);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.35);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0c0b0a;
+  --bg-elev: #151311;
+  --bg-sunk: #0a0908;
+  --ink: #f3eee6;
+  --ink-2: #c4bcae;
+  --ink-3: #8a8274;
+  --line: #2a2622;
+  --line-strong: #3a352f;
+  --ember: #ff6a2b;
+  --ember-2: #ffb347;
+  --ember-soft: #3a1d10;
+  --steel: #7cb8e6;
+  --steel-soft: #142636;
+  --good: #3ad7a1;
+  --good-soft: #10291f;
+  --bad: #ff5c78;
+  --bad-soft: #321219;
+  --warn: #f0b552;
+  --warn-soft: #2d2210;
+  --grid: rgba(243, 238, 230, 0.05);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-elev: var(--bg-elev);
+  --color-sunk: var(--bg-sunk);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ember: var(--ember);
+  --color-ember-2: var(--ember-2);
+  --color-ember-soft: var(--ember-soft);
+  --color-steel: var(--steel);
+  --color-steel-soft: var(--steel-soft);
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --font-display: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
+}
+
+html {
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  overflow-x: hidden;
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.card {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.ember-glow {
+  background: radial-gradient(60% 60% at 50% 40%, color-mix(in oklab, var(--ember) 22%, transparent), transparent 70%);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease, opacity 160ms ease;
+  white-space: nowrap;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--ember); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: color-mix(in oklab, var(--ember) 88%, #000); }
+.btn-ghost { border: 1px solid var(--line-strong); color: var(--ink); background: transparent; }
+.btn-ghost:hover:not(:disabled) { border-color: var(--ink-3); background: var(--bg-sunk); }
+
+.input {
+  width: 100%;
+  background: var(--bg-sunk);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 0.5rem 0.65rem;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+.input:focus { outline: 2px solid color-mix(in oklab, var(--ember) 55%, transparent); outline-offset: 1px; }
+
+.label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid var(--line);
+}
+
+@keyframes draw {
+  from { stroke-dashoffset: var(--len, 1200); }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes rise {
+  from { transform: scaleY(0); opacity: 0; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-draw { stroke-dasharray: var(--len, 1200); animation: draw 1.8s cubic-bezier(0.65, 0, 0.35, 1) both; }
+.animate-rise { transform-origin: bottom; animation: rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.animate-fade-up { animation: fade-up 0.6s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-draw, .animate-rise, .animate-fade-up { animation: none; }
+}

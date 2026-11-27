@@ -76,3 +76,15 @@ def test_certificate_hash_detects_tampering():
     assert len(doc["hash"]) == 64
     doc["construction"]["cash"] = 2.0
     assert not verify_certificate(doc)
+
+
+def test_hash_survives_a_javascript_style_round_trip():
+    import json
+    doc = build_certificate(
+        market={"whirlpool": "w", "base_decimals": BD, "quote_decimals": QD, "spot": 73.0},
+        target=[(40.0, 100.0), (120.0, 900.0)],
+        construction={"cash": 0.0, "base": 2.0, "legs": []},
+        premium_budget=10.0, liquidity_check=[])
+    # JavaScript serializes 0.0 and 2.0 as 0 and 2
+    js = json.loads(json.dumps(doc).replace("0.0,", "0,").replace("2.0,", "2,"))
+    assert verify_certificate(js)

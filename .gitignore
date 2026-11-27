@@ -45,3 +45,5 @@ benchmarks/data/raw/
 .idea/
 .vscode/
 benchmarks/data/*.npz
+next-env.d.ts
+.claude/

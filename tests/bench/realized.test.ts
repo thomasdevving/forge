@@ -136,6 +136,8 @@ describe("Benchmark 2: theoretical vs realized (fork)", () => {
         const row = {
           payoff: sc.name, move: mv, spot, close_price: closeP, legs: legs.map((l) => `${l.kind}@${l.tickLower}`),
           certificate_hash: cert.hash, target, construction: fhat, certified_bound: bound,
+          construction_detail: cert.construction,
+          target_breakpoints: (compiled.certificate as { target: { breakpoints: number[][] } }).target.breakpoints,
           // net = everything the user ends with from the construction: gross - premium + fee credits
           realized_full_gross: realizedFull, realized_net: realizedFull - premium + fees, premium, fee_credits: fees,
           restoration_swap_cost: swapCost, gap_to_construction: realizedFull - fhat, gap_to_target: realizedFull - target,

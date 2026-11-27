@@ -352,6 +352,7 @@ pub fn execute_close_batch<'info>(
         bucket.exit(&crate::ID)?;
     }
     s.premium_accrued = s.legs().iter().map(|l| l.premium).sum();
+    s.settlement_reference_x64 = reference.price_x64;
     write_back(&mut ctx.accounts.strategy, &mut s);
     Ok(())
 }
@@ -903,6 +904,10 @@ pub fn finalize_close<'info>(ctx: Context<'info, FinalizeClose<'info>>) -> Resul
         l.escrow_base = 0;
         l.escrow_quote = 0;
     }
+    s.payout_base = esc_base + prov_base;
+    s.payout_quote = esc_quote + prov_quote;
+    s.budget_refund = budget_left;
+    s.closed_at = Clock::get()?.unix_timestamp;
     let was_recorded = s.recovery_recorded;
     s.recovery_recorded = false;
     s.state = if s.aborting { StrategyState::Cancelled } else { StrategyState::Closed };

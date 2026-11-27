@@ -319,7 +319,7 @@ export async function buildClose(rpc: Rpc<SolanaRpcApi>, p: CloseParams): Promis
   const execs = await Promise.all(batches.map((b) => buildCloseBatch(rpc, p, b)));
   const finalize = await buildFinalizeClose(rpc, p);
   if (batches.length <= 1) return [[...begin, ...execs, finalize]];
-  return [[...begin], ...execs.map((e) => [e]), [finalize]];
+  return [...(begin.length ? [begin] : []), ...execs.map((e) => [e]), [finalize]];
 }
 
 export async function checkpointLegIx(rpc: Rpc<SolanaRpcApi>, market: Address, strategy: Address, legIndex: number): Promise<Instruction> {
