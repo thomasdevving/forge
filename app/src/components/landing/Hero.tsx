@@ -186,7 +186,7 @@ export function Hero() {
   const floor = m.target[1]!, cap = m.target[2]!;
 
   return (
-    <section ref={root} className="hero relative isolate flex min-h-dvh items-center overflow-hidden pt-14" aria-label="Introduction">
+    <section ref={root} className="hero relative isolate flex min-h-dvh items-center overflow-hidden pt-14 pb-[6vh]" aria-label="Introduction">
       {/* background */}
       <div className="pointer-events-none absolute inset-0 -z-10 bg-bg" aria-hidden>
         <Stars className="hero-stars absolute inset-0 h-full w-full [mask-image:radial-gradient(circle_at_86%_30%,transparent_0,transparent_36vh,black_44vh)]" />
@@ -201,10 +201,7 @@ export function Hero() {
       <div className="mx-auto grid w-full max-w-[1480px] items-center gap-12 px-5 py-16 sm:px-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-6 lg:py-[4vh]">
         {/* copy */}
         <div className="relative z-10">
-          <div className="hero-in" style={{ animationDelay: "40ms" }}>
-            <ModeToggle mode={mode} onChange={setMode} />
-          </div>
-          <div className="mt-[min(2rem,3.5vh)] grid grid-cols-[minmax(0,1fr)]">
+          <div className="grid grid-cols-[minmax(0,1fr)]">
             <Layer on={!agentsOn} ready={ready}>
               <Eyebrow right="Any Orca token" />
               <h1 className="hero-in mt-[min(1.75rem,3vh)] font-display text-[clamp(2.2rem,min(4.2vw,7.4vh),5.2rem)] font-semibold leading-[1.02] tracking-[-0.04em]" style={{ animationDelay: "160ms" }}>
@@ -296,6 +293,11 @@ export function Hero() {
               <div className="cap mt-1.5 truncate">certificate {tr.certificate.slice(0, 10)}…</div>
             </div>
           </Layer>
+
+          {/* who it is for: switches the copy, the screen and the sections below */}
+          <div className="hero-in relative z-10 mt-14 flex justify-center sm:mt-16" style={{ animationDelay: "420ms" }}>
+            <ModeToggle mode={mode} onChange={setMode} />
+          </div>
         </div>
       </div>
     </section>
