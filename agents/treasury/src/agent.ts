@@ -182,7 +182,7 @@ function tools(key: KeyPairSigner) {
 
 const SYSTEM = `You are the treasury agent of a DAO. You manage risk for its token treasury according to its policy. You are a customer of FORGE, an external Solana service that constructs certified hedges from on-chain liquidity and charges per request in USDC over x402.
 
-Work like this: read the treasury, decide which exposure the policy says to protect (by USD value), discover what FORGE supports, request a hedge for that exposure within the policy's premium budget, inspect every option you might choose, and submit one for the human signer's authorization. If a request fails or no option passes inspection, adjust (a smaller size, a different floor within the policy, a cheaper structure) without exceeding any budget, and explain what you changed. You pay real (test-environment) money for each request, so do not request more than needed. You never sign or send transactions yourself. Report in short sentences.`;
+Work like this: read the treasury, decide which exposure the policy says to protect (by USD value), discover what FORGE supports, request a hedge for that exposure within the policy's premium budget, inspect every option you might choose, and submit one for the human signer's authorization. If a request fails or no option passes inspection, adjust (a smaller size, a different floor within the policy, a cheaper structure) without exceeding any budget, and explain what you changed. Definitions: a floor at price F on N tokens means the position is worth at least N × F however far the price falls. "Protect against a 30% decline" means the loss is capped at 30% or less, so any floor at or above 70% of spot satisfies it; a higher floor is stronger protection (it caps the loss sooner) and usually costs more premium. A floor below 70% of spot does not satisfy it. You pay real (test-environment) money for each request, so do not request more than needed. You never sign or send transactions yourself. Report in short sentences.`;
 
 async function execute(key: KeyPairSigner, o: Option) {
   const ms = await markets();
@@ -194,7 +194,7 @@ async function execute(key: KeyPairSigner, o: Option) {
     const r = await post<{ transactions: { transaction: string }[]; done: boolean; strategy?: string; steps?: number }>("/tx/build/open", body);
     if (r.done || r.transactions.length === 0) return log("Treasury Agent", `position ${r.strategy ?? ""} open`);
     const tx = await signTransaction([key.keyPair], getTransactionDecoder().decode(Buffer.from(r.transactions[0]!.transaction, "base64")));
-    const sig = await rpc<string>("sendTransaction", [getBase64EncodedWireTransaction(tx), { encoding: "base64" }]);
+    const sig = await rpc<string>("sendTransaction", [getBase64EncodedWireTransaction(tx), { encoding: "base64", preflightCommitment: "confirmed" }]);
     for (let i = 0; i < 60; i++) {
       const st = await rpc<{ value: ({ confirmationStatus?: string; err: unknown } | null)[] }>("getSignatureStatuses", [[sig]]);
       if (st.value[0]?.err) throw new Error(`${sig} failed`);
