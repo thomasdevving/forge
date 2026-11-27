@@ -172,17 +172,17 @@ export default function Studio() {
     setErr(null);
     setOpened(null);
     const plan: Step[] = [
-      { label: "Simulate the open transaction on the fork", state: "doing" },
-      { label: "Certify (simulation recorded) and store the certificate", state: "todo" },
-      { label: "Build the transaction with the certificate hash", state: "todo" },
-      { label: "Sign and execute", state: "todo" },
+      { label: "Simulate", state: "doing" },
+      { label: "Certify", state: "todo" },
+      { label: "Build", state: "todo" },
+      { label: "Sign and send", state: "todo" },
     ];
     setSteps(plan);
     const upd = (i: number, s: Partial<Step>) => setSteps((prev) => prev.map((x, j) => (j === i ? { ...x, ...s } : x)));
     try {
       const userBase = await tokenAccount(wallet.address, WSOL);
       const userQuote = await tokenAccount(wallet.address, USDC);
-      if (!userBase || !userQuote) throw new Error("Your wallet needs SOL (wrapped) and USDC token accounts. Use “Get fork test funds” in the wallet menu.");
+      if (!userBase || !userQuote) throw new Error("No SOL/USDC token accounts. Get test funds from the wallet menu.");
       const nonce = String(Date.now());
       const body = (hash: string) => ({
         owner: wallet.address,
@@ -207,8 +207,8 @@ export default function Studio() {
       await api("compiler/certificates", final.certificate);
       setCompiled(final);
       upd(1, { state: "done", detail: `hash ${final.certificate.hash.slice(0, 16)}…` });
-      upd(2, { state: "done", detail: "each transaction is built and simulated just before you sign it" });
-      upd(3, { state: "doing", detail: "Check the transaction in your wallet" });
+      upd(2, { state: "done", detail: "simulated before each signature" });
+      upd(3, { state: "doing", detail: "check your wallet" });
       const built = await wallet.runPlan("tx/build/open", body(final.certificate.hash), (n, sig, of) => upd(3, { detail: `${n}/${of ?? n} confirmed`, sig }));
       upd(3, { state: "done", detail: `${built.sigs.length} transaction${built.sigs.length > 1 ? "s" : ""} confirmed`, sig: built.sigs[built.sigs.length - 1] });
       setOpened(built.strategy ?? null);
@@ -230,8 +230,7 @@ export default function Studio() {
           <div className="card p-4 sm:p-5">
             <div className="flex flex-wrap items-center gap-3">
               <div>
-                <div className="label">Design</div>
-                <h1 className="font-display text-xl font-semibold">Draw the payoff you want at close</h1>
+                <h1 className="font-display text-xl font-semibold">Payoff at close</h1>
               </div>
               <div className="ml-auto flex flex-wrap gap-1.5">
                 {Object.entries(PRESETS).map(([k, v]) => (
@@ -273,15 +272,15 @@ export default function Studio() {
               <span className="flex items-center gap-1.5"><span className="h-[2px] w-5 rounded bg-ink" /> compiled</span>
               <span className="flex items-center gap-1.5"><span className="h-0 w-5 border-t border-dashed border-ink-3" /> just holding {fmtNum(baseHoldings, 1)} SOL</span>
               {status === "infeasible" && <span className="flex items-center gap-1.5"><span className="h-0 w-5 border-t-2 border-dashed border-warn" /> closest feasible</span>}
-              <span className="ml-auto">Drag points · double-click to add · select and press Delete to remove</span>
+              <span className="ml-auto">Drag · double-click to add · Delete to remove</span>
             </div>
           </div>
 
           {/* legs */}
           <div className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-line px-5 py-3">
-              <div className="label">Liquidity ranges used</div>
-              {compiled && <span className="num text-xs text-ink-3">solved in {(compiled.result.solve_seconds * 1000).toFixed(0)} ms</span>}
+              <div className="label">Ranges</div>
+              {compiled && <span className="num text-xs text-ink-3">{(compiled.result.solve_seconds * 1000).toFixed(0)} ms</span>}
             </div>
             {legRows.length ? (
               <div className="overflow-x-auto">
@@ -300,7 +299,7 @@ export default function Studio() {
                         <td className="num px-5 py-2.5">{fmtUsd(l.price_lower)} – {fmtUsd(l.price_upper)}</td>
                         <td className="num px-5 py-2.5 text-ink-2">{l.liquidity_onchain.toExponential(3)}</td>
                         <td className="num px-5 py-2.5">{fmtUsd(l.notional)}</td>
-                        <td className="px-5 py-2.5 text-ink-2">{l.kind.startsWith("borrow") ? "borrowed from LPs, escrowed" : l.kind === "provide_call" ? "your SOL" : "your USDC"}</td>
+                        <td className="px-5 py-2.5 text-ink-2">{l.kind.startsWith("borrow") ? "LP escrow" : l.kind === "provide_call" ? "your SOL" : "your USDC"}</td>
                         <td className="num px-5 py-2.5">{l.mult ? `${l.mult.toFixed(2)}×` : "—"}</td>
                       </tr>
                     ))}
@@ -308,7 +307,7 @@ export default function Studio() {
                 </table>
               </div>
             ) : (
-              <p className="px-5 py-6 text-sm text-ink-3">Compile to see which ranges FORGE borrows or provides.</p>
+              <p className="px-5 py-6 text-sm text-ink-3">Compile to see the ranges.</p>
             )}
           </div>
         </div>
@@ -328,16 +327,16 @@ export default function Studio() {
               <div>
                 <div className="text-xs text-ink-3">Reference</div>
                 <div className="num text-lg font-semibold">{fmtUsd(market?.reference?.price)}</div>
-                <div className="text-[11px] text-ink-3">{market?.reference ? `${market.reference.kind === "PythPair" ? "Pyth pair" : "fork scenario"} · ${ago(market.reference.ageSeconds)}` : ""}</div>
+                <div className="text-[11px] text-ink-3">{market?.reference ? `${market.reference.kind === "PythPair" ? "Pyth" : "scenario"} · ${ago(market.reference.ageSeconds)}` : ""}</div>
               </div>
             </div>
             {(market?.borrowPaused || market?.opensPaused) && (
-              <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn">{market.opensPaused ? "New opens are paused." : "New borrowing is paused pending review of a recorded shortfall."}</p>
+              <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn">{market.opensPaused ? "Opens paused." : "Borrowing paused (shortfall review)."}</p>
             )}
           </div>
 
           <div className="card p-5">
-            <div className="label">Your constraints</div>
+            <div className="label">Limits</div>
             <div className="mt-3 grid grid-cols-3 gap-3">
               <label className="block">
                 <span className="text-xs text-ink-3">SOL held</span>
@@ -354,14 +353,14 @@ export default function Studio() {
             </div>
             {walletBal && (
               <p className="mt-2 text-[11px] text-ink-3">
-                Wallet: <span className="num">{fmtNum(walletBal.sol, 3)}</span> wrapped SOL · <span className="num">{fmtNum(walletBal.usdc, 2)}</span> USDC
+                Wallet <span className="num">{fmtNum(walletBal.sol, 3)}</span> SOL · <span className="num">{fmtNum(walletBal.usdc, 2)}</span> USDC
               </p>
             )}
 
             <div className={`mt-4 rounded-lg border px-3 py-2.5 text-sm ${status === "ok" ? "border-good/40 bg-good-soft" : status === "infeasible" ? "border-warn/40 bg-warn-soft" : "border-line bg-sunk"}`}>
               <div className="flex items-center gap-2 font-medium">
                 <span className={`size-2 rounded-full ${status === "ok" ? "bg-good" : status === "infeasible" ? "bg-warn" : "bg-ink-3"}`} />
-                {status === "ok" ? "Feasible" : status === "infeasible" ? "Not feasible as drawn" : feas ? "Checking…" : "Draw to check feasibility"}
+                {status === "ok" ? "Feasible" : status === "infeasible" ? "Not feasible" : feas ? "Checking…" : "—"}
                 {feas && Number.isFinite(feas.sampled_max_error) && (
                   <span className="num ml-auto text-xs text-ink-2">err {fmtUsd(feas.sampled_max_error)} / tol {fmtUsd(feas.tolerance)}</span>
                 )}
@@ -371,26 +370,26 @@ export default function Studio() {
               ) : null}
             </div>
             <button className="btn btn-primary mt-4 w-full" disabled={!points || busy || !market} onClick={compile}>
-              {busy ? "Compiling…" : "Compile and certify"}
+              {busy ? "Compiling…" : "Compile"}
             </button>
             {err && <p className="mt-2 text-xs text-bad">{err}</p>}
           </div>
 
           {c && (
             <div className="card p-5">
-              <div className="label">Collateral and premium</div>
+              <div className="label">Cost</div>
               <dl className="mt-3 space-y-2 text-sm">
                 {[
-                  ["Your capital locked", fmtUsd(c.capital_locked), "cash, SOL, provided ranges and buffers, at spot"],
-                  ["Restoration buffers", fmtUsd(c.buffer_quote + c.buffer_base * c.spot), "locked separately, returned unless used"],
-                  ["Escrow from LPs", fmtUsd(c.escrow_quote + c.escrow_base * c.spot), "removed from borrowed ranges"],
-                  ["Max premium (budget)", fmtUsd(budget), `1% keeper bounty reserve · LPs paid at most ${fmtUsd(budget * 0.99)}`],
-                  ["Time-floor premium", borrowedLegs.length ? `${fmtUsd(floorPerDay)}/day` : "—", "the minimum; fee-driven premium can be higher"],
+                  ["Capital locked", fmtUsd(c.capital_locked), ""],
+                  ["Buffers", fmtUsd(c.buffer_quote + c.buffer_base * c.spot), "returned unless used"],
+                  ["LP escrow", fmtUsd(c.escrow_quote + c.escrow_base * c.spot), ""],
+                  ["Max premium", fmtUsd(budget), "incl. 1% keeper bounty"],
+                  ["Min premium", borrowedLegs.length ? `${fmtUsd(floorPerDay)}/day` : "—", "time floor"],
                 ].map(([k, v, s]) => (
                   <div key={k} className="flex items-start justify-between gap-3">
                     <dt>
                       <div className="text-ink-2">{k}</div>
-                      <div className="text-[11px] text-ink-3">{s}</div>
+                      {s && <div className="text-[11px] text-ink-3">{s}</div>}
                     </dt>
                     <dd className="num shrink-0 font-medium">{v}</dd>
                   </div>
@@ -398,9 +397,7 @@ export default function Studio() {
               </dl>
               {isCollar && (
                 <div className="mt-4 rounded-lg border border-steel/30 bg-steel-soft px-3 py-2.5 text-xs leading-relaxed text-ink">
-                  <span className="font-semibold">Your upside cap pays for your downside protection.</span> Fees your covered-call range actually
-                  collects are credited at close and netted against the put premium. Only collected fees count; the full budget is still locked,
-                  and the offset can be all, part or none of the premium.
+                  <span className="font-semibold">Your upside cap pays for your downside.</span> Fees your covered call collects are netted against the put premium at close.
                 </div>
               )}
             </div>
@@ -409,29 +406,27 @@ export default function Studio() {
           {cert && (
             <div className="card p-5">
               <div className="flex items-center justify-between">
-                <div className="label">Replication certificate</div>
+                <div className="label">Certificate</div>
                 <a
                   className="text-xs font-medium text-ember hover:underline"
                   href={`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(cert, null, 2))}`}
                   download={`forge-certificate-${cert.hash.slice(0, 12)}.json`}
                 >
-                  Download JSON
+                  JSON
                 </a>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
                 <span className="num text-3xl font-semibold">±{fmtUsd(cert.error.certified_bound)}</span>
-                <span className="text-xs text-ink-3">certified max gross error</span>
+                <span className="text-xs text-ink-3">max error</span>
               </div>
-              <p className="mt-1 text-xs text-ink-3">
-                exact maximum <span className="num">{fmtUsd(cert.error.max_gross_error, 4)}</span> at <span className="num">{fmtUsd(cert.error.at_price)}</span> + Orca rounding allowance <span className="num">{fmtUsd(cert.error.rounding_bound, 6)}</span>
-              </p>
+              <p className="num mt-1 text-xs text-ink-3">at {fmtUsd(cert.error.at_price)}, exact</p>
               <div className="mt-3 space-y-1.5 text-xs">
                 <div className="flex justify-between"><span className="text-ink-3">Domain</span><span className="num">{fmtUsd(cert.target.domain[0], 0)} – {fmtUsd(cert.target.domain[1], 0)}</span></div>
-                <div className="flex justify-between"><span className="text-ink-3">Liquidity check</span><span className={cert.liquidity_check.every((l) => l.ok) ? "text-good" : "text-bad"}>{cert.liquidity_check.length ? (cert.liquidity_check.every((l) => l.ok) ? `${cert.liquidity_check.length}/${cert.liquidity_check.length} ranges available` : "insufficient borrowable liquidity") : "no borrowed ranges"}</span></div>
-                <div className="flex justify-between"><span className="text-ink-3">Fork simulation</span><span className="num">{cert.simulation ? `ok · ${(cert.simulation.compute_units as number[]).map((x) => x.toLocaleString()).join(" + ")} CU` : "recorded when you open"}</span></div>
+                <div className="flex justify-between"><span className="text-ink-3">Liquidity</span><span className={cert.liquidity_check.every((l) => l.ok) ? "text-good" : "text-bad"}>{cert.liquidity_check.length ? (cert.liquidity_check.every((l) => l.ok) ? "available" : "insufficient") : "—"}</span></div>
+                <div className="flex justify-between"><span className="text-ink-3">Simulation</span><span className="num">{cert.simulation ? `ok · ${(cert.simulation.compute_units as number[]).map((x) => x.toLocaleString()).join(" + ")} CU` : "at open"}</span></div>
                 <div className="flex justify-between gap-3"><span className="text-ink-3">Hash</span><span className="num truncate">{cert.hash}</span></div>
               </div>
-              <p className="mt-3 border-t border-line pt-3 text-[11px] leading-relaxed text-ink-3">{cert.disclaimer}</p>
+              <p className="mt-3 border-t border-line pt-3 text-[11px] text-ink-3" title={cert.disclaimer}>Excludes premium, fees and settlement swap costs.</p>
             </div>
           )}
 
@@ -439,13 +434,13 @@ export default function Studio() {
             <div className="card p-5">
               <div className="label">Execute</div>
               {!wallet.address ? (
-                <p className="mt-2 text-sm text-ink-2">Connect a wallet (or the demo wallet) to open this position on the fork.</p>
+                <p className="mt-2 text-sm text-ink-2">Connect a wallet to open.</p>
               ) : (
                 <button className="btn btn-primary mt-3 w-full" disabled={compiled?.result.status !== "ok" || steps.some((s) => s.state === "doing")} onClick={open}>
                   Open position
                 </button>
               )}
-              {compiled?.result.status !== "ok" && <p className="mt-2 text-xs text-warn">This construction is outside the tolerance; adjust the payoff or your constraints.</p>}
+              {compiled?.result.status !== "ok" && <p className="mt-2 text-xs text-warn">Outside tolerance. Adjust the payoff or limits.</p>}
               {steps.length > 0 && (
                 <ol className="mt-4 space-y-2.5">
                   {steps.map((s, i) => (

@@ -57,7 +57,7 @@ export default function Earn() {
     try {
       const userBase = await tokenAccount(wallet.address, WSOL);
       const userQuote = await tokenAccount(wallet.address, USDC);
-      if (!userBase || !userQuote) throw new Error("Your wallet needs wrapped SOL and USDC accounts. Use “Get fork test funds” in the wallet menu.");
+      if (!userBase || !userQuote) throw new Error("No SOL/USDC token accounts. Get test funds from the wallet menu.");
       const built = await api<{ transactions: BuiltTx[] }>(path, { owner: wallet.address, market: m.address, userBase, userQuote, ...body });
       const sigs = await wallet.execute(built.transactions);
       setMsg({ ok: true, text: done, sig: sigs.at(-1) });
@@ -92,9 +92,8 @@ export default function Earn() {
   return (
     <AppShell>
       <div className="mb-5">
-        <div className="label">Earn</div>
-        <h1 className="font-display text-2xl font-semibold">Provide liquidity that keeps earning while it is borrowed</h1>
-        <p className="mt-1 max-w-3xl text-sm text-ink-2">Unborrowed liquidity stays in the Orca pool and keeps its fees. Borrowed liquidity is paid max(time floor, m(u) × forgone fees), measured from Orca&apos;s own fee growth. Borrowed liquidity has a {notice}-hour withdrawal notice.</p>
+        <h1 className="font-display text-2xl font-semibold">Earn</h1>
+        <p className="mt-1 text-sm text-ink-2">Idle liquidity keeps its Orca fees. Borrowed liquidity earns premium. {notice}h notice to withdraw borrowed liquidity.</p>
       </div>
       {msg && (
         <div className={`card mb-4 px-4 py-3 text-sm ${msg.ok ? "text-good" : "text-bad"}`}>
@@ -104,32 +103,30 @@ export default function Earn() {
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="card p-5 lg:col-span-1">
-          <div className="label">Orca liquidity out of range right now</div>
+          <div className="label">Orca liquidity out of range</div>
           <div className="num mt-2 text-3xl font-semibold">{stats ? `$${fmtCompact(stats.outOfRange.outOfRangeQuoteValue)}` : "…"}</div>
           <p className="mt-1 text-xs text-ink-3">
-            {stats ? <>earning no fees in the {m?.name} pool · {fmtUsd(stats.outOfRange.belowPriceQuote, 0)} below and {fmtUsd(stats.outOfRange.abovePriceBaseValued, 0)} above the price · scanned {fmtUsd(stats.outOfRange.window.low, 0)}–{fmtUsd(stats.outOfRange.window.high, 0)}</> : "computed live from the pool's tick arrays"}
+            {stats ? <>earning nothing · {fmtUsd(stats.outOfRange.belowPriceQuote, 0)} below, {fmtUsd(stats.outOfRange.abovePriceBaseValued, 0)} above</> : "live"}
           </p>
-          <p className="mt-3 text-xs leading-relaxed text-ink-2">In FORGE, out-of-range liquidity is exactly what borrowers want: it can earn premiums instead of nothing.</p>
         </div>
 
         <div className="card p-5 lg:col-span-2">
-          <div className="label">FORGE vs staying in Orca (your positions)</div>
+          <div className="label">FORGE vs Orca</div>
           {wallet.address ? (
             mine.length ? (
               <div className="mt-3 grid grid-cols-3 gap-3">
-                <div className="rounded-lg bg-sunk p-3"><div className="text-xs text-ink-3">Idle fees (same in both)</div><div className="num mt-1 text-lg font-semibold">{fmtUsd(compare.fees, 4)}</div></div>
-                <div className="rounded-lg bg-sunk p-3"><div className="text-xs text-ink-3">Fees forgone while borrowed (your share, measured)</div><div className="num mt-1 text-lg font-semibold">{fmtUsd(compare.forgone, 4)}</div></div>
-                <div className="rounded-lg bg-sunk p-3"><div className="text-xs text-ink-3">Premium earned instead</div><div className="num mt-1 text-lg font-semibold text-good">{fmtUsd(compare.premium, 4)}</div></div>
-                <p className="col-span-3 text-xs leading-relaxed text-ink-3">
-                  Staying in Orca would have earned idle fees + the forgone fees. FORGE paid idle fees + premium: a difference of <span className="num">{fmtUsd(compare.premium - compare.forgone, 4)}</span>.
-                  This compares measured compensation under the counterfactual that trading would have been the same with your liquidity present; it is not a claim about every market path.
+                <div className="rounded-lg bg-sunk p-3"><div className="text-xs text-ink-3">Idle fees</div><div className="num mt-1 text-lg font-semibold">{fmtUsd(compare.fees, 4)}</div></div>
+                <div className="rounded-lg bg-sunk p-3"><div className="text-xs text-ink-3">Fees forgone</div><div className="num mt-1 text-lg font-semibold">{fmtUsd(compare.forgone, 4)}</div></div>
+                <div className="rounded-lg bg-sunk p-3"><div className="text-xs text-ink-3">Premium earned</div><div className="num mt-1 text-lg font-semibold text-good">{fmtUsd(compare.premium, 4)}</div></div>
+                <p className="col-span-3 text-xs text-ink-3">
+                  Difference <span className="num">{fmtUsd(compare.premium - compare.forgone, 4)}</span> · measured fees, same-trading assumption
                 </p>
               </div>
             ) : (
-              <p className="mt-3 text-sm text-ink-2">No LP positions yet. Deposit into a bucket below.</p>
+              <p className="mt-3 text-sm text-ink-2">No positions yet.</p>
             )
           ) : (
-            <p className="mt-3 text-sm text-ink-2">Connect a wallet to see your comparison.</p>
+            <p className="mt-3 text-sm text-ink-2">Connect a wallet.</p>
           )}
         </div>
       </div>
@@ -143,7 +140,7 @@ export default function Earn() {
             <select className="input mt-1" value={dep?.address ?? ""} onChange={(e) => setDepBucket(e.target.value)}>
               {buckets.map((b) => (
                 <option key={b.address} value={b.address}>
-                  {fmtUsd(b.priceLower)} – {fmtUsd(b.priceUpper)} · {b.side === "spot" ? "contains price" : b.side} · {fmtPct(b.utilization, 0)} used
+                  {fmtUsd(b.priceLower)} – {fmtUsd(b.priceUpper)} · {fmtPct(b.utilization, 0)} used
                 </option>
               ))}
             </select>
@@ -155,24 +152,24 @@ export default function Earn() {
           <button
             className="btn btn-primary"
             disabled={!wallet.address || busy || depLiquidity <= 0n}
-            onClick={() => run("tx/build/deposit", { bucket: dep!.address, liquidity: depLiquidity.toString() }, "Deposited. Your liquidity is live in the bucket.")}
+            onClick={() => run("tx/build/deposit", { bucket: dep!.address, liquidity: depLiquidity.toString() }, "Deposited.")}
           >
             Deposit
           </button>
         </div>
         <p className="mt-2 text-xs text-ink-3">
-          {dep ? (dep.side === "below" ? "Below the price: you deposit USDC." : dep.side === "above" ? "Above the price: you deposit SOL." : "Contains the price: you deposit both tokens.") : ""} Liquidity units: <span className="num">{depLiquidity.toLocaleString()}</span>. Existing Orca positions on the bucket grid can be redeployed into the ladder with the staged deposit (SDK and CLI).
+          {dep ? (dep.side === "below" ? "Pays in USDC." : dep.side === "above" ? "Pays in SOL." : "Pays in SOL and USDC.") : ""}
         </p>
       </div>
 
       {/* ladder */}
       <div className="card mt-5 overflow-hidden">
-        <div className="border-b border-line px-5 py-3"><div className="label">Bucket ladder · {m?.name}</div></div>
+        <div className="border-b border-line px-5 py-3"><div className="label">Buckets · {m?.name}</div></div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[880px] text-sm">
             <thead className="text-left text-xs text-ink-3">
               <tr className="border-b border-line">
-                {["Range", "Liquidity value", "Utilization", "Borrowable", "Premium paid", "Fees collected", "Forgone (measured)", "Your share", ""].map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}
+                {["Range", "Liquidity", "Used", "Borrowable", "Premium", "Fees", "Forgone", "Yours", ""].map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -199,16 +196,16 @@ export default function Earn() {
                     <td className="num px-4 py-2.5">{fmtUsd(atoms(b.premiumDistributed, qd), 4)}</td>
                     <td className="num px-4 py-2.5">{fmtUsd(fees, 4)}</td>
                     <td className="num px-4 py-2.5 text-ink-2">{fmtUsd(atoms(b.forgoneMeasured, qd), 4)}</td>
-                    <td className="num px-4 py-2.5">{lp ? fmtPct(lp.shareOfBucket, 1) : "—"}{noticeSince > 0 && <div className="font-sans text-[11px] text-warn">withdrawal notice</div>}</td>
+                    <td className="num px-4 py-2.5">{lp ? fmtPct(lp.shareOfBucket, 1) : "—"}{noticeSince > 0 && <div className="font-sans text-[11px] text-warn">notice</div>}</td>
                     <td className="px-4 py-2.5">
                       {lp && (
                         <div className="flex gap-1.5">
-                          <button className="btn btn-ghost !px-2 !py-1 text-xs" disabled={busy} onClick={() => run("tx/build/claim", { bucket: b.address }, "Claimed premium and fees.")}>Claim</button>
+                          <button className="btn btn-ghost !px-2 !py-1 text-xs" disabled={busy} onClick={() => run("tx/build/claim", { bucket: b.address }, "Claimed.")}>Claim</button>
                           {BigInt(b.borrowed) + BigInt(b.reserved) === 0n ? (
                             <button className="btn btn-ghost !px-2 !py-1 text-xs" disabled={busy} onClick={() => run("tx/build/withdraw", { bucket: b.address, liquidity: lp.liquidity }, "Withdrawn.")}>Withdraw</button>
                           ) : (
-                            <button className="btn btn-ghost !px-2 !py-1 text-xs" disabled={busy || BigInt(lp.withdrawal_liquidity) > 0n} onClick={() => run("tx/build/request-withdrawal", { bucket: b.address, liquidity: lp.liquidity }, `Withdrawal requested. After ${notice} h, keepers may close positions borrowing this bucket.`)}>
-                              {BigInt(lp.withdrawal_liquidity) > 0n ? "Requested" : "Request withdrawal"}
+                            <button className="btn btn-ghost !px-2 !py-1 text-xs" disabled={busy || BigInt(lp.withdrawal_liquidity) > 0n} onClick={() => run("tx/build/request-withdrawal", { bucket: b.address, liquidity: lp.liquidity }, `Requested. Withdrawable after ${notice}h.`)}>
+                              {BigInt(lp.withdrawal_liquidity) > 0n ? "Requested" : "Request"}
                             </button>
                           )}
                         </div>
@@ -222,9 +219,9 @@ export default function Earn() {
         </div>
         {mine.length > 0 && (
           <p className="border-t border-line px-5 py-3 text-xs text-ink-3">
-            Your owed now: <span className="num">{fmtUsd(mine.reduce((a, l) => a + atoms(l.premiumOwedNow, qd), 0), 4)}</span> premium ·{" "}
-            <span className="num">{fmtNum(mine.reduce((a, l) => a + atoms(l.feesOwedBaseNow, bd), 0), 6)}</span> SOL and{" "}
-            <span className="num">{fmtUsd(mine.reduce((a, l) => a + atoms(l.feesOwedQuoteNow, qd), 0), 4)}</span> in fees (fees collected so far; claim collects the rest).
+            Claimable: <span className="num">{fmtUsd(mine.reduce((a, l) => a + atoms(l.premiumOwedNow, qd), 0), 4)}</span> premium ·{" "}
+            <span className="num">{fmtNum(mine.reduce((a, l) => a + atoms(l.feesOwedBaseNow, bd), 0), 6)}</span> SOL +{" "}
+            <span className="num">{fmtUsd(mine.reduce((a, l) => a + atoms(l.feesOwedQuoteNow, qd), 0), 4)}</span> fees
           </p>
         )}
       </div>

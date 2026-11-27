@@ -39,16 +39,16 @@ export function WalletButton() {
                 <button
                   className="btn btn-ghost w-full"
                   onClick={async () => {
-                    setStatus("Requesting fork funds…");
+                    setStatus("Funding…");
                     try {
                       await w.fundDemo();
-                      setStatus("Funded: 2 SOL, 20 wrapped SOL and 5,000 USDC (fork only).");
+                      setStatus("Funded: 20 SOL, 5,000 USDC.");
                     } catch (e) {
                       setStatus((e as Error).message);
                     }
                   }}
                 >
-                  Get fork test funds
+                  Get test funds
                 </button>
               )}
               {status && <p className="text-xs text-ink-2">{status}</p>}
@@ -67,11 +67,9 @@ export function WalletButton() {
               ))}
               <button className="btn btn-ghost w-full !justify-start" onClick={() => { void w.connectDemo(); setOpen(false); }}>
                 <span className="grid size-5 place-items-center rounded bg-ember-soft text-[10px] font-bold text-ember">D</span>
-                Demo wallet (fork only)
+                Demo wallet
               </button>
-              <p className="pt-1 text-xs leading-relaxed text-ink-3">
-                The demo wallet is a throwaway key kept in this browser. It only ever holds fork test funds.
-              </p>
+              <p className="pt-1 text-xs text-ink-3">Throwaway key in this browser. Fork funds only.</p>
               {w.error && <p className="text-xs text-bad">{w.error}</p>}
             </div>
           )}

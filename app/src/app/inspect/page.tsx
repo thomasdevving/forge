@@ -28,7 +28,7 @@ function Inner() {
     <AppShell>
       <div className="label">Fork transaction</div>
       <h1 className="num mt-1 break-all text-lg font-semibold">{sig || "—"}</h1>
-      <p className="mt-1 text-xs text-warn">This transaction exists only on the FORGE Surfpool fork. It is not on mainnet and public explorers will not find it.</p>
+      <p className="mt-1 text-xs text-warn">Fork only. Not on mainnet explorers.</p>
       {err && <div className="card mt-4 p-4 text-sm text-bad">{err}</div>}
       {tx && (
         <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_1.4fr]">
@@ -45,7 +45,7 @@ function Inner() {
             </ul>
           </div>
           <div className="card p-5">
-            <div className="label">Program logs (FORGE and Orca CPIs)</div>
+            <div className="label">Logs</div>
             <pre className="num mt-3 max-h-[560px] overflow-auto whitespace-pre-wrap rounded-lg bg-sunk p-3 text-[11px] leading-relaxed text-ink-2">{(tx.meta?.logMessages ?? []).join("\n")}</pre>
           </div>
         </div>

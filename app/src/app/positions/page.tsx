@@ -20,9 +20,9 @@ const STATE_STYLE: Record<string, string> = {
   Cancelled: "border-line text-ink-3",
 };
 const STATE_NOTE: Record<string, string> = {
-  PendingOpen: "Some legs are not executed yet. The position is not open until every leg succeeds.",
-  PendingClose: "Close in progress. Restored legs are final; the rest can be continued by anyone.",
-  Recovery: "A restoration could not run within its limits. Escrow stays locked; top up or retry. New borrowing in this market is paused.",
+  PendingOpen: "Opening.",
+  PendingClose: "Closing.",
+  Recovery: "Restoration blocked. Escrow stays locked; top up or retry.",
 };
 
 function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo; onAction: (kind: "close" | "abort", s: StrategyView) => void; busy: boolean }) {
@@ -67,14 +67,14 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
           )}
         </div>
       </header>
-      {STATE_NOTE[s.state] && <p className="border-b border-line bg-sunk px-5 py-2 text-xs text-ink-2">{STATE_NOTE[s.state]} {s.state === "PendingOpen" ? `${executed}/${s.legs.length} legs executed.` : s.state !== "Recovery" ? `${pendingClose} legs left to restore.` : ""}</p>}
+      {STATE_NOTE[s.state] && <p className="border-b border-line bg-sunk px-5 py-2 text-xs text-ink-2">{STATE_NOTE[s.state]} {s.state === "PendingOpen" ? `${executed}/${s.legs.length} legs done.` : s.state !== "Recovery" ? `${pendingClose} left.` : ""}</p>}
 
       <div className="grid gap-0 lg:grid-cols-[1fr_300px]">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[620px] text-sm">
             <thead className="text-left text-xs text-ink-3">
               <tr className="border-b border-line">
-                {["Leg", "Range", "Escrow / funding", "Buffer", "Premium (est.)", "Status"].map((h) => <th key={h} className="px-5 py-2 font-medium">{h}</th>)}
+                {["Leg", "Range", "Escrow", "Buffer", "Premium", "Status"].map((h) => <th key={h} className="px-5 py-2 font-medium">{h}</th>)}
               </tr>
             </thead>
             <tbody className="num">
@@ -100,34 +100,33 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
           {!closed ? (
             <>
               <div>
-                <div className="flex justify-between text-xs"><span className="text-ink-3">Premium accrued vs cap</span><span className="num">{fmtUsd(accrued, 4)} / {fmtUsd(cap, 2)}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-ink-3">Premium / cap</span><span className="num">{fmtUsd(accrued, 4)} / {fmtUsd(cap, 2)}</span></div>
                 <div className="relative mt-1.5 h-2 overflow-hidden rounded-full bg-sunk">
                   <div className="h-full rounded-full bg-ember" style={{ width: `${Math.min(100, (accrued / Math.max(cap, 1e-9)) * 100)}%` }} />
                   <div className="absolute inset-y-0 w-px bg-ink-3" style={{ left: `${trigger * 100}%` }} title="keeper close trigger" />
                 </div>
-                <div className="mt-1 text-[11px] text-ink-3">Keepers may close at {fmtPct(trigger, 0)} of the cap.{s.cap_binding ? " Cap reached: excess accrual becomes a recorded LP shortfall." : ""}</div>
+                <div className="mt-1 text-[11px] text-ink-3">Keeper close at {fmtPct(trigger, 0)}{s.cap_binding ? " · cap reached" : ""}</div>
               </div>
               <dl className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg bg-sunk p-2"><dt className="text-[11px] text-ink-3">Delta</dt><dd className="num text-sm font-semibold">{fmtNum(g.delta, 3)}</dd></div>
                 <div className="rounded-lg bg-sunk p-2"><dt className="text-[11px] text-ink-3">Gamma</dt><dd className="num text-sm font-semibold">{fmtNum(g.gamma, 4)}</dd></div>
                 <div className="rounded-lg bg-sunk p-2"><dt className="text-[11px] text-ink-3">P&amp;L</dt><dd className={`num text-sm font-semibold ${pnl >= 0 ? "text-good" : "text-bad"}`}>{fmtUsd(pnl)}</dd></div>
               </dl>
-              <p className="text-[11px] leading-relaxed text-ink-3">At the pool price {fmtUsd(P)}: frictionless value of the legs, less provided collateral and premium accrued. Delta in SOL, gamma in SOL per $.</p>
+              <p className="text-[11px] text-ink-3">At {fmtUsd(P)}</p>
             </>
           ) : (
             <div>
               <div className="label">Designed vs realized</div>
-              <div className="mt-1 text-[11px] text-ink-3">at the settlement reference {fmtUsd(settleP)}</div>
+              <div className="mt-1 text-[11px] text-ink-3">at {fmtUsd(settleP)}</div>
               <dl className="mt-3 space-y-1.5 text-sm">
-                <div className="flex justify-between"><dt className="text-ink-2">Designed (legs)</dt><dd className="num">{fmtUsd(designed)}</dd></div>
+                <div className="flex justify-between"><dt className="text-ink-2">Designed</dt><dd className="num">{fmtUsd(designed)}</dd></div>
                 <div className="flex justify-between"><dt className="text-ink-2">Realized gross</dt><dd className="num font-semibold text-ember">{fmtUsd(realized)}</dd></div>
                 <div className="flex justify-between text-xs"><dt className="text-ink-3">Execution cost</dt><dd className="num">{fmtUsd(designed - realized, 4)}</dd></div>
                 <div className="flex justify-between text-xs"><dt className="text-ink-3">Premium paid</dt><dd className="num">−{fmtUsd(premiumPaid, 4)}</dd></div>
-                {feeCredits > 0 && <div className="flex justify-between text-xs"><dt className="text-ink-3">Fee credits (collected)</dt><dd className="num text-good">+{fmtUsd(feeCredits, 4)}</dd></div>}
+                {feeCredits > 0 && <div className="flex justify-between text-xs"><dt className="text-ink-3">Fee credits</dt><dd className="num text-good">+{fmtUsd(feeCredits, 4)}</dd></div>}
                 <div className="flex justify-between border-t border-line pt-1.5"><dt className="text-ink-2">Realized net</dt><dd className="num font-semibold">{fmtUsd(realized - premiumPaid + feeCredits)}</dd></div>
               </dl>
-              {atoms(s.lp_shortfall, qd) > 0 && <p className="mt-2 text-xs text-warn">LP shortfall recorded: {fmtUsd(atoms(s.lp_shortfall, qd), 4)} (premium beyond the funded cap).</p>}
-              <p className="mt-2 text-[11px] text-ink-3">From on-chain settlement: escrow and provided proceeds returned, less buffers. Restoration swap fees and impact appear as execution cost.</p>
+              {atoms(s.lp_shortfall, qd) > 0 && <p className="mt-2 text-xs text-warn">LP shortfall {fmtUsd(atoms(s.lp_shortfall, qd), 4)}</p>}
             </div>
           )}
         </aside>
@@ -176,7 +175,7 @@ function PositionsInner() {
         const built = await api<{ transactions: BuiltTx[] }>("tx/build/abort", body);
         sigs = await wallet.execute(built.transactions);
       }
-      setMsg({ ok: true, text: kind === "close" ? "Closed and settled." : "Cancelled. Executed legs can now be unwound with Continue close.", sig: sigs.at(-1) });
+      setMsg({ ok: true, text: kind === "close" ? "Settled." : "Cancelled. Continue close to unwind.", sig: sigs.at(-1) });
       await load();
     } catch (e) {
       setMsg({ ok: false, text: (e as Error).message });
@@ -189,10 +188,9 @@ function PositionsInner() {
     <AppShell>
       <div className="mb-5 flex flex-wrap items-end gap-3">
         <div>
-          <div className="label">Positions</div>
-          <h1 className="font-display text-2xl font-semibold">Your strategies</h1>
+          <h1 className="font-display text-2xl font-semibold">Positions</h1>
         </div>
-        <Link href="/studio" className="btn btn-ghost ml-auto">New in Studio</Link>
+        <Link href="/studio" className="btn btn-ghost ml-auto">New</Link>
       </div>
       {msg && (
         <div className={`card mb-4 px-4 py-3 text-sm ${msg.ok ? "text-good" : "text-bad"}`}>
@@ -200,11 +198,11 @@ function PositionsInner() {
         </div>
       )}
       {!wallet.address ? (
-        <div className="card p-8 text-center text-ink-2">Connect a wallet to see your positions.</div>
+        <div className="card p-8 text-center text-ink-2">Connect a wallet.</div>
       ) : !list || !m ? (
         <div className="card p-8 text-center text-ink-3">Loading…</div>
       ) : list.length === 0 ? (
-        <div className="card p-8 text-center text-ink-2">No positions yet. <Link href="/studio" className="text-ember hover:underline">Design one in the Studio.</Link></div>
+        <div className="card p-8 text-center text-ink-2">No positions. <Link href="/studio" className="text-ember hover:underline">Open one</Link></div>
       ) : (
         <div className="space-y-4">{list.map((s) => <PositionCard key={s.address} s={s} m={m} onAction={act} busy={busy} />)}</div>
       )}

@@ -130,7 +130,7 @@ export function PayoffChart(p: Props) {
         {ticksX.map((v) => (
           <text key={`x${v}`} x={x(v)} y={H - M.b + 18} textAnchor="middle" fontSize="11" fill="var(--ink-3)" fontFamily="var(--font-mono)">{fmtUsd(v, 0)}</text>
         ))}
-        <text x={14} y={M.t + 8} fontSize="11" fill="var(--ink-3)" transform={`rotate(-90 14 ${M.t + 8})`} textAnchor="end" fontFamily="var(--font-mono)">value at close (USD)</text>
+        <text x={14} y={M.t + 8} fontSize="11" fill="var(--ink-3)" transform={`rotate(-90 14 ${M.t + 8})`} textAnchor="end" fontFamily="var(--font-mono)">value (USD)</text>
 
         {/* bucket ladder: borrowable liquidity per range, chosen ranges highlighted */}
         <g>
@@ -149,7 +149,7 @@ export function PayoffChart(p: Props) {
             );
           })}
           <line x1={M.l} x2={W - M.r} y1={H - 34} y2={H - 34} stroke="var(--line-strong)" />
-          <text x={M.l} y={H - 14} fontSize="11" fill="var(--ink-3)" fontFamily="var(--font-sans)">FORGE buckets · height = borrowable liquidity · bright = used by this construction</text>
+          <text x={M.l} y={H - 14} fontSize="11" fill="var(--ink-3)" fontFamily="var(--font-sans)">Buckets · height = borrowable · bright = used</text>
         </g>
 
         {/* spot */}
