@@ -56,10 +56,11 @@ export function Hero() {
     <section ref={root} className="hero relative isolate flex min-h-dvh items-center overflow-hidden pt-16" aria-label="Introduction">
       {/* background */}
       <div className="pointer-events-none absolute inset-0 -z-10 bg-bg" aria-hidden>
-        <img src="/bg/moon.jpg" alt="" className="hero-moon absolute -right-[4%] -top-[14%] h-[108%] w-auto max-w-none mix-blend-screen" />
-        <img src="/bg/terrain.jpg" alt="" className="hero-terrain absolute inset-x-[-4%] bottom-[-12%] w-[108%] max-w-none mix-blend-screen [mask-image:linear-gradient(90deg,transparent_0%,black_38%)]" />
+        <img src="/bg/moon.jpg" alt="" className="hero-moon absolute -right-[4%] -top-[14%] h-[108%] w-auto max-w-none mix-blend-lighten [mask-image:radial-gradient(80%_75%_at_72%_32%,black_45%,transparent_95%)]" />
+        <img src="/bg/terrain.jpg" alt="" className="hero-terrain absolute inset-x-[-4%] bottom-[-12%] w-[108%] max-w-none mix-blend-lighten [mask-image:linear-gradient(90deg,rgba(0,0,0,0.25)_0%,black_40%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(55%_75%_at_18%_50%,var(--bg)_20%,transparent_75%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-[38%] bg-gradient-to-t from-bg via-bg/70 to-transparent" />
+        <div className="hero-glow absolute right-[6%] top-[22%] h-[62%] w-[52%]" />
+        <div className="absolute inset-x-0 bottom-0 h-[20%] bg-gradient-to-t from-bg to-transparent" />
         <div className="hero-dots absolute left-[3%] top-[14%] h-28 w-48" />
       </div>
 
@@ -77,11 +78,11 @@ export function Hero() {
             <span className="num text-[11px] uppercase tracking-[0.28em] text-ink-3">Orca liquidity</span>
           </div>
           <h1 className="hero-in mt-7 font-display text-[clamp(2.6rem,4.4vw,5.2rem)] font-semibold leading-[1.02] tracking-[-0.04em]" style={{ animationDelay: "160ms" }}>
-            Design, price and launch derivatives from <span className="text-ink-3">liquidity.</span>
+            Draw a payoff. Get it built from <span className="text-ink-3">Orca liquidity.</span>
           </h1>
           <p className="hero-in mt-7 max-w-xl text-[17px] leading-relaxed text-ink-2" style={{ animationDelay: "260ms" }}>
-            Draw the payoff you want, for example: <span className="text-ink">my 10 SOL never worth less than {usd(floor[1], 0)}, and I give up gains above {usd(cap[1], 0)}</span>.
-            FORGE builds it from Orca liquidity, tells you exactly how close it gets, and settles it on-chain.
+            Set what your SOL should be worth at close, for example <span className="text-ink">10 SOL never below {usd(floor[1], 0)}, gains capped at {usd(cap[1], 0)}</span>.
+            FORGE builds that payoff from Orca SOL/USDC liquidity ranges, certifies the worst-case error and opens it as your own on-chain position.
           </p>
           <div className="hero-in mt-9 flex flex-wrap gap-3" style={{ animationDelay: "360ms" }}>
             <Link href="/studio" className="btn btn-primary !px-6 !py-3 !text-[15px]">
@@ -93,9 +94,11 @@ export function Hero() {
 
         {/* tilted Studio with cards from the same compile */}
         <div className="hero-stage relative z-0 lg:-mr-10">
-          <div className="hero-screen relative overflow-hidden rounded-[10px] border border-line-strong bg-bg shadow-[0_40px_120px_-20px_rgba(0,0,0,0.9),0_0_0_1px_rgba(183,196,214,0.06)]">
+          <div className="hero-screen relative overflow-hidden rounded-[10px] border border-[rgba(183,196,214,0.16)] bg-bg shadow-[0_50px_140px_-30px_rgba(5,6,8,0.95),0_0_80px_-10px_rgba(183,196,214,0.10)]">
             <img src="/shots/studio-compiled.jpg" alt="The Studio after compiling a collar on 10 SOL: payoff chart, ranges, cost and certificate" className="block w-full" />
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(242,244,248,0.08),transparent_35%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(242,244,248,0.07),transparent_32%)]" />
+            <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_60px_10px_rgba(16,18,22,0.85)]" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-bg/90 to-transparent" />
           </div>
 
           <div className="hero-card float-a absolute -bottom-10 left-[-4%] w-[min(300px,52%)] sm:left-[-6%]">

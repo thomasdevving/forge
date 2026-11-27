@@ -7,7 +7,7 @@ import { chromium } from "playwright";
 
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const OUT = new URL("../public/shots/", import.meta.url);
-const W = 1440, H = 960;
+const W = 1440, H = 900;
 
 await mkdir(OUT, { recursive: true });
 const browser = await chromium.launch();
@@ -29,7 +29,8 @@ await page.locator("header button.btn-ghost").last().click();
 await button("Get test funds").click();
 await page.getByText(/^Funded/).waitFor({ timeout: 90_000 });
 await page.mouse.click(10, 10);
-await page.getByText(/^Wallet$/).waitFor({ timeout: 30_000 });
+// wait until the funded balance is on screen, not the zero it shows before the first refresh
+await page.getByText(/^[1-9][\d.,]* SOL · [\d,]+ USDC$/).waitFor({ timeout: 60_000 });
 await shot("studio-draw");
 
 const compiled = page.waitForResponse((r) => r.url().includes("/api/compiler/compile") && r.request().method() === "POST");
@@ -42,10 +43,9 @@ await shot("studio-compiled");
 
 await button("Open position").click();
 await page.getByRole("link", { name: "View position" }).waitFor({ timeout: 180_000 });
-// zoom out so the chart, the certificate and the confirmed steps fit in one frame
-await page.evaluate(() => { document.documentElement.style.zoom = "0.7"; window.scrollTo(0, 0); });
+const confirmed = await page.getByText(/transactions? confirmed/).first().textContent();
+const txCount = Number(confirmed?.match(/(\d+)/)?.[1] ?? 0);
 await shot("studio-open");
-await page.evaluate(() => { document.documentElement.style.zoom = ""; });
 
 await page.getByRole("link", { name: "View position" }).click();
 await page.getByText("Premium / cap").first().waitFor({ timeout: 60_000 });
@@ -73,6 +73,7 @@ const meta = {
   maxErrorAt: compile.certificate.error.at_price,
   solveMs: Math.round(compile.result.solve_seconds * 1000),
   hash: compile.certificate.hash,
+  openTransactions: txCount,
 };
 await writeFile(new URL("meta.json", OUT), JSON.stringify(meta, null, 1));
 console.log("saved meta", meta.legs.length, "legs, bound", meta.certifiedBound);

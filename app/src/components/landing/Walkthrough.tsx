@@ -67,7 +67,7 @@ export function Walkthrough({ steps, flip = false }: { steps: Step[]; flip?: boo
               </span>
               <span className="num text-[11px] text-ink-3">forge{steps[active]!.path}</span>
             </div>
-            <div className="relative aspect-[3/2] bg-bg">
+            <div className="relative aspect-[16/10] bg-bg">
               {steps.map((s, i) => (
                 <img
                   key={s.shot}

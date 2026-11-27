@@ -6,6 +6,7 @@ import { LiveStrip } from "@/components/landing/LiveStrip";
 import { CountUp, Reveal } from "@/components/landing/Reveal";
 import { type Step, Walkthrough } from "@/components/landing/Walkthrough";
 import { Logo } from "@/components/Logo";
+import { NavShell } from "@/components/landing/NavShell";
 import { config } from "@/lib/config";
 import shotMeta from "../../public/shots/meta.json";
 
@@ -17,7 +18,7 @@ const lp = bench.lpGuarantee as unknown as {
   summary: Record<string, { borrows: number; borrows_eligible: number; borrows_guarantee_holds: number; borrows_guarantee_violations: number; borrows_premium_shortfall: number; restoration_failures_total: number; paths: number }>;
 } | null;
 
-const snap = shotMeta as unknown as { spot: number; target: [number, number][]; certifiedBound: number; capitalLocked: number; legs: { kind: string; priceLower: number; priceUpper: number }[] };
+const snap = shotMeta as unknown as { openTransactions?: number; spot: number; target: [number, number][]; certifiedBound: number; capitalLocked: number; legs: { kind: string; priceLower: number; priceUpper: number }[] };
 const usd = (n: number, d = 2) => `$${n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
 const FLOOR = snap.target[1]!, CAP = snap.target[2]!;
 const PUT = snap.legs.find((l) => l.kind === "borrow_put");
@@ -48,23 +49,24 @@ const TRADER: Step[] = [
   },
   {
     title: "FORGE finds the ranges",
-    body: `It borrows LP liquidity just below the floor (${PUT ? `${usd(PUT.priceLower)}–${usd(PUT.priceUpper)}` : "below the price"}) and puts your SOL in ranges above the cap. The result matches your line to within ±${usd(snap.certifiedBound)}, checked exactly and written into a certificate.`,
+    body: `It borrows LP liquidity just below the floor (${PUT ? `${usd(PUT.priceLower)}–${usd(PUT.priceUpper)}` : "below the price"}) and places your SOL in ranges around the cap. The result matches your line to within ±${usd(snap.certifiedBound)}, checked exactly and written into a certificate.`,
     shot: "/shots/studio-compiled.jpg", path: "/studio", alt: "Compiled collar with cost and certificate",
   },
   {
-    title: "Open it with one signature",
-    body: "Every transaction is simulated first. The certificate's hash is stored in your position, so anyone can check what you agreed to.",
+    title: "Open it on-chain",
+    body: `The open is simulated first, then sent as a short series of transactions you sign${snap.openTransactions ? ` (${snap.openTransactions} for this collar)` : ""}. The certificate hash is stored in your position, so anyone can check what you agreed to.`,
     shot: "/shots/studio-open.jpg", path: "/studio", alt: "Open flow with four confirmed steps",
   },
   {
-    title: "Close and get paid",
-    body: "Watch the premium and your exposure live. Closing returns the borrowed liquidity to LPs and pays you out from real token balances.",
+    title: "Close and settle",
+    body: "While it is open you see the premium paid against your cap and your current exposure. Closing gives LPs their liquidity back and pays out what the payoff says, from real token balances.",
     shot: "/shots/positions.jpg", path: "/positions", alt: "Open position with legs, premium and greeks",
   },
 ];
 
 const FAQ = [
-  ["Is this an options exchange?", "No order book and no writers. Options are built from Orca concentrated-liquidity ranges: a borrowed range below the price is a put, one above is a call."],
+  ["Is this an options exchange?", "No order book. Each position is built from Orca liquidity ranges: a borrowed range below the price acts as a put, one above as a call. LPs who deposit into FORGE buckets are the other side and are paid a premium."],
+  ["Which tokens work?", "The demo runs one market, SOL/USDC. A market is set up per Orca Whirlpool, so other pools can be added the same way."],
   ["Where do the numbers on this page come from?", "From committed benchmark runs on a Surfpool mainnet fork and ten months of Binance SOL/USDC prices. Nothing is typed in by hand; rerun them with benchmarks/run_all.py --fork."],
   ["What does an LP risk?", "Borrowed liquidity needs a 24-hour notice to withdraw. The guarantee is conditional: finite buffers, capped premium budgets and failed restorations can produce shortfalls, which are recorded and pause new borrowing."],
   ["Is the certified bound the whole cost?", "No. It covers replication error over the stated price range. Premium, pool fees and settlement swap costs are reported separately."],
@@ -80,7 +82,7 @@ export default function Landing() {
 
   return (
     <div className="overflow-x-clip bg-bg">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-line/60 bg-bg/70 backdrop-blur-md">
+      <NavShell>
         <div className="mx-auto flex h-14 max-w-[1480px] items-center gap-8 px-5 sm:px-8">
           <Logo />
           <nav className="hidden items-center gap-7 text-[14px] text-ink-2 md:flex">
@@ -98,7 +100,7 @@ export default function Landing() {
             <Link href="/studio" className="btn btn-primary !py-1.5">Launch app <span aria-hidden>↗</span></Link>
           </div>
         </div>
-      </header>
+      </NavShell>
 
       <Hero />
 
@@ -109,7 +111,7 @@ export default function Landing() {
             <div className="num flex items-center gap-3 text-[12px] text-ink-3"><span className="size-1.5 animate-pulse bg-good" />Live right now</div>
             <h2 className="mt-5 font-display text-[clamp(1.9rem,3.4vw,3rem)] font-semibold leading-[1] tracking-[-0.03em]">Running on a copy of Solana mainnet.</h2>
             <p className="mt-5 max-w-md text-[15px] leading-relaxed text-ink-2">
-              FORGE runs on a Surfpool fork: real Orca pools, real Pyth prices, real programs, but test money. Grab free
+              FORGE runs on a Surfpool fork: Orca’s real pools and programs, copied from mainnet, with test money. Prices can be moved to show a crash. Grab free
               fork funds with the demo wallet and try every step. Nothing touches mainnet.
             </p>
           </Reveal>
@@ -177,7 +179,7 @@ export default function Landing() {
                 <span className="flex gap-1.5" aria-hidden><span className="size-2 bg-line-strong" /><span className="size-2 bg-line-strong" /><span className="size-2 bg-line-strong" /></span>
                 <span className="num text-[11px] text-ink-3">forge/earn</span>
               </div>
-              <img src="/shots/earn.jpg" alt="Earn: out-of-range liquidity, deposit and the bucket ladder" className="aspect-[3/2] w-full object-cover object-top" loading="lazy" />
+              <img src="/shots/earn.jpg" alt="Earn: out-of-range liquidity, deposit and the bucket ladder" className="aspect-[16/10] w-full object-cover object-top" loading="lazy" />
             </figure>
           </Reveal>
         </div>
