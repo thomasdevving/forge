@@ -2,9 +2,14 @@
   "name": "forge-monorepo",
   "private": true,
   "packageManager": "pnpm@12.18.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "railway": "3.19.1"
   }
 }

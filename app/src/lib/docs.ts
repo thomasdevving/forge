@@ -10,6 +10,7 @@ export const DOCS = [
   { slug: "certificates", title: "Certificates", group: "Reference" },
   { slug: "math", title: "The math", group: "Reference" },
   { slug: "orca-integration", title: "Orca integration", group: "Reference" },
+  { slug: "deployment", title: "Deployment", group: "Reference" },
 ] as const;
 
 export type DocSlug = (typeof DOCS)[number]["slug"];
