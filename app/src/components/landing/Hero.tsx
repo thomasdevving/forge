@@ -97,7 +97,7 @@ export function Hero() {
         </div>
 
         {/* tilted Studio with cards from the same compile */}
-        <div className="hero-stage relative z-0 mx-auto w-full max-w-[calc((100dvh-150px)*1.6)] lg:ml-[-2rem] lg:mr-auto lg:w-[94%]">
+        <div className="hero-stage relative z-0 mx-auto w-full max-w-[calc((100dvh-140px)*1.72)] lg:ml-[-2rem] lg:mr-auto lg:w-full">
           <div className="hero-screen relative overflow-hidden rounded-[10px] border border-[rgba(183,196,214,0.16)] bg-bg shadow-[0_50px_140px_-30px_rgba(5,6,8,0.95),0_0_80px_-10px_rgba(183,196,214,0.10)]">
             <img src="/shots/studio-compiled.jpg" alt={`The Studio after compiling a collar on ${units} ${m.base}: payoff chart, ranges, cost and certificate`} className="block w-full" />
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(242,244,248,0.07),transparent_32%)]" />
