@@ -68,6 +68,196 @@
       "args": []
     },
     {
+      "name": "begin_lp_deposit",
+      "discriminator": [
+        126,
+        150,
+        97,
+        132,
+        4,
+        71,
+        69,
+        7
+      ],
+      "accounts": [
+        {
+          "name": "lp",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market"
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ticket",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "lp"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_base",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  95,
+                  98,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "ticket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_quote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  95,
+                  113,
+                  117,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "ticket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "base_mint"
+        },
+        {
+          "name": "quote_mint"
+        },
+        {
+          "name": "whirlpool",
+          "writable": true
+        },
+        {
+          "name": "lp_orca_position",
+          "writable": true
+        },
+        {
+          "name": "lp_orca_position_token_account"
+        },
+        {
+          "name": "tick_array_lower",
+          "writable": true
+        },
+        {
+          "name": "tick_array_upper",
+          "writable": true
+        },
+        {
+          "name": "whirlpool_vault_a",
+          "writable": true
+        },
+        {
+          "name": "whirlpool_vault_b",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "whirlpool_program",
+          "address": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+        }
+      ],
+      "args": [
+        {
+          "name": "nonce",
+          "type": "u64"
+        },
+        {
+          "name": "liquidity",
+          "type": "u128"
+        }
+      ]
+    },
+    {
       "name": "begin_open",
       "discriminator": [
         147,
@@ -363,6 +553,243 @@
       ]
     },
     {
+      "name": "claim_lp",
+      "discriminator": [
+        4,
+        196,
+        142,
+        10,
+        43,
+        200,
+        164,
+        3
+      ],
+      "accounts": [
+        {
+          "name": "lp",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "accounts": [
+            {
+              "name": "market",
+              "relations": [
+                "bucket"
+              ]
+            },
+            {
+              "name": "vault",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "market"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "bucket",
+              "writable": true
+            },
+            {
+              "name": "whirlpool",
+              "writable": true
+            },
+            {
+              "name": "position",
+              "writable": true,
+              "relations": [
+                "bucket"
+              ]
+            },
+            {
+              "name": "position_token_account",
+              "relations": [
+                "bucket"
+              ]
+            },
+            {
+              "name": "tick_array_lower",
+              "writable": true
+            },
+            {
+              "name": "tick_array_upper",
+              "writable": true
+            },
+            {
+              "name": "whirlpool_vault_a",
+              "writable": true
+            },
+            {
+              "name": "whirlpool_vault_b",
+              "writable": true
+            },
+            {
+              "name": "fee_vault_base",
+              "writable": true
+            },
+            {
+              "name": "fee_vault_quote",
+              "writable": true
+            },
+            {
+              "name": "token_program",
+              "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+            },
+            {
+              "name": "whirlpool_program",
+              "address": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+            }
+          ]
+        },
+        {
+          "name": "lp_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.bucket",
+                "account": "BucketPool"
+              },
+              {
+                "kind": "account",
+                "path": "lp"
+              }
+            ]
+          }
+        },
+        {
+          "name": "premium_vault",
+          "writable": true
+        },
+        {
+          "name": "lp_base",
+          "writable": true
+        },
+        {
+          "name": "lp_quote",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "collect_and_distribute",
+      "discriminator": [
+        90,
+        199,
+        4,
+        221,
+        251,
+        126,
+        16,
+        91
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "relations": [
+            "bucket"
+          ]
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bucket",
+          "writable": true
+        },
+        {
+          "name": "whirlpool",
+          "writable": true
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "relations": [
+            "bucket"
+          ]
+        },
+        {
+          "name": "position_token_account",
+          "relations": [
+            "bucket"
+          ]
+        },
+        {
+          "name": "tick_array_lower",
+          "writable": true
+        },
+        {
+          "name": "tick_array_upper",
+          "writable": true
+        },
+        {
+          "name": "whirlpool_vault_a",
+          "writable": true
+        },
+        {
+          "name": "whirlpool_vault_b",
+          "writable": true
+        },
+        {
+          "name": "fee_vault_base",
+          "writable": true
+        },
+        {
+          "name": "fee_vault_quote",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "whirlpool_program",
+          "address": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "create_bucket",
       "discriminator": [
         26,
@@ -517,35 +944,89 @@
           "signer": true
         },
         {
-          "name": "market",
-          "relations": [
-            "bucket"
-          ]
-        },
-        {
-          "name": "vault",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
+          "name": "pool",
+          "accounts": [
+            {
+              "name": "market",
+              "relations": [
+                "bucket"
+              ]
+            },
+            {
+              "name": "vault",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "market"
+                  }
                 ]
-              },
-              {
-                "kind": "account",
-                "path": "market"
               }
-            ]
-          }
-        },
-        {
-          "name": "bucket",
-          "writable": true
+            },
+            {
+              "name": "bucket",
+              "writable": true
+            },
+            {
+              "name": "whirlpool",
+              "writable": true
+            },
+            {
+              "name": "position",
+              "writable": true,
+              "relations": [
+                "bucket"
+              ]
+            },
+            {
+              "name": "position_token_account",
+              "relations": [
+                "bucket"
+              ]
+            },
+            {
+              "name": "tick_array_lower",
+              "writable": true
+            },
+            {
+              "name": "tick_array_upper",
+              "writable": true
+            },
+            {
+              "name": "whirlpool_vault_a",
+              "writable": true
+            },
+            {
+              "name": "whirlpool_vault_b",
+              "writable": true
+            },
+            {
+              "name": "fee_vault_base",
+              "writable": true
+            },
+            {
+              "name": "fee_vault_quote",
+              "writable": true
+            },
+            {
+              "name": "token_program",
+              "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+            },
+            {
+              "name": "whirlpool_program",
+              "address": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+            }
+          ]
         },
         {
           "name": "lp_position",
@@ -561,7 +1042,8 @@
               },
               {
                 "kind": "account",
-                "path": "bucket"
+                "path": "pool.bucket",
+                "account": "BucketPool"
               },
               {
                 "kind": "account",
@@ -569,39 +1051,6 @@
               }
             ]
           }
-        },
-        {
-          "name": "whirlpool",
-          "writable": true
-        },
-        {
-          "name": "position",
-          "writable": true,
-          "relations": [
-            "bucket"
-          ]
-        },
-        {
-          "name": "position_token_account",
-          "relations": [
-            "bucket"
-          ]
-        },
-        {
-          "name": "tick_array_lower",
-          "writable": true
-        },
-        {
-          "name": "tick_array_upper",
-          "writable": true
-        },
-        {
-          "name": "whirlpool_vault_a",
-          "writable": true
-        },
-        {
-          "name": "whirlpool_vault_b",
-          "writable": true
         },
         {
           "name": "lp_base",
@@ -635,7 +1084,8 @@
               },
               {
                 "kind": "account",
-                "path": "market"
+                "path": "pool.market",
+                "account": "BucketPool"
               }
             ]
           }
@@ -665,22 +1115,15 @@
               },
               {
                 "kind": "account",
-                "path": "market"
+                "path": "pool.market",
+                "account": "BucketPool"
               }
             ]
           }
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "whirlpool_program",
-          "address": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
         }
       ],
       "args": [
@@ -891,6 +1334,207 @@
           "type": "bytes"
         }
       ]
+    },
+    {
+      "name": "execute_lp_deposit_bucket",
+      "discriminator": [
+        54,
+        235,
+        6,
+        228,
+        249,
+        185,
+        138,
+        35
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "accounts": [
+            {
+              "name": "market",
+              "relations": [
+                "bucket"
+              ]
+            },
+            {
+              "name": "vault",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "market"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "bucket",
+              "writable": true
+            },
+            {
+              "name": "whirlpool",
+              "writable": true
+            },
+            {
+              "name": "position",
+              "writable": true,
+              "relations": [
+                "bucket"
+              ]
+            },
+            {
+              "name": "position_token_account",
+              "relations": [
+                "bucket"
+              ]
+            },
+            {
+              "name": "tick_array_lower",
+              "writable": true
+            },
+            {
+              "name": "tick_array_upper",
+              "writable": true
+            },
+            {
+              "name": "whirlpool_vault_a",
+              "writable": true
+            },
+            {
+              "name": "whirlpool_vault_b",
+              "writable": true
+            },
+            {
+              "name": "fee_vault_base",
+              "writable": true
+            },
+            {
+              "name": "fee_vault_quote",
+              "writable": true
+            },
+            {
+              "name": "token_program",
+              "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+            },
+            {
+              "name": "whirlpool_program",
+              "address": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+            }
+          ]
+        },
+        {
+          "name": "ticket",
+          "writable": true
+        },
+        {
+          "name": "lp"
+        },
+        {
+          "name": "lp_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.bucket",
+                "account": "BucketPool"
+              },
+              {
+                "kind": "account",
+                "path": "ticket.lp",
+                "account": "LpDeposit"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_base",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  95,
+                  98,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "ticket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_quote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  95,
+                  113,
+                  117,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "ticket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     },
     {
       "name": "execute_open_batch",
@@ -1219,6 +1863,136 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "finish_lp_deposit",
+      "discriminator": [
+        217,
+        103,
+        24,
+        158,
+        222,
+        162,
+        94,
+        247
+      ],
+      "accounts": [
+        {
+          "name": "lp",
+          "signer": true,
+          "relations": [
+            "ticket"
+          ]
+        },
+        {
+          "name": "market",
+          "relations": [
+            "ticket"
+          ]
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ticket",
+          "writable": true
+        },
+        {
+          "name": "escrow_base",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  95,
+                  98,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "ticket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_quote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  95,
+                  113,
+                  117,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "ticket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lp_base",
+          "writable": true
+        },
+        {
+          "name": "lp_quote",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "cancel",
+          "type": "bool"
+        }
+      ]
     },
     {
       "name": "init_scenario_reference",
@@ -1550,6 +2324,69 @@
           }
         },
         {
+          "name": "fee_vault_base",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  98,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "fee_vault_quote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  113,
+                  117,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
@@ -1614,6 +2451,58 @@
         {
           "name": "leg_index",
           "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "request_lp_withdrawal",
+      "discriminator": [
+        40,
+        98,
+        53,
+        29,
+        237,
+        167,
+        65,
+        52
+      ],
+      "accounts": [
+        {
+          "name": "lp",
+          "signer": true
+        },
+        {
+          "name": "bucket",
+          "writable": true
+        },
+        {
+          "name": "lp_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bucket"
+              },
+              {
+                "kind": "account",
+                "path": "lp"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "liquidity",
+          "type": "u128"
         }
       ]
     },
@@ -1750,6 +2639,156 @@
           "type": "u16"
         }
       ]
+    },
+    {
+      "name": "withdraw_liquidity",
+      "discriminator": [
+        149,
+        158,
+        33,
+        185,
+        47,
+        243,
+        253,
+        31
+      ],
+      "accounts": [
+        {
+          "name": "lp",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "accounts": [
+            {
+              "name": "market",
+              "relations": [
+                "bucket"
+              ]
+            },
+            {
+              "name": "vault",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "market"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "bucket",
+              "writable": true
+            },
+            {
+              "name": "whirlpool",
+              "writable": true
+            },
+            {
+              "name": "position",
+              "writable": true,
+              "relations": [
+                "bucket"
+              ]
+            },
+            {
+              "name": "position_token_account",
+              "relations": [
+                "bucket"
+              ]
+            },
+            {
+              "name": "tick_array_lower",
+              "writable": true
+            },
+            {
+              "name": "tick_array_upper",
+              "writable": true
+            },
+            {
+              "name": "whirlpool_vault_a",
+              "writable": true
+            },
+            {
+              "name": "whirlpool_vault_b",
+              "writable": true
+            },
+            {
+              "name": "fee_vault_base",
+              "writable": true
+            },
+            {
+              "name": "fee_vault_quote",
+              "writable": true
+            },
+            {
+              "name": "token_program",
+              "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+            },
+            {
+              "name": "whirlpool_program",
+              "address": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+            }
+          ]
+        },
+        {
+          "name": "lp_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.bucket",
+                "account": "BucketPool"
+              },
+              {
+                "kind": "account",
+                "path": "lp"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lp_base",
+          "writable": true
+        },
+        {
+          "name": "lp_quote",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "liquidity",
+          "type": "u128"
+        },
+        {
+          "name": "min_base",
+          "type": "u64"
+        },
+        {
+          "name": "min_quote",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1777,6 +2816,19 @@
         250,
         204,
         130
+      ]
+    },
+    {
+      "name": "LpDeposit",
+      "discriminator": [
+        228,
+        76,
+        221,
+        138,
+        156,
+        203,
+        67,
+        139
       ]
     },
     {
@@ -2168,20 +3220,31 @@
             "type": "u64"
           },
           {
-            "name": "fee_index_a_x64",
+            "name": "fee_index_base_x64",
+            "docs": [
+              "Idle Orca fees per share (Q64.64), by token, with exact carried remainders."
+            ],
             "type": "u128"
           },
           {
-            "name": "fee_index_b_x64",
+            "name": "fee_index_quote_x64",
             "type": "u128"
           },
           {
-            "name": "fee_remainder_a_x64",
+            "name": "fee_remainder_base_x64",
             "type": "u128"
           },
           {
-            "name": "fee_remainder_b_x64",
+            "name": "fee_remainder_quote_x64",
             "type": "u128"
+          },
+          {
+            "name": "fees_collected_base",
+            "type": "u64"
+          },
+          {
+            "name": "fees_collected_quote",
+            "type": "u64"
           },
           {
             "name": "lp_shortfall_quote",
@@ -2233,6 +3296,23 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DepositState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Done"
+          },
+          {
+            "name": "Cancelled"
           }
         ]
       }
@@ -2409,6 +3489,86 @@
       }
     },
     {
+      "name": "LpDeposit",
+      "docs": [
+        "A staged ladder deposit of an existing Orca position (section 4.2). The original position's",
+        "liquidity is withdrawn into this ticket's escrow and redeployed bucket by bucket; it is not",
+        "advertised as active until every bucket is funded."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lp",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "DepositState"
+              }
+            }
+          },
+          {
+            "name": "tick_lower",
+            "type": "i32"
+          },
+          {
+            "name": "tick_upper",
+            "type": "i32"
+          },
+          {
+            "name": "liquidity",
+            "type": "u128"
+          },
+          {
+            "name": "withdrawn_base",
+            "type": "u64"
+          },
+          {
+            "name": "withdrawn_quote",
+            "type": "u64"
+          },
+          {
+            "name": "cursor",
+            "docs": [
+              "Next bucket (by index from tick_lower) to redeploy."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "bucket_count",
+            "type": "u16"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "escrow_base_bump",
+            "type": "u8"
+          },
+          {
+            "name": "escrow_quote_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "LpPosition",
       "type": {
         "kind": "struct",
@@ -2434,19 +3594,31 @@
             "type": "u64"
           },
           {
-            "name": "fee_index_a_x64",
-            "type": "u128"
-          },
-          {
-            "name": "fee_index_b_x64",
-            "type": "u128"
-          },
-          {
-            "name": "fee_owed_a",
+            "name": "premium_claimed",
             "type": "u64"
           },
           {
-            "name": "fee_owed_b",
+            "name": "fee_index_base_x64",
+            "type": "u128"
+          },
+          {
+            "name": "fee_index_quote_x64",
+            "type": "u128"
+          },
+          {
+            "name": "fee_owed_base",
+            "type": "u64"
+          },
+          {
+            "name": "fee_owed_quote",
+            "type": "u64"
+          },
+          {
+            "name": "fees_claimed_base",
+            "type": "u64"
+          },
+          {
+            "name": "fees_claimed_quote",
             "type": "u64"
           },
           {
@@ -2530,6 +3702,17 @@
           },
           {
             "name": "premium_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_vault_base",
+            "docs": [
+              "Idle-liquidity Orca fees collected for LPs, by token."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_vault_quote",
             "type": "pubkey"
           },
           {

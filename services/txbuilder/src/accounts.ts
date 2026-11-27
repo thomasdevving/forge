@@ -39,6 +39,8 @@ export type Market = {
   reference: ReferenceConfig;
   params: MarketParams;
   premium_vault: Address;
+  fee_vault_base: Address;
+  fee_vault_quote: Address;
   opens_paused: boolean;
   borrow_paused: boolean;
   strategy_count: bigint;
@@ -62,8 +64,10 @@ export type Bucket = {
   premium_index_x64: bigint;
   premium_remainder_x64: bigint;
   premium_distributed: bigint;
-  fee_index_a_x64: bigint;
-  fee_index_b_x64: bigint;
+  fee_index_base_x64: bigint;
+  fee_index_quote_x64: bigint;
+  fees_collected_base: bigint;
+  fees_collected_quote: bigint;
   lp_shortfall_quote: bigint;
   open_legs: number;
 };
@@ -129,8 +133,13 @@ export type LpPosition = {
   liquidity: bigint;
   premium_index_x64: bigint;
   premium_owed: bigint;
-  fee_owed_a: bigint;
-  fee_owed_b: bigint;
+  premium_claimed: bigint;
+  fee_index_base_x64: bigint;
+  fee_index_quote_x64: bigint;
+  fee_owed_base: bigint;
+  fee_owed_quote: bigint;
+  fees_claimed_base: bigint;
+  fees_claimed_quote: bigint;
   withdrawal_liquidity: bigint;
   withdrawal_requested_at: bigint;
 };

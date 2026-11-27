@@ -43,6 +43,8 @@ export async function initializeMarketIx(p: {
     premium_vault: await pdas.premiumVault(market),
     staging_base: await pdas.stagingBase(market),
     staging_quote: await pdas.stagingQuote(market),
+    fee_vault_base: await pdas.feeVaultBase(market),
+    fee_vault_quote: await pdas.feeVaultQuote(market),
     token_program: TOKEN_PROGRAM_ID,
     rent: RENT_SYSVAR_ID,
     ...SYSTEM,
@@ -72,45 +74,6 @@ export async function createBucketIx(payer: TransactionSigner, market: Address, 
       ...SYSTEM,
     }, { tick_lower: tickLower }),
   };
-}
-
-export async function depositLiquidityIx(p: {
-  lp: TransactionSigner;
-  market: Address;
-  m: Market;
-  bucket: Address;
-  b: Bucket;
-  pool: PoolState;
-  liquidity: bigint;
-  lpBase: Address;
-  lpQuote: Address;
-  slippageBps?: number;
-}): Promise<Instruction> {
-  const ta = await bucketTickArrays(p.m.whirlpool, p.b.tick_lower, p.b.tick_upper, p.pool.tickSpacing);
-  const d = liquidityDeltas(p.pool, p.b.tick_lower, p.b.tick_upper, p.liquidity, true);
-  const [base, quote] = p.m.base_is_a ? [d.a, d.b] : [d.b, d.a];
-  const pad = (v: bigint) => v + (v * BigInt(p.slippageBps ?? 50)) / 10_000n + 1n;
-  return forgeIx("deposit_liquidity", {
-    lp: p.lp,
-    market: p.market,
-    vault: await pdas.vault(p.market),
-    bucket: p.bucket,
-    lp_position: await pdas.lp(p.bucket, p.lp.address),
-    whirlpool: p.m.whirlpool,
-    position: p.b.position,
-    position_token_account: p.b.position_token_account,
-    tick_array_lower: ta.lower,
-    tick_array_upper: ta.upper,
-    whirlpool_vault_a: p.pool.vaultA,
-    whirlpool_vault_b: p.pool.vaultB,
-    lp_base: p.lpBase,
-    lp_quote: p.lpQuote,
-    staging_base: await pdas.stagingBase(p.market),
-    staging_quote: await pdas.stagingQuote(p.market),
-    token_program: TOKEN_PROGRAM_ID,
-    whirlpool_program: WHIRLPOOL_PROGRAM_ID,
-    ...SYSTEM,
-  }, { liquidity: p.liquidity, max_base: pad(base), max_quote: pad(quote) });
 }
 
 export type LegSpec = { kind: "BorrowQuote" | "BorrowBase"; tickLower: number; liquidity: bigint; extraBuffer?: bigint };
@@ -202,6 +165,7 @@ export async function buildOpen(rpc: Rpc<SolanaRpcApi>, p: OpenParams): Promise<
     token_program: TOKEN_PROGRAM_ID,
     whirlpool_program: WHIRLPOOL_PROGRAM_ID,
   } satisfies Record<string, AccountInput>;
+
   const batches: number[][] = [];
   for (let i = 0; i < p.legs.length; i += m.params.max_ops_per_tx) {
     batches.push(Array.from({ length: Math.min(m.params.max_ops_per_tx, p.legs.length - i) }, (_, k) => i + k));

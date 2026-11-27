@@ -17,7 +17,15 @@ type IdlTypeDef = {
   name: string;
   type: { kind: "struct"; fields: IdlField[] } | { kind: "enum"; variants: { name: string; fields?: IdlField[] }[] };
 };
-export type IdlAccountItem = { name: string; writable?: boolean; signer?: boolean; optional?: boolean; address?: string };
+export type IdlAccountItem = {
+  name: string;
+  writable?: boolean;
+  signer?: boolean;
+  optional?: boolean;
+  address?: string;
+  /** composite (nested) account group */
+  accounts?: IdlAccountItem[];
+};
 export type IdlInstruction = { name: string; discriminator: number[]; accounts: IdlAccountItem[]; args: IdlField[] };
 
 export const IDL = idlJson as unknown as {

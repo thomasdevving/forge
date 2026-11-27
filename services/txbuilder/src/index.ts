@@ -4,3 +4,4 @@ export * from "./idl.js";
 export * from "./orca.js";
 export * from "./program.js";
 export * from "./tx.js";
+export * from "./lp.js";
