@@ -79,7 +79,7 @@ export default function Landing() {
   const realRows = real?.rows ?? [];
 
   return (
-    <div className="haze overflow-x-clip">
+    <div className="overflow-x-clip bg-bg">
       <header className="fixed inset-x-0 top-0 z-50 border-b border-line/60 bg-bg/70 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-[1480px] items-center gap-8 px-5 sm:px-8">
           <Logo />
@@ -103,7 +103,7 @@ export default function Landing() {
       <Hero />
 
       {/* fork: the hero's screens are real and run here */}
-      <section id="fork" className="relative border-t border-line bg-bg">
+      <section id="fork" className="relative">
         <div className="mx-auto grid max-w-[1480px] gap-10 px-5 py-24 sm:px-8 lg:grid-cols-[1fr_1.6fr] lg:items-center">
           <Reveal>
             <div className="num flex items-center gap-3 text-[12px] text-ink-3"><span className="size-1.5 animate-pulse bg-good" />Live right now</div>
@@ -127,7 +127,7 @@ export default function Landing() {
       </section>
 
       {/* idea */}
-      <section className="border-y border-line bg-sunk/60">
+      <section className="band">
         <div className="mx-auto grid max-w-[1480px] gap-12 px-5 py-24 sm:px-8 lg:grid-cols-2 lg:items-center">
           <Reveal>
             <div className="num flex items-center gap-3 text-[12px] text-ink-3"><span className="text-ink">02</span><span className="h-px w-8 bg-line-strong" />The idea</div>
@@ -184,7 +184,7 @@ export default function Landing() {
       </section>
 
       {/* proof */}
-      <section id="proof" className="scroll-mt-14 border-t border-line pt-28 pb-24">
+      <section id="proof" className="glow-top scroll-mt-14 pt-28 pb-24">
         <Head n="04" kicker="Proof" title={<>Measured,<br />not promised.</>} intro="Numbers from benchmark runs on the fork and ten months of SOL prices. One command reproduces them." />
         <div className="mx-auto mt-14 max-w-[1480px] px-5 sm:px-8">
           <Reveal>
@@ -247,7 +247,7 @@ export default function Landing() {
       </section>
 
       {/* faq */}
-      <section id="faq" className="scroll-mt-14 border-t border-line py-28">
+      <section id="faq" className="scroll-mt-14 py-28">
         <div className="mx-auto grid max-w-[1480px] gap-12 px-5 sm:px-8 lg:grid-cols-[1fr_1.4fr]">
           <Reveal>
             <div className="num flex items-center gap-3 text-[12px] text-ink-3"><span className="text-ink">05</span><span className="h-px w-8 bg-line-strong" />Questions</div>
@@ -274,7 +274,7 @@ export default function Landing() {
       </section>
 
       {/* cta */}
-      <section className="border-t border-line">
+      <section className="glow-top">
         <div className="mx-auto max-w-[1480px] px-5 py-28 sm:px-8">
           <Reveal>
             <h2 className="max-w-4xl font-display text-[clamp(2.2rem,5.4vw,4.8rem)] font-semibold leading-[0.95] tracking-[-0.035em]">
@@ -289,7 +289,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="border-t border-line">
+      <footer className="bg-gradient-to-b from-transparent to-sunk/80">
         <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-5 py-8 text-[12px] text-ink-3 sm:flex-row sm:items-center sm:px-8">
           <Logo className="h-[18px] w-auto" />
           <span className="sm:ml-6">Built for the Dev3pack hackathon on Solana.</span>

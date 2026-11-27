@@ -247,7 +247,10 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   background: linear-gradient(160deg, rgba(35, 39, 47, 0.78), rgba(16, 18, 22, 0.72));
   backdrop-filter: blur(14px) saturate(1.2);
   box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(242, 244, 248, 0.08);
-  transform: translate3d(calc(var(--mx) * 10px), calc(var(--my) * 8px), 0);
+  transform:
+    translate3d(calc(var(--mx) * 10px), calc(var(--my) * 8px), 60px)
+    rotateY(calc(-16deg + var(--mx) * 4deg)) rotateX(calc(7deg - var(--my) * 3deg)) rotateZ(1deg);
+  transform-style: preserve-3d;
   transition: transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .float-a { animation: float 7s ease-in-out infinite, card-in 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.9s both; }
@@ -262,10 +265,16 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .hero-moon, .hero-terrain, .hero-screen, .hero-card { transition: none; }
 }
 
-/* Solana nod: three slanted bars with a travelling highlight. */
-.sol-bars { display: inline-flex; flex-direction: column; gap: 2px; }
-.sol-bars > span { display: block; width: 16px; height: 3px; background: var(--ink-3); transform: skewX(-38deg); animation: sol-bar 2.4s ease-in-out infinite; }
-.sol-bars > span:nth-child(2) { margin-left: -4px; animation-delay: 0.2s; }
-.sol-bars > span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes sol-bar { 0%, 60%, 100% { background: var(--ink-3); } 25% { background: var(--ink); } }
-@media (prefers-reduced-motion: reduce) { .sol-bars > span { animation: none; } }
+
+/* Solana logomark: monochrome, a highlight runs down the three bars. */
+.sol-mark path { fill: var(--ink-3); animation: sol-bar 2.6s ease-in-out infinite; }
+.sol-mark path:nth-child(2) { animation-delay: 0s; }
+.sol-mark path:nth-child(3) { animation-delay: 0.2s; }
+.sol-mark path:nth-child(1) { animation-delay: 0.4s; }
+@keyframes sol-bar { 0%, 60%, 100% { fill: var(--ink-3); } 25% { fill: var(--ink); } }
+
+/* Sections blend into each other: no rules, only soft fades. */
+.band { background: linear-gradient(180deg, transparent 0%, color-mix(in oklab, var(--bg-sunk) 70%, transparent) 18%, color-mix(in oklab, var(--bg-sunk) 70%, transparent) 82%, transparent 100%); }
+.glow-top { background: radial-gradient(60% 40% at 50% 0%, rgba(183, 196, 214, 0.06), transparent 70%); }
+
+@media (prefers-reduced-motion: reduce) { .sol-mark path { animation: none; } }

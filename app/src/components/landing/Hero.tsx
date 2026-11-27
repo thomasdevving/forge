@@ -59,7 +59,7 @@ export function Hero() {
         <img src="/bg/moon.jpg" alt="" className="hero-moon absolute -right-[4%] -top-[14%] h-[108%] w-auto max-w-none mix-blend-screen" />
         <img src="/bg/terrain.jpg" alt="" className="hero-terrain absolute inset-x-[-4%] bottom-[-12%] w-[108%] max-w-none mix-blend-screen [mask-image:linear-gradient(90deg,transparent_0%,black_38%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(55%_75%_at_18%_50%,var(--bg)_20%,transparent_75%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-bg to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-[38%] bg-gradient-to-t from-bg via-bg/70 to-transparent" />
         <div className="hero-dots absolute left-[3%] top-[14%] h-28 w-48" />
       </div>
 
@@ -67,8 +67,12 @@ export function Hero() {
         {/* copy */}
         <div className="relative z-10">
           <div className="hero-in flex items-center gap-4" style={{ animationDelay: "80ms" }}>
-            <span className="sol-bars" title="Built on Solana" aria-label="Built on Solana" role="img"><span /><span /><span /></span>
-            <span className="num text-[11px] uppercase tracking-[0.28em] text-ink-2">Solana native</span>
+            <svg viewBox="0 0 397.7 311.7" className="sol-mark h-[14px] w-auto" role="img" aria-label="Solana">
+              <path d="M64.6 237.9c2.4-2.4 5.7-3.8 9.2-3.8h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1l62.7-62.7z" />
+              <path d="M64.6 3.8C67.1 1.4 70.4 0 73.8 0h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1L64.6 3.8z" />
+              <path d="M333.1 120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8 0-8.7 7-4.6 11.1l62.7 62.7c2.4 2.4 5.7 3.8 9.2 3.8h317.4c5.8 0 8.7-7 4.6-11.1l-62.7-62.7z" />
+            </svg>
+            <span className="num text-[11px] uppercase tracking-[0.28em] text-ink-2">Built on Solana</span>
             <span className="h-px w-10 bg-line-strong" aria-hidden />
             <span className="num text-[11px] uppercase tracking-[0.28em] text-ink-3">Orca liquidity</span>
           </div>
