@@ -10,7 +10,7 @@ const pct = (x: number, d = 0) => `${(x * 100).toFixed(d)}%`;
 const bps = (x: number) => `${x >= 0 ? "+" : "−"}${Math.abs(x) < 10 ? Math.abs(x).toFixed(1) : Math.round(Math.abs(x))} bps`;
 
 /** Benchmark 4 on the landing page: does providing liquidity through FORGE pay, against plain Orca and against holding. */
-export function LpEvidence() {
+export function LpEvidence({ bare = false }: { bare?: boolean } = {}) {
   if (!data?.none) return null;
   const levels = [
     ["u20-long", "20%"],
@@ -20,7 +20,7 @@ export function LpEvidence() {
   const worstNoKeeper = Math.min(...levels.map(([k]) => data.noKeeper[k]?.extraMinBps ?? 0));
   const hodlB = levels.map(([k]) => data.keeper[k]?.shareBgtHodl ?? 0);
   return (
-    <Reveal className="mx-auto mt-16 max-w-[1480px] px-5 sm:px-8">
+    <Reveal className={bare ? "" : "mx-auto mt-16 max-w-[1480px] px-5 sm:px-8"}>
       <div className="border border-line bg-panel/50">
         <div className="grid gap-6 border-b border-line p-6 lg:grid-cols-[1fr_1.2fr] lg:items-end">
           <div>

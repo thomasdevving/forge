@@ -1,0 +1,692 @@
+{
+ "study": "FORGE recent-regime study",
+ "folder": "benchmarks/research/2026-11-recent",
+ "generatedAt": "2026-11-27T22:14:34+00:00",
+ "windowDays": 56,
+ "window": {
+  "start": "2026-10-02 00:00",
+  "end": "2026-11-27 00:00"
+ },
+ "source": "Binance Public Data (https://data.binance.vision/), Deribit public API",
+ "pricing": {
+  "floor_rate_bps": 500,
+  "restoration_buffer_bps": 200,
+  "swap_slippage_bps": 50,
+  "keeper_trigger_bps": 8000,
+  "bounty_bps": 100,
+  "curve": {
+   "base_ppm": 1000000,
+   "slope1_ppm": 1000000,
+   "kink_ppm": 600000,
+   "slope2_ppm": 6000000,
+   "cap_ppm": 800000
+  }
+ },
+ "curves": {
+  "flat m=1": {
+   "base_ppm": 1000000,
+   "slope1_ppm": 0,
+   "kink_ppm": 600000,
+   "slope2_ppm": 0,
+   "cap_ppm": 800000
+  },
+  "flat m=1.1": {
+   "base_ppm": 1100000,
+   "slope1_ppm": 0,
+   "kink_ppm": 600000,
+   "slope2_ppm": 0,
+   "cap_ppm": 800000
+  },
+  "flat m=1.2": {
+   "base_ppm": 1200000,
+   "slope1_ppm": 0,
+   "kink_ppm": 600000,
+   "slope2_ppm": 0,
+   "cap_ppm": 800000
+  },
+  "1+0.25u": {
+   "base_ppm": 1000000,
+   "slope1_ppm": 250000,
+   "kink_ppm": 600000,
+   "slope2_ppm": 250000,
+   "cap_ppm": 800000
+  },
+  "default": {
+   "base_ppm": 1000000,
+   "slope1_ppm": 1000000,
+   "kink_ppm": 600000,
+   "slope2_ppm": 6000000,
+   "cap_ppm": 800000
+  },
+  "2x slope": {
+   "base_ppm": 1000000,
+   "slope1_ppm": 2000000,
+   "kink_ppm": 600000,
+   "slope2_ppm": 12000000,
+   "cap_ppm": 800000
+  },
+  "base 1.5": {
+   "base_ppm": 1500000,
+   "slope1_ppm": 1000000,
+   "kink_ppm": 600000,
+   "slope2_ppm": 6000000,
+   "cap_ppm": 800000
+  }
+ },
+ "assumptions": {
+  "feeModels": {
+   "arb-band": "fees from arbitrage only (conservative)",
+   "band+noise": "arbitrage plus assumed extra trading volume"
+  },
+  "budgets": "realistic (90% fund max(3x expected floor, 1% notional), 10% fund 0.5x expected floor), with and without a keeper closing at 80% of the LP cap",
+  "hedgeUsd": 10000,
+  "fairValue": "Black-Scholes (r = 0) price of the exact FORGE range payoff, lognormal terminal price",
+  "pools": "assumed 0.30% tier, tick spacing 64",
+  "revenueTvlUsd": [
+   1000000,
+   10000000,
+   50000000
+  ]
+ },
+ "regimes": [
+  {
+   "token": "SOL",
+   "open": 118.38,
+   "close": 70.95,
+   "low": 64.77,
+   "return": -0.40065889508362895,
+   "maxDrawdown": -0.47567392536226016,
+   "troughDate": "2026-11-21",
+   "vol1d": 0.5391411086801584,
+   "volJanOct": 0.6222774113075736,
+   "daysAbsMoveGt5": 7,
+   "weeksDown": 8,
+   "weeks": 8
+  },
+  {
+   "token": "JUP",
+   "open": 0.3254,
+   "close": 0.2366,
+   "low": 0.2066,
+   "return": -0.2728948985863553,
+   "maxDrawdown": -0.46587383660806614,
+   "troughDate": "2026-11-21",
+   "vol1d": 0.9611936034265437,
+   "volJanOct": 0.9590966750238582,
+   "daysAbsMoveGt5": 15,
+   "weeksDown": 5,
+   "weeks": 8
+  },
+  {
+   "token": "BONK",
+   "open": 0.00000376,
+   "close": 0.00000218,
+   "low": 0.00000195,
+   "return": -0.42021276595744683,
+   "maxDrawdown": -0.5197044334975369,
+   "troughDate": "2026-11-21",
+   "vol1d": 0.856525864835525,
+   "volJanOct": null,
+   "daysAbsMoveGt5": 10,
+   "weeksDown": 7,
+   "weeks": 8
+  },
+  {
+   "token": "KMNO",
+   "open": 0.04114,
+   "close": 0.02342,
+   "low": 0.02204,
+   "return": -0.4307243558580457,
+   "maxDrawdown": -0.5016956816640289,
+   "troughDate": "2026-11-25",
+   "vol1d": 0.9656295201295428,
+   "volJanOct": null,
+   "daysAbsMoveGt5": 18,
+   "weeksDown": 7,
+   "weeks": 8
+  }
+ ],
+ "solIv": {
+  "days": 56,
+  "median": 0.5643,
+  "max": 0.8355,
+  "maxDate": "2026-11-24"
+ },
+ "lp": {
+  "keeperShareMin": 1,
+  "keeperCells": 144,
+  "noKeeperLong7dShare": [
+   0,
+   0.04
+  ],
+  "horizons": [
+   "7d",
+   "30d",
+   "56d"
+  ],
+  "modes": [
+   "arb-band",
+   "band+noise"
+  ],
+  "rows": [
+   {
+    "token": "SOL",
+    "horizon": "7d",
+    "n": 100,
+    "shareBgeA": 1,
+    "extraMedianBps": 17.375502168319144,
+    "extraMinBps": 6.0366240500006825,
+    "aHodlBps": 31.052278342014688,
+    "bHodlBps": 44.43899930128555,
+    "noKeeperLongShareBgeA": 0.03
+   },
+   {
+    "token": "SOL",
+    "horizon": "30d",
+    "n": 28,
+    "shareBgeA": 1,
+    "extraMedianBps": 43.25406902163286,
+    "extraMinBps": 26.943602226769144,
+    "aHodlBps": -1041.0300117282854,
+    "bHodlBps": -991.5698928899305,
+    "noKeeperLongShareBgeA": 0.07142857142857142
+   },
+   {
+    "token": "SOL",
+    "horizon": "56d",
+    "n": 2,
+    "shareBgeA": 1,
+    "extraMedianBps": 57.695800475542455,
+    "extraMinBps": 56.560974642809924,
+    "aHodlBps": -1822.483955657391,
+    "bHodlBps": -1764.7881551818487,
+    "noKeeperLongShareBgeA": 1
+   },
+   {
+    "token": "JUP",
+    "horizon": "7d",
+    "n": 100,
+    "shareBgeA": 1,
+    "extraMedianBps": 26.34599717456149,
+    "extraMinBps": 7.839671662472028,
+    "aHodlBps": 105.05438083537956,
+    "bHodlBps": 136.90408272997865,
+    "noKeeperLongShareBgeA": 0
+   },
+   {
+    "token": "JUP",
+    "horizon": "30d",
+    "n": 28,
+    "shareBgeA": 1,
+    "extraMedianBps": 77.664001735091,
+    "extraMinBps": 21.599359634948996,
+    "aHodlBps": -571.1647697865455,
+    "bHodlBps": -493.0236462783778,
+    "noKeeperLongShareBgeA": 0.14285714285714285
+   },
+   {
+    "token": "JUP",
+    "horizon": "56d",
+    "n": 2,
+    "shareBgeA": 1,
+    "extraMedianBps": 135.34513379650298,
+    "extraMinBps": 134.71420192700134,
+    "aHodlBps": -495.5663069876141,
+    "bHodlBps": -360.2211731911111,
+    "noKeeperLongShareBgeA": 0
+   },
+   {
+    "token": "BONK",
+    "horizon": "7d",
+    "n": 100,
+    "shareBgeA": 1,
+    "extraMedianBps": 30.558093983666367,
+    "extraMinBps": 9.790305317439561,
+    "aHodlBps": 118.49587823532147,
+    "bHodlBps": 146.8444578393919,
+    "noKeeperLongShareBgeA": 0.02
+   },
+   {
+    "token": "BONK",
+    "horizon": "30d",
+    "n": 28,
+    "shareBgeA": 1,
+    "extraMedianBps": 102.20090769537,
+    "extraMinBps": 28.99486192493896,
+    "aHodlBps": -587.2022229316476,
+    "bHodlBps": -495.8421716905118,
+    "noKeeperLongShareBgeA": 0
+   },
+   {
+    "token": "BONK",
+    "horizon": "56d",
+    "n": 2,
+    "shareBgeA": 1,
+    "extraMedianBps": 88.7323628485151,
+    "extraMinBps": 84.1193018402664,
+    "aHodlBps": -2059.452650714957,
+    "bHodlBps": -1970.720287866442,
+    "noKeeperLongShareBgeA": 0
+   },
+   {
+    "token": "KMNO",
+    "horizon": "7d",
+    "n": 100,
+    "shareBgeA": 1,
+    "extraMedianBps": 25.602185115284556,
+    "extraMinBps": 10.321859158622829,
+    "aHodlBps": -29.344968179993884,
+    "bHodlBps": 3.550341141836725,
+    "noKeeperLongShareBgeA": 0.02
+   },
+   {
+    "token": "KMNO",
+    "horizon": "30d",
+    "n": 28,
+    "shareBgeA": 1,
+    "extraMedianBps": 126.09946521726215,
+    "extraMinBps": 32.95958567019807,
+    "aHodlBps": -368.2792140675674,
+    "bHodlBps": -202.17010101481355,
+    "noKeeperLongShareBgeA": 0.07142857142857142
+   },
+   {
+    "token": "KMNO",
+    "horizon": "56d",
+    "n": 2,
+    "shareBgeA": 1,
+    "extraMedianBps": 208.52854815076125,
+    "extraMinBps": 202.60555408346318,
+    "aHodlBps": -1085.2494635914018,
+    "bHodlBps": -876.7209154406405,
+    "noKeeperLongShareBgeA": 0
+   }
+  ],
+  "demand": [
+   "u20-short",
+   "u50-short",
+   "u80-short",
+   "u20-long",
+   "u50-long",
+   "u80-long"
+  ]
+ },
+ "borrowers": [
+  {
+   "token": "SOL",
+   "tenor": "7d",
+   "starts": 50,
+   "strikeOverSpotMedian": 0.9006889400370712,
+   "floorUsd": 8.63318691579082,
+   "premiumMedianUsd": 68.62449798675931,
+   "fairRv30MedianUsd": 29.38990294816488,
+   "ratioRv30": 2.4634170943106555,
+   "ratioIv": 1.5007297831173503,
+   "ratioExpost": 1.6549787707097083,
+   "exanteU50": 1.1661610679527636,
+   "exanteU80": 2.116026039091051,
+   "payoffMeanUsd": 83.84007836083191,
+   "premiumMeanUsd": 158.7657186346096,
+   "netMeanUsd": -74.92564027377772,
+   "shareNetPositive": 0.06
+  },
+  {
+   "token": "SOL",
+   "tenor": "30d",
+   "starts": 27,
+   "strikeOverSpotMedian": 0.902629291027827,
+   "floorUsd": 37.094354425801036,
+   "premiumMedianUsd": 643.4406382382629,
+   "fairRv30MedianUsd": 237.5097585914743,
+   "ratioRv30": 2.6981555116055427,
+   "ratioIv": 2.5197842884418393,
+   "ratioExpost": 2.0722099594254813,
+   "exanteU50": 1.2988370471448927,
+   "exanteU80": 2.39906806129369,
+   "payoffMeanUsd": 1662.386405532736,
+   "premiumMeanUsd": 613.878520242087,
+   "netMeanUsd": 1048.5078852906493,
+   "shareNetPositive": 1
+  },
+  {
+   "token": "JUP",
+   "tenor": "7d",
+   "starts": 50,
+   "strikeOverSpotMedian": 0.901829856616089,
+   "floorUsd": 8.644839689916514,
+   "premiumMedianUsd": 193.89627054357578,
+   "fairRv30MedianUsd": 178.70183359419462,
+   "ratioRv30": 1.0993157213251568,
+   "ratioIv": null,
+   "ratioExpost": 1.0597257644551927,
+   "exanteU50": 1.12075607910161,
+   "exanteU80": 2.075070039479222,
+   "payoffMeanUsd": 149.43305198176972,
+   "premiumMeanUsd": 254.26551961945646,
+   "netMeanUsd": -104.83246763768676,
+   "shareNetPositive": 0.2
+  },
+  {
+   "token": "JUP",
+   "tenor": "30d",
+   "starts": 27,
+   "strikeOverSpotMedian": 0.9012367072807838,
+   "floorUsd": 37.03712495674455,
+   "premiumMedianUsd": 987.6471919307978,
+   "fairRv30MedianUsd": 811.8961238169484,
+   "ratioRv30": 1.2328012403532376,
+   "ratioIv": null,
+   "ratioExpost": 1.5693575815871779,
+   "exanteU50": 1.201725980470472,
+   "exanteU80": 2.2320443888414143,
+   "payoffMeanUsd": 1297.5061675605566,
+   "premiumMeanUsd": 1186.6326814197014,
+   "netMeanUsd": 110.87348614085512,
+   "shareNetPositive": 0.5925925925925926
+  },
+  {
+   "token": "BONK",
+   "tenor": "7d",
+   "starts": 50,
+   "strikeOverSpotMedian": 0.8970871949231487,
+   "floorUsd": 8.600997916525175,
+   "premiumMedianUsd": 163.29768912266505,
+   "fairRv30MedianUsd": 160.79440535609044,
+   "ratioRv30": 1.0798978051052102,
+   "ratioIv": null,
+   "ratioExpost": 1.2513642827974905,
+   "exanteU50": 1.1257994802288114,
+   "exanteU80": 2.0731003017289145,
+   "payoffMeanUsd": 141.36141834947801,
+   "premiumMeanUsd": 248.28505525244833,
+   "netMeanUsd": -106.92363690297032,
+   "shareNetPositive": 0.16
+  },
+  {
+   "token": "BONK",
+   "tenor": "30d",
+   "starts": 27,
+   "strikeOverSpotMedian": 0.8942925307645095,
+   "floorUsd": 36.75174783963714,
+   "premiumMedianUsd": 1196.6657474178296,
+   "fairRv30MedianUsd": 717.2229779717967,
+   "ratioRv30": 1.955000722378295,
+   "ratioIv": null,
+   "ratioExpost": 2.1425305960883367,
+   "exanteU50": 1.0742704403298347,
+   "exanteU80": 1.9867323031198325,
+   "payoffMeanUsd": 1298.6319658733614,
+   "premiumMeanUsd": 1382.8329977817368,
+   "netMeanUsd": -84.20103190837563,
+   "shareNetPositive": 0.5555555555555556
+  },
+  {
+   "token": "KMNO",
+   "tenor": "7d",
+   "starts": 50,
+   "strikeOverSpotMedian": 0.8984372927635199,
+   "floorUsd": 8.614219845887462,
+   "premiumMedianUsd": 201.81360059453135,
+   "fairRv30MedianUsd": 217.16257595179604,
+   "ratioRv30": 0.8942959512629866,
+   "ratioIv": null,
+   "ratioExpost": 1.1123543703743286,
+   "exanteU50": 1.2469276011309285,
+   "exanteU80": 2.303690825830816,
+   "payoffMeanUsd": 317.445874807222,
+   "premiumMeanUsd": 205.52005730983757,
+   "netMeanUsd": 111.92581749738443,
+   "shareNetPositive": 0.32
+  },
+  {
+   "token": "KMNO",
+   "tenor": "30d",
+   "starts": 27,
+   "strikeOverSpotMedian": 0.9002462702757569,
+   "floorUsd": 36.99642206612722,
+   "premiumMedianUsd": 827.2827691860732,
+   "fairRv30MedianUsd": 811.8669997971864,
+   "ratioRv30": 0.917327375040395,
+   "ratioIv": null,
+   "ratioExpost": 1.108027893330622,
+   "exanteU50": 1.1875937603405784,
+   "exanteU80": 2.2048719440955695,
+   "payoffMeanUsd": 1614.81489260113,
+   "premiumMeanUsd": 712.3876376542294,
+   "netMeanUsd": 902.4272549469002,
+   "shareNetPositive": 0.5555555555555556
+  }
+ ],
+ "protocol": {
+  "revenue": [
+   {
+    "pricing": "Default (5%, 1 + u)",
+    "take": "10% of premium",
+    "perYearUsd": [
+     23209.646987209566,
+     232096.46987209565,
+     1160482.349360478
+    ]
+   },
+   {
+    "pricing": "Band (5%, flat 1.1)",
+    "take": "5% of premium",
+    "perYearUsd": [
+     9907.26476190381,
+     99072.64761903809,
+     495363.2380951905
+    ]
+   },
+   {
+    "pricing": "Band (5%, flat 1.1)",
+    "take": "20% of premium above forgone fees",
+    "perYearUsd": [
+     6299.912528671014,
+     62999.12528671014,
+     314995.62643355073
+    ]
+   }
+  ],
+  "premiumFlowVsSol": [
+   {
+    "token": "JUP",
+    "ratio": 1.6703542001694964
+   },
+   {
+    "token": "BONK",
+    "ratio": 1.968053114777003
+   },
+   {
+    "token": "KMNO",
+    "ratio": 1.5523084350155303
+   }
+  ]
+ },
+ "band": {
+  "arb-band": {
+   "tested": 168,
+   "passing": [
+    {
+     "token": "SOL",
+     "floor": 0.02,
+     "curve": "flat m=1.1",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 4.714152262426069,
+     "borrowerExante7d": 0.8317944558051407
+    },
+    {
+     "token": "SOL",
+     "floor": 0.05,
+     "curve": "flat m=1.1",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 6.537789437539686,
+     "borrowerExante7d": 0.8740321461617497
+    },
+    {
+     "token": "JUP",
+     "floor": 0.02,
+     "curve": "flat m=1.2",
+     "lpMaxTake": 0.1,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 11.06898254868338,
+     "borrowerExante7d": 0.8887615651838819
+    },
+    {
+     "token": "JUP",
+     "floor": 0.05,
+     "curve": "flat m=1.1",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 8.123079416039218,
+     "borrowerExante7d": 0.8271654692158038
+    },
+    {
+     "token": "JUP",
+     "floor": 0.05,
+     "curve": "flat m=1.2",
+     "lpMaxTake": 0.1,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 12.84194256598039,
+     "borrowerExante7d": 0.9005603216620174
+    },
+    {
+     "token": "JUP",
+     "floor": 0.1,
+     "curve": "flat m=1.1",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 11.166137567495753,
+     "borrowerExante7d": 0.8472774769326228
+    },
+    {
+     "token": "JUP",
+     "floor": 0.1,
+     "curve": "flat m=1.2",
+     "lpMaxTake": 0.1,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 15.780196702729882,
+     "borrowerExante7d": 0.9206018031535514
+    },
+    {
+     "token": "JUP",
+     "floor": 0.2,
+     "curve": "flat m=1.1",
+     "lpMaxTake": 0.1,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 17.436733424968224,
+     "borrowerExante7d": 0.888641869601863
+    },
+    {
+     "token": "JUP",
+     "floor": 0.2,
+     "curve": "1+0.25u",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 18.758990825198453,
+     "borrowerExante7d": 0.9069200087316824
+    },
+    {
+     "token": "BONK",
+     "floor": 0.02,
+     "curve": "flat m=1.1",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 7.614202906353057,
+     "borrowerExante7d": 0.8146647461806504
+    },
+    {
+     "token": "BONK",
+     "floor": 0.02,
+     "curve": "flat m=1.2",
+     "lpMaxTake": 0.1,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 13.396312450462574,
+     "borrowerExante7d": 0.8875416187352266
+    },
+    {
+     "token": "BONK",
+     "floor": 0.05,
+     "curve": "flat m=1.1",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 9.538344248981957,
+     "borrowerExante7d": 0.8344264477778823
+    },
+    {
+     "token": "BONK",
+     "floor": 0.05,
+     "curve": "flat m=1.2",
+     "lpMaxTake": 0.1,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 15.023650160139368,
+     "borrowerExante7d": 0.9072697058906144
+    },
+    {
+     "token": "BONK",
+     "floor": 0.1,
+     "curve": "flat m=1.1",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 12.621129411517359,
+     "borrowerExante7d": 0.868073047910161
+    },
+    {
+     "token": "BONK",
+     "floor": 0.1,
+     "curve": "flat m=1.2",
+     "lpMaxTake": 0.1,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 18.102128587696825,
+     "borrowerExante7d": 0.9408241159694647
+    },
+    {
+     "token": "BONK",
+     "floor": 0.2,
+     "curve": "flat m=1.1",
+     "lpMaxTake": 0.1,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 18.487506318640044,
+     "borrowerExante7d": 0.9382442369902306
+    },
+    {
+     "token": "BONK",
+     "floor": 0.2,
+     "curve": "1+0.25u",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 19.742679053125357,
+     "borrowerExante7d": 0.9563127696606364
+    },
+    {
+     "token": "KMNO",
+     "floor": 0.02,
+     "curve": "flat m=1.2",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 11.509070452835203,
+     "borrowerExante7d": 0.9865096875277538
+    }
+   ],
+   "defaultCurvePassing": 0
+  },
+  "band+noise": {
+   "tested": 168,
+   "passing": [],
+   "defaultCurvePassing": 0
+  }
+ },
+ "recommendation": [
+  "Flat multiplier about 1.1 (at most 1.2) instead of 1 + u.",
+  "Floor 2–5%/yr for SOL, up to 10–20% for JUP and BONK; consider a strike-dependent floor (a fair SOL 30-day floor is 8%/yr at an 80% strike, 32% at 90%, 52% at 95%).",
+  "If FORGE charges a protocol fee, take it from the premium above forgone fees (about 10–20% of that).",
+  "Keep the keeper mandatory; fund hedge budgets near fair value, not at the floor.",
+  "Pay the collar's provided leg a premium."
+ ],
+ "caveats": [
+  "Fees are simulated (arbitrage along 1-minute Binance bars expanded to 15-second paths, 0.30% band), not measured Orca fee growth; every premium and LP level scales with this. The borrower conclusion depends on how much of a real pool's volume is non-arbitrage.",
+  "BONK and KMNO pools assumed 0.30% fee / tick spacing 64. One 8-week crash path, overlapping windows. GBM paths have no jumps; ex-ante results carry about 8% Monte Carlo error, so the band's edges are within the noise.",
+  "One bucket per hedge, budgets that never bind; restoration costs and Deribit fees/spreads excluded. Deribit implied vol exists only for SOL. Utilization, demand, budgets, TVL, take rates and x402 volumes are assumptions."
+ ]
+}

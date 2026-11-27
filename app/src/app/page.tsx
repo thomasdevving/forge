@@ -2,7 +2,7 @@ import Link from "next/link";
 import bench from "@/data/benchmarks.json";
 import { HeroGraphic } from "@/components/landing/HeroGraphic";
 import { Example } from "@/components/landing/Example";
-import { LpEvidence } from "@/components/landing/LpEvidence";
+import { AgentsSection } from "@/components/landing/AgentsSection";
 import { Hero } from "@/components/landing/Hero";
 import { LiveStrip } from "@/components/landing/LiveStrip";
 import { CountUp, Reveal } from "@/components/landing/Reveal";
@@ -17,6 +17,8 @@ const PROOF_MARKET = (bench as { market?: string }).market ?? "SOL/USDC";
 const PROOF_BASE = PROOF_MARKET.split("/")[0]!;
 const rep = bench.replication as unknown as { run: string; summary: Summary; boundViolations: number; units?: number | null } | null;
 const real = bench.realized as unknown as { run: string; refused?: { payoff: string; move: number; guard: string }[]; rows: { slippageBps?: number | null; units?: number | null; payoff: string; move: number; construction: number; gross: number; swapCost: number; bound: number; target: number }[] } | null;
+type ProfitRow = { n: number; shareBgeA: number; extraMedianBps: number } | null;
+const lpProfit = (bench as unknown as { lpProfit?: { keeper: Record<string, ProfitRow>; noKeeper: Record<string, ProfitRow> } | null }).lpProfit ?? null;
 const lp = bench.lpGuarantee as unknown as {
   run: string;
   summary: Record<string, { borrows: number; borrows_eligible: number; borrows_guarantee_holds: number; borrows_guarantee_violations: number; borrows_premium_shortfall: number; restoration_failures_total: number; paths: number }>;
@@ -28,6 +30,7 @@ const FLOOR = snap.target[1]!, CAP = snap.target[2]!;
 const PUTS = snap.legs.filter((l) => l.kind === "borrow_put");
 const UNITS = `${snap.holdings.base.toLocaleString("en-US")} ${snap.base}`;
 
+const pctR = (x: number) => (x === 1 ? "100%" : `${(x * 100).toFixed(1)}%`);
 const fmt = (n: number, d = 0) => n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 
 function Head({ n, kicker, title, intro }: { n: string; kicker: string; title: React.ReactNode; intro?: string }) {
@@ -84,6 +87,8 @@ export default function Landing() {
   const base = rep?.summary["baseline/thin"];
   const lpAll = lp?.summary["all"];
   const realRows = real?.rows ?? [];
+  const lpKeeper = Object.values(lpProfit?.keeper ?? {}).filter((r): r is NonNullable<ProfitRow> => !!r);
+  const lpNoKeeper = Object.values(lpProfit?.noKeeper ?? {}).filter((r): r is NonNullable<ProfitRow> => !!r);
   const refused = real?.refused ?? [];
 
   return (
@@ -113,11 +118,22 @@ export default function Landing() {
         />
       </section>
 
+      {/* the AI side: describe it to the Architect, or let an agent buy it */}
+      <section id="agents" className="scroll-mt-14 py-28">
+        <Head
+          n="02"
+          kicker="Draw it, or describe it"
+          title={<>Or just say<br />what you want.</>}
+          intro="The Architect is Claude, built into the Studio. Describe the hedge in words. It reads your holdings, prices, past price moves and funded liquidity, then compiles alternatives with FORGE's compiler."
+        />
+        <AgentsSection />
+      </section>
+
       {/* idea */}
       <section className="band">
         <div className="mx-auto grid max-w-[1480px] gap-12 px-5 py-24 sm:px-8 lg:grid-cols-2 lg:items-center">
           <Reveal>
-            <div className="num flex items-center gap-3 text-[12px] text-ink-3"><span className="text-ink">02</span><span className="h-px w-8 bg-line-strong" />The idea</div>
+            <div className="num flex items-center gap-3 text-[12px] text-ink-3"><span className="text-ink">03</span><span className="h-px w-8 bg-line-strong" />The idea</div>
             <h2 className="mt-5 font-display text-[clamp(2rem,4vw,3.3rem)] font-semibold leading-[0.98] tracking-[-0.03em]">Concentrated liquidity already is an option.</h2>
             <p className="mt-6 max-w-lg text-[15px] leading-relaxed text-ink-2">
               An Orca range below the price holds only USDC. FORGE borrows it and locks that USDC. If the token falls through the
@@ -139,7 +155,7 @@ export default function Landing() {
 
       {/* LPs */}
       <section id="lps" className="scroll-mt-14 py-28">
-        <Head n="03" kicker="For liquidity providers" title={<>Your liquidity keeps<br />earning, either way.</>} intro="Deposit into a price bucket. While nobody borrows it, it sits in Orca and earns normal fees. When a trader borrows it, they pay you instead." />
+        <Head n="04" kicker="For liquidity providers" title={<>Your liquidity keeps<br />earning, either way.</>} intro="Deposit into a price bucket. While nobody borrows it, it sits in Orca and earns normal fees. When a trader borrows it, they pay you instead." />
         <div className="mx-auto mt-14 grid max-w-[1480px] gap-10 px-5 sm:px-8 lg:grid-cols-[1fr_1.4fr] lg:items-start">
           <ol>
             {[
@@ -168,12 +184,24 @@ export default function Landing() {
             </figure>
           </Reveal>
         </div>
-        <LpEvidence />
+        {lpKeeper.length > 0 && (
+          <Reveal className="mx-auto mt-14 max-w-[1480px] px-5 sm:px-8">
+            <div className="grid gap-5 border border-line bg-panel/50 p-6 md:grid-cols-[1fr_auto] md:items-center">
+              <p className="max-w-3xl text-[14px] leading-relaxed text-ink-2">
+                <span className="text-ink">Does it pay?</span> Over {fmt(lpKeeper[0]!.n)} windows of real {PROOF_BASE} prices, FORGE LPs with a keeper ended at
+                least level with plain Orca LPs in <span className="num text-ink">{pctR(Math.min(...lpKeeper.map((r) => r.shareBgeA)))}–{pctR(Math.max(...lpKeeper.map((r) => r.shareBgeA)))}</span> of
+                them, depending on demand.
+                {lpNoKeeper.length > 0 && Math.max(...lpNoKeeper.map((r) => r.shareBgeA)) < 0.5 && " Without a keeper they mostly trailed."}
+              </p>
+              <Link href="/proof#lp-returns" className="btn btn-ghost !px-4 !py-2 justify-self-start">See the LP evidence <span aria-hidden>→</span></Link>
+            </div>
+          </Reveal>
+        )}
       </section>
 
       {/* proof */}
       <section id="proof" className="glow-top scroll-mt-14 pt-28 pb-24">
-        <Head n="04" kicker="Proof" title={<>Measured on {PROOF_BASE},<br />not promised.</>} intro={`FORGE works on any Orca Whirlpool. The proof runs on ${PROOF_MARKET}, a long-tail market whose pools hold a fraction of SOL’s liquidity, so every number is earned the hard way. Real positions on the fork, ten months of Binance ${PROOF_BASE} prices, one command to reproduce.`} />
+        <Head n="05" kicker="Proof" title={<>Measured on {PROOF_BASE},<br />not promised.</>} intro={`FORGE works on any Orca Whirlpool. The proof runs on ${PROOF_MARKET}, a long-tail market whose pools hold a fraction of SOL’s liquidity, so every number is earned the hard way. Real positions on the fork, ten months of Binance ${PROOF_BASE} prices, one command to reproduce.`} />
         <div className="mx-auto mt-14 max-w-[1480px] px-5 sm:px-8">
           <Reveal>
             <div className="grid border border-line bg-panel/60 md:grid-cols-3">
@@ -209,31 +237,12 @@ export default function Landing() {
               </div>
             </div>
           </Reveal>
-          {realRows.length > 0 && (
-            <Reveal delay={100}>
-              <div className="mt-6 overflow-x-auto border border-line bg-panel/60">
-                <table className="tbl min-w-[680px]">
-                  <thead>
-                    <tr>{["Payoff", "Close", "Target", "Certified", "Realized", "Swap cost", "Bound"].map((h) => <th key={h}>{h}</th>)}</tr>
-                  </thead>
-                  <tbody className="num">
-                    {realRows.map((r, i) => (
-                      <tr key={i}>
-                        <td className="font-sans">{r.payoff.replace("_", " ")}</td>
-                        <td>{r.move}×</td>
-                        <td>{fmt(r.target, 2)}</td>
-                        <td>{fmt(r.construction, 2)}</td>
-                        <td className="text-ink">{fmt(r.gross, 2)}</td>
-                        <td className="text-ink-2">{fmt(r.swapCost, 4)}</td>
-                        <td className="text-ink-2">±{fmt(r.bound, 2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <p className="cap border-t border-line px-5 py-3">{PROOF_MARKET} on the fork, about $730 notional per position{real?.rows[0]?.slippageBps ? `, restoration slippage cap ${(real.rows[0].slippageBps / 100).toFixed(1)}%` : ""}. USD. Run {real?.run}. Premium, fees and swap costs are outside the certified bound.</p>
-              </div>
-            </Reveal>
-          )}
+          <Reveal delay={100}>
+            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <Link href="/proof" className="btn btn-ghost !px-5 !py-2.5">See all the proof <span aria-hidden>→</span></Link>
+              <span className="cap">Method, results and caveats for each benchmark, plus a study of the last eight weeks.</span>
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -259,7 +268,7 @@ export default function Landing() {
       <section id="faq" className="scroll-mt-14 py-28">
         <div className="mx-auto grid max-w-[1480px] gap-12 px-5 sm:px-8 lg:grid-cols-[1fr_1.4fr]">
           <Reveal>
-            <div className="num flex items-center gap-3 text-[12px] text-ink-3"><span className="text-ink">05</span><span className="h-px w-8 bg-line-strong" />Questions</div>
+            <div className="num flex items-center gap-3 text-[12px] text-ink-3"><span className="text-ink">06</span><span className="h-px w-8 bg-line-strong" />Questions</div>
             <h2 className="mt-5 font-display text-[clamp(2rem,4vw,3.3rem)] font-semibold leading-[0.98] tracking-[-0.03em]">Read this before you trust it.</h2>
             <p className="mt-6 max-w-md text-[14px] leading-relaxed text-ink-3">Prior art: Panoptic builds options from CLMM positions on Ethereum. FORGE adds payoff synthesis, certified error, the bucket ladder and testable LP restoration, on Solana.</p>
           </Reveal>

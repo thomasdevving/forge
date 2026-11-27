@@ -1,0 +1,252 @@
+{
+  "_source": "Copied verbatim from two real runs on the Surfpool fork (2026-11-27): the treasury agent log (agents/treasury, `tsx src/agent.ts -- --approve`) and an Architect conversation stream (services/agent, server-sent events). Lines are selected, not edited.",
+  "treasury": {
+    "command": "tsx src/agent.ts -- --approve",
+    "model": "claude-sonnet-5-5",
+    "lines": [
+      {
+        "t": "0.0s",
+        "who": "Treasury Agent",
+        "text": "Example DAO treasury (simulated) · J6y1cSvZ…",
+        "step": "start"
+      },
+      {
+        "t": "2.0s",
+        "who": "FORGE API",
+        "text": "discovered 5 markets: Bonk/USDC, JUP/USDC, SOL/USDC, KMNO/USDC, JLP/USDC",
+        "step": "discover"
+      },
+      {
+        "t": "2.2s",
+        "who": "Treasury Agent",
+        "text": "analyzing JUP $4,911.59, KMNO $2,390.28, JLP $2,198.5"
+      },
+      {
+        "t": "4.7s",
+        "who": "Treasury Agent",
+        "text": "Largest is JUP (~$4,912). Floor at 30% decline."
+      },
+      {
+        "t": "4.8s",
+        "who": "Treasury Agent",
+        "text": "requesting a hedge: 20,000 JUP, premium ≤ $40"
+      },
+      {
+        "t": "4.8s",
+        "who": "FORGE API",
+        "text": "402 Payment required: 0.01 USDC (cap 0.0500)",
+        "step": "402",
+        "tone": "warn"
+      },
+      {
+        "t": "31.2s",
+        "who": "Payment",
+        "text": "settled on the fork (5PQfr2a2AEwa…); API spend $0.01 of $0.25",
+        "step": "paid",
+        "tone": "good"
+      },
+      {
+        "t": "31.2s",
+        "who": "FORGE Architect",
+        "text": "✓ get_market_data: JUP/USDC at 0.24558",
+        "step": "compile"
+      },
+      {
+        "t": "31.2s",
+        "who": "FORGE Architect",
+        "text": "✓ get_available_liquidity: 17 ranges on JUP/USDC"
+      },
+      {
+        "t": "31.2s",
+        "who": "FORGE Architect",
+        "text": "✓ compile_strategy: Put 70%: infeasible, bound ±$174.817"
+      },
+      {
+        "t": "31.2s",
+        "who": "FORGE Architect",
+        "text": "✓ verify_strategy: verified 46cb398af9…"
+      },
+      {
+        "t": "32.7s",
+        "who": "Verifier",
+        "text": "Compromise: uncapped put, floor 0.2045 (about 83% of spot): all policy checks pass · bound ±$13.42",
+        "step": "verify",
+        "tone": "good"
+      },
+      {
+        "t": "35.9s",
+        "who": "Treasury Agent",
+        "text": "constraints checked; awaiting authorization",
+        "step": "authorize",
+        "tone": "warn"
+      },
+      {
+        "t": "40.2s",
+        "who": "Solana (fork)",
+        "text": "confirmed 4117Cenq8WFuuXrg…",
+        "step": "open"
+      },
+      {
+        "t": "40.3s",
+        "who": "Solana (fork)",
+        "text": "confirmed 5B48Tu9baFnNKXeQ…"
+      },
+      {
+        "t": "40.8s",
+        "who": "Solana (fork)",
+        "text": "confirmed 2TZ77r79v46Ns1Bj…"
+      },
+      {
+        "t": "40.8s",
+        "who": "Solana (fork)",
+        "text": "confirmed 5tHpChhtkbhFhBYF…"
+      },
+      {
+        "t": "40.9s",
+        "who": "Treasury Agent",
+        "text": "position 8GLQYNq6FRfz942w149KzoWFBUZ9vraBvbavgBeBHH3s open",
+        "tone": "good"
+      }
+    ],
+    "result": {
+      "title": "Uncapped put, floor 0.2045 (about 83% of spot)",
+      "units": 20000,
+      "base": "JUP",
+      "floor": 0.2045,
+      "premiumBudgetUsd": 40,
+      "certifiedErrorUsd": 13.42,
+      "toleranceUsd": 78.59,
+      "apiSpendUsd": 0.01,
+      "transactions": 4,
+      "certificate": "46cb398af9eca361eea6e056bf0649c458a9b620bbe2982c0e9fc99ec91f6d57",
+      "position": "8GLQYNq6FRfz942w149KzoWFBUZ9vraBvbavgBeBHH3s"
+    }
+  },
+  "architect": {
+    "request": "I hold 20,000 JUP. Protect me against a crash, I can give up some upside, and I don't want to spend more than $100 on premium.",
+    "requestSource": "The example request from docs/architect.md; the run's own request text was not recorded. Its inputs match: 20,000 JUP, $100 premium cap.",
+    "model": "claude-sonnet-5-5",
+    "tools": [
+      {
+        "name": "get_market_data",
+        "summary": "JUP/USDC at 0.24558",
+        "ok": true
+      },
+      {
+        "name": "get_available_liquidity",
+        "summary": "17 ranges on JUP/USDC",
+        "ok": true
+      },
+      {
+        "name": "compile_strategy",
+        "summary": "Max protection: ok, bound ±$22.2216",
+        "ok": true
+      },
+      {
+        "name": "compile_strategy",
+        "summary": "Balanced: ok, bound ±$21.2354",
+        "ok": true
+      },
+      {
+        "name": "compile_strategy",
+        "summary": "Budget put spread: infeasible, bound ±$146.2766",
+        "ok": false
+      },
+      {
+        "name": "present_options",
+        "summary": "2 options shown",
+        "ok": true
+      }
+    ],
+    "options": [
+      {
+        "title": "Max protection collar",
+        "recommended": false,
+        "tradeoffs": [
+          "Highest floor, so the most daily floor premium: $0.65/day",
+          "Upside stops at $0.285"
+        ],
+        "facts": {
+          "structure": "collar",
+          "units": 20000,
+          "floor_price": 0.2326,
+          "cap_price": 0.285,
+          "spot_at_compile": 0.24558,
+          "value_at_floor_usd": 4652,
+          "value_at_cap_usd": 5700,
+          "certified_error_bound_usd": 22.2216,
+          "tolerance_usd": 103.52,
+          "legs": 4,
+          "capital_locked_usd": 5013.42,
+          "premium_floor_per_day_usd": 0.6482994362994137,
+          "premium_budget_usd": 100,
+          "keeper_closes_at_premium_usd": 79.2,
+          "verified": true,
+          "certificate_hash": "e7bbd052d72c43518a0a7147edb841a03b49b6fb6ee168c1446e9d195d35a417"
+        }
+      },
+      {
+        "title": "Balanced collar",
+        "recommended": true,
+        "tradeoffs": [
+          "Floor premium $0.62/day",
+          "You absorb the first ~10% of a drop yourself"
+        ],
+        "facts": {
+          "structure": "collar",
+          "units": 20000,
+          "floor_price": 0.2208,
+          "cap_price": 0.285,
+          "spot_at_compile": 0.24558,
+          "value_at_floor_usd": 4416,
+          "value_at_cap_usd": 5700,
+          "certified_error_bound_usd": 21.2354,
+          "tolerance_usd": 101.16,
+          "legs": 5,
+          "capital_locked_usd": 5011.69,
+          "premium_floor_per_day_usd": 0.6176193890661682,
+          "premium_budget_usd": 100,
+          "keeper_closes_at_premium_usd": 79.2,
+          "verified": true,
+          "certificate_hash": "1823c807a92ef7ca4d52ef344f8818481ef057b9e20802c54652d823f47bed4c"
+        }
+      }
+    ],
+    "closing": "Which one do you want? I'll then prepare it for you to review and sign in the Studio."
+  },
+  "x402": {
+    "network": "solana:forge-surfpool",
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/x402",
+        "does": "Discovery: endpoints, prices, network, payee",
+        "price": "free"
+      },
+      {
+        "method": "GET",
+        "path": "/x402/markets",
+        "does": "Supported markets with prices",
+        "price": "free"
+      },
+      {
+        "method": "POST",
+        "path": "/x402/verify",
+        "does": "Re-verify a certificate",
+        "price": "free"
+      },
+      {
+        "method": "POST",
+        "path": "/x402/compile",
+        "does": "Payoff to construction and certificate",
+        "price": "$0.01"
+      },
+      {
+        "method": "POST",
+        "path": "/x402/hedge",
+        "does": "A hedge in words; verified alternatives",
+        "price": "provisional"
+      }
+    ]
+  }
+}
