@@ -1,45 +1,91 @@
 "use client";
 
 /**
- * Wallets: any Wallet Standard wallet that supports solana:signTransaction, or a throwaway demo
- * wallet (a browser-held key for the fork only, funded by the rate-limited fork faucet).
- * The user always signs; transactions are built unsigned by the transaction builder.
+ * Wallets for the fork. Two modes, and in both the browser holds the only signing key:
+ *
+ *  - demo:   a throwaway key funded by the fork faucet.
+ *  - mirror: your own wallet, read-only. The app asks the wallet (or you) only for its public address;
+ *            the fork service copies that address's public mainnet balances onto a burner key kept in
+ *            this browser, and the burner signs every fork transaction. Your wallet never signs.
+ *
+ * Transactions are built unsigned by the transaction builder and checked before signing.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  createKeyPairFromPrivateKeyBytes,
-  getAddressFromPublicKey,
-  getTransactionDecoder,
-  getTransactionEncoder,
-  signTransaction,
-} from "@solana/kit";
+import { address as toAddress, createKeyPairFromPrivateKeyBytes, getAddressFromPublicKey, getTransactionDecoder, getTransactionEncoder, signTransaction } from "@solana/kit";
 import { getWallets } from "@wallet-standard/app";
 import type { Wallet, WalletAccount } from "@wallet-standard/base";
 import { api, type BuiltTx } from "./api";
 import { assertForkCluster, b64ToBytes, inspectTransaction, sendAndConfirm } from "./rpc";
 
-type Kind = "demo" | "standard";
+type Kind = "demo" | "mirror";
 type Ctx = {
+  /** The signing address on the fork (demo key or burner). */
   address: string | null;
   kind: Kind | null;
   label: string;
+  /** In mirror mode: the real wallet whose balances are copied. */
+  mirrorOf: string | null;
   wallets: Wallet[];
   error: string | null;
   connectDemo: () => Promise<void>;
+  /** Ask a wallet for its public address only, then mirror it. */
   connectWallet: (w: Wallet) => Promise<void>;
+  /** Mirror any address typed by the user. */
+  connectAddress: (owner: string) => Promise<void>;
   disconnect: () => void;
   fundDemo: () => Promise<string>;
-  /** Check, sign and send built transactions in order; returns signatures. */
+  /** Copy the real wallet's current mainnet balances onto the burner again. */
+  resync: () => Promise<string>;
   execute: (txs: BuiltTx[], onStep?: (i: number, sig: string) => void) => Promise<string[]>;
-  /** Ask the builder for the next transaction, sign and send it, until the plan is done. */
   runPlan: (path: string, body: Record<string, unknown>, onStep?: (n: number, sig: string, of?: number) => void) => Promise<{ sigs: string[]; strategy?: string }>;
 };
 
 const WalletCtx = createContext<Ctx | null>(null);
 const DEMO_KEY = "forge.demoSeed.v1";
+const SESSION_KEY = "forge.session.v1";
+const burnerKey = (owner: string) => `forge.burner.v1.${owner}`;
 
-function canSign(w: Wallet) {
-  return "standard:connect" in w.features && "solana:signTransaction" in w.features && w.chains.some((c) => c.startsWith("solana:"));
+const store = {
+  get: (k: string) => {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  },
+  set: (k: string, v: string) => {
+    try {
+      localStorage.setItem(k, v);
+    } catch {
+      /* the key then lives for this tab only */
+    }
+  },
+  del: (k: string) => {
+    try {
+      localStorage.removeItem(k);
+    } catch {
+      /* ignore */
+    }
+  },
+};
+
+/** A seed from storage, or a new one saved under `key`. */
+function seedFor(key: string): Uint8Array {
+  const saved = store.get(key);
+  if (saved) return Uint8Array.from(JSON.parse(saved));
+  const seed = crypto.getRandomValues(new Uint8Array(32));
+  store.set(key, JSON.stringify([...seed]));
+  return seed;
+}
+
+const canConnect = (w: Wallet) => "standard:connect" in w.features && w.chains.some((c) => c.startsWith("solana:"));
+const short = (a: string) => `${a.slice(0, 4)}…${a.slice(-4)}`;
+
+function summarize(balances: Record<string, number>) {
+  return Object.entries(balances)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => `${v.toLocaleString("en-US", { maximumFractionDigits: v < 1 ? 4 : 2 })} ${k}`)
+    .join(", ");
 }
 
 export function WalletProvider({ children }: { children: ReactNode }) {
@@ -47,78 +93,110 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [kind, setKind] = useState<Kind | null>(null);
   const [label, setLabel] = useState("");
+  const [mirrorOf, setMirrorOf] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [demoKeys, setDemoKeys] = useState<CryptoKeyPair | null>(null);
-  const [std, setStd] = useState<{ wallet: Wallet; account: WalletAccount } | null>(null);
+  const [keys, setKeys] = useState<CryptoKeyPair | null>(null);
+
+  const loadSigner = useCallback(async (seed: Uint8Array) => {
+    const kp = await createKeyPairFromPrivateKeyBytes(seed);
+    setKeys(kp);
+    const a = await getAddressFromPublicKey(kp.publicKey);
+    setAddress(a);
+    return a;
+  }, []);
+
+  const startMirror = useCallback(
+    async (owner: string, sync: boolean) => {
+      const burner = await loadSigner(seedFor(burnerKey(owner)));
+      setKind("mirror");
+      setMirrorOf(owner);
+      setLabel(`Simulation of ${short(owner)}`);
+      store.set(SESSION_KEY, JSON.stringify({ kind: "mirror", owner }));
+      if (sync) {
+        const r = await api<{ balances: Record<string, number> }>("control/mirror", { owner, burner });
+        return summarize(r.balances);
+      }
+      return "";
+    },
+    [loadSigner],
+  );
 
   useEffect(() => {
     const { get, on } = getWallets();
-    const refresh = () => setWallets(get().filter(canSign));
+    const refresh = () => setWallets(get().filter(canConnect));
     refresh();
     const offA = on("register", refresh);
     const offB = on("unregister", refresh);
-    // restore a previously created demo wallet
+    // restore the last session (no re-sync on reload; the burner keeps its fork state)
     try {
-      const saved = localStorage.getItem(DEMO_KEY);
-      if (saved) void loadDemo(Uint8Array.from(JSON.parse(saved)));
+      const s = JSON.parse(store.get(SESSION_KEY) ?? "null") as { kind: Kind; owner?: string } | null;
+      if (s?.kind === "mirror" && s.owner) void startMirror(s.owner, false);
+      else if (s?.kind === "demo" || (!s && store.get(DEMO_KEY))) {
+        void loadSigner(seedFor(DEMO_KEY)).then(() => {
+          setKind("demo");
+          setLabel("Demo wallet");
+        });
+      }
     } catch {
-      /* storage unavailable: start disconnected */
+      /* start disconnected */
     }
     return () => {
       offA();
       offB();
     };
-  }, []);
-
-  async function loadDemo(seed: Uint8Array) {
-    const kp = await createKeyPairFromPrivateKeyBytes(seed);
-    setDemoKeys(kp);
-    setAddress(await getAddressFromPublicKey(kp.publicKey));
-    setKind("demo");
-    setLabel("Demo wallet");
-  }
+  }, [startMirror, loadSigner]);
 
   const connectDemo = useCallback(async () => {
     setError(null);
-    let seed: Uint8Array | null = null;
-    try {
-      const saved = localStorage.getItem(DEMO_KEY);
-      if (saved) seed = Uint8Array.from(JSON.parse(saved));
-    } catch {
-      /* ignore */
-    }
-    if (!seed) {
-      seed = crypto.getRandomValues(new Uint8Array(32));
-      try {
-        localStorage.setItem(DEMO_KEY, JSON.stringify([...seed]));
-      } catch {
-        /* the wallet then lives for this tab only */
-      }
-    }
-    await loadDemo(seed);
-  }, []);
+    await loadSigner(seedFor(DEMO_KEY));
+    setKind("demo");
+    setMirrorOf(null);
+    setLabel("Demo wallet");
+    store.set(SESSION_KEY, JSON.stringify({ kind: "demo" }));
+  }, [loadSigner]);
 
-  const connectWallet = useCallback(async (w: Wallet) => {
-    setError(null);
-    try {
-      const feature = w.features["standard:connect"] as { connect: () => Promise<{ accounts: readonly WalletAccount[] }> };
-      const { accounts } = await feature.connect();
-      const account = accounts[0];
-      if (!account) throw new Error("The wallet returned no account.");
-      setStd({ wallet: w, account });
-      setAddress(account.address);
-      setKind("standard");
-      setLabel(w.name);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
+  const connectAddress = useCallback(
+    async (input: string) => {
+      setError(null);
+      let owner: string;
+      try {
+        owner = toAddress(input.trim());
+      } catch {
+        setError("That is not a Solana address.");
+        return;
+      }
+      try {
+        await startMirror(owner, true);
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    },
+    [startMirror],
+  );
+
+  const connectWallet = useCallback(
+    async (w: Wallet) => {
+      setError(null);
+      try {
+        // read-only: only the public address is used; nothing is ever sent to this wallet to sign
+        const feature = w.features["standard:connect"] as { connect: () => Promise<{ accounts: readonly WalletAccount[] }> };
+        const { accounts } = await feature.connect();
+        const account = accounts[0];
+        if (!account) throw new Error("The wallet returned no account.");
+        await startMirror(account.address, true);
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    },
+    [startMirror],
+  );
 
   const disconnect = useCallback(() => {
     setAddress(null);
     setKind(null);
-    setStd(null);
-    setDemoKeys(null);
+    setMirrorOf(null);
+    setKeys(null);
+    store.del(SESSION_KEY);
   }, []);
 
   const fundDemo = useCallback(async () => {
@@ -133,36 +211,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     return parts.join(", ");
   }, [address]);
 
+  const resync = useCallback(async () => {
+    if (!mirrorOf) throw new Error("Not mirroring a wallet.");
+    return startMirror(mirrorOf, true);
+  }, [mirrorOf, startMirror]);
+
   const execute = useCallback(
     async (txs: BuiltTx[], onStep?: (i: number, sig: string) => void) => {
-      if (!address) throw new Error("Connect a wallet first.");
+      if (!address || !keys) throw new Error("Connect a wallet first.");
       await assertForkCluster();
       const sigs: string[] = [];
       for (let i = 0; i < txs.length; i++) {
         const bytes = b64ToBytes(txs[i]!.transaction);
         inspectTransaction(bytes, address);
-        let signed: Uint8Array;
-        if (kind === "demo" && demoKeys) {
-          const tx = getTransactionDecoder().decode(bytes);
-          const s = await signTransaction([demoKeys], tx);
-          signed = new Uint8Array(getTransactionEncoder().encode(s));
-        } else if (kind === "standard" && std) {
-          const f = std.wallet.features["solana:signTransaction"] as {
-            signTransaction: (...i: { account: WalletAccount; transaction: Uint8Array; chain?: string }[]) => Promise<{ signedTransaction: Uint8Array }[]>;
-          };
-          const chain = std.account.chains.find((c) => c.startsWith("solana:")) ?? "solana:mainnet";
-          const [out] = await f.signTransaction({ account: std.account, transaction: bytes, chain });
-          signed = out!.signedTransaction;
-        } else {
-          throw new Error("No wallet connected.");
-        }
-        const sig = await sendAndConfirm(signed);
+        const s = await signTransaction([keys], getTransactionDecoder().decode(bytes));
+        const sig = await sendAndConfirm(new Uint8Array(getTransactionEncoder().encode(s)));
         sigs.push(sig);
         onStep?.(i, sig);
       }
       return sigs;
     },
-    [address, kind, demoKeys, std],
+    [address, keys],
   );
 
   const runPlan = useCallback(
@@ -185,8 +254,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<Ctx>(
-    () => ({ address, kind, label, wallets, error, connectDemo, connectWallet, disconnect, fundDemo, execute, runPlan }),
-    [address, kind, label, wallets, error, connectDemo, connectWallet, disconnect, fundDemo, execute, runPlan],
+    () => ({ address, kind, label, mirrorOf, wallets, error, connectDemo, connectWallet, connectAddress, disconnect, fundDemo, resync, execute, runPlan }),
+    [address, kind, label, mirrorOf, wallets, error, connectDemo, connectWallet, connectAddress, disconnect, fundDemo, resync, execute, runPlan],
   );
   return <WalletCtx.Provider value={value}>{children}</WalletCtx.Provider>;
 }

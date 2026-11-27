@@ -9,6 +9,8 @@
  *   POST /markets {mint}             public, rate limited: onboard any token as a market (Orca pools and
  *                                    Pyth feeds are discovered); runs as a job, one at a time
  *   GET  /markets/jobs/:id           job state and log
+ *   POST /mirror {owner, burner}     public, rate limited: copy a real wallet's mainnet balances (SOL and
+ *                                    every market token) onto a burner key on the fork; read-only on mainnet
  *   GET  /scenario                   current scenario price and reference age
  *   GET  /health
  *
@@ -21,6 +23,7 @@ import { address, type Address } from "@solana/kit";
 import { getTransferSolInstruction } from "@solana-program/system";
 import { getCreateAssociatedTokenIdempotentInstructionAsync, getSyncNativeInstruction } from "@solana-program/token";
 import { ata, fundWallet, loadKey, readDeployment, writeDeployment } from "./env.js";
+import { mirrorOnto, readMainnetBalances } from "./mirror.js";
 import { discoverMarket, OnboardError, setupMarket } from "./onboard.js";
 import { movePoolTo } from "./price.js";
 import { MARKETS } from "./markets.js";
@@ -74,6 +77,40 @@ function authorized(h: string | undefined) {
 app.get("/health", async () => ({ ok: true, fork: await assertFork().catch(() => null), scenarioPrice: scenarios[DEFAULT_MARKET], scenarios }));
 
 app.get("/scenario", async () => ({ scenarioPrice: scenarios[DEFAULT_MARKET], scenarios, clock: (await forkClock()).unixTimestamp, label: "fork-only scenario reference" }));
+
+// ---- read-only mirror of a real wallet onto a burner key ----
+const mirrorSeen = new Map<string, number>();
+app.post<{ Body: { owner: string; burner: string } }>("/mirror", async (req, reply) => {
+  let owner: Address, burner: Address;
+  try {
+    owner = address(String(req.body?.owner ?? "").trim());
+    burner = address(String(req.body?.burner ?? "").trim());
+  } catch {
+    return reply.code(400).send({ error: "owner and burner must be Solana addresses" });
+  }
+  if (owner === burner) return reply.code(400).send({ error: "the burner must be a separate key" });
+  const now = Date.now();
+  if ((mirrorSeen.get(burner) ?? 0) > now - 60_000) return reply.code(429).send({ error: "mirrored less than a minute ago" });
+  const recent = (ipSeen.get(req.ip) ?? []).filter((x) => x > now - 3_600_000);
+  if (recent.length >= 20) return reply.code(429).send({ error: "too many requests" });
+  ipSeen.set(req.ip, [...recent, now]);
+  mirrorSeen.set(burner, now);
+  // every market's base and quote token, once each
+  const mints = new Map<string, { symbol: string; mint: string; decimals: number }>();
+  for (const [name, d] of Object.entries(dep.markets)) {
+    const [b, q] = name.split("/");
+    const [bd, qd] = feeds(name).decimals;
+    mints.set(d.baseMint, { symbol: b!, mint: d.baseMint, decimals: bd });
+    mints.set(d.quoteMint, { symbol: q!, mint: d.quoteMint, decimals: qd });
+  }
+  try {
+    const bal = await readMainnetBalances(owner, [...mints.values()]);
+    const balances = await mirrorOnto(rpc, await loadKey("keeper"), burner, bal);
+    return { owner, burner, balances, note: "fork-only copy of public mainnet balances" };
+  } catch (e) {
+    return reply.code(502).send({ error: `could not read mainnet balances: ${(e as Error).message}` });
+  }
+});
 
 app.post<{ Body: { address: string } }>("/faucet", async (req, reply) => {
   let who: Address;

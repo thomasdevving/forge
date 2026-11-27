@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 import { Logo } from "./Logo";
 import { WalletButton } from "./WalletButton";
+import { useWallet } from "@/lib/wallet";
 
 const NAV = [
   { href: "/studio", label: "Studio" },
@@ -47,9 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
           <div className="ml-auto flex items-center gap-2">
-            <span className="tag hidden sm:inline-flex" title="All balances are fork-only test funds">
-              <span className="size-1.5 bg-warn" /> Fork
-            </span>
+            <SimulationBadge />
             <WalletButton />
           </div>
         </header>
@@ -67,5 +66,16 @@ export function Bar({ title, meta, children }: { title: string; meta?: ReactNode
       {meta && <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-3">{meta}</div>}
       {children && <div className="ml-auto flex flex-wrap items-center gap-2">{children}</div>}
     </div>
+  );
+}
+
+/** Always visible: everything in the app runs on a fork with simulated balances. */
+function SimulationBadge() {
+  const w = useWallet();
+  const text = w.kind === "mirror" ? "Simulation: your portfolio, no real funds" : w.kind === "demo" ? "Simulation: demo funds" : "Simulation on a mainnet fork";
+  return (
+    <span className="tag !border-warn/60 !text-warn" title="Every action runs on a Surfpool fork of Solana mainnet. Nothing touches real funds.">
+      <span className="size-1.5 animate-pulse bg-warn" /> <span className="hidden sm:inline">{text}</span><span className="sm:hidden">Simulation</span>
+    </span>
   );
 }
