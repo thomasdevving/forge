@@ -44,3 +44,4 @@ benchmarks/data/raw/
 .DS_Store
 .idea/
 .vscode/
+benchmarks/data/*.npz

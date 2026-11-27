@@ -1,0 +1,87 @@
+{
+  "source": "Binance Public Data (https://data.binance.vision/)",
+  "symbol": "SOLUSDC",
+  "label": "SOLUSDC spot",
+  "interval": "1m",
+  "timestamp_unit": "ms (normalized)",
+  "interpolation": "none; gaps are recorded below",
+  "generated_at_utc": "2026-11-27T13:18:37+00:00",
+  "archives": [
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/SOLUSDC/1m/SOLUSDC-1m-2026-01.zip",
+      "sha256": "4b35ebfdda1af7394f50516263e177c9124abc3ae275ad9d509bb12304e286d7",
+      "rows": 44640,
+      "first_open_ms": 1767225600000,
+      "last_open_ms": 1769903940000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/SOLUSDC/1m/SOLUSDC-1m-2026-02.zip",
+      "sha256": "a45584afb64adf26db0dd6506342a3f41619208c222c4b28643509c3f6184930",
+      "rows": 40320,
+      "first_open_ms": 1769904000000,
+      "last_open_ms": 1772323140000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/SOLUSDC/1m/SOLUSDC-1m-2026-03.zip",
+      "sha256": "64025cc182fcf010c16dd7f2137e6210e0dd70a0c8ce3b2c335fd7a03922fba3",
+      "rows": 44640,
+      "first_open_ms": 1772323200000,
+      "last_open_ms": 1775001540000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/SOLUSDC/1m/SOLUSDC-1m-2026-04.zip",
+      "sha256": "c6f80b14a3f76326a58d77c6c1c869a7e940d759a01c51ecf3e36e0fd0a966ad",
+      "rows": 43200,
+      "first_open_ms": 1775001600000,
+      "last_open_ms": 1777593540000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/SOLUSDC/1m/SOLUSDC-1m-2026-05.zip",
+      "sha256": "ad0daf1611b61d191fe35f5d1eb65a8783e161b7ee49dd065e670aac0a3f123d",
+      "rows": 44640,
+      "first_open_ms": 1777593600000,
+      "last_open_ms": 1780271940000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/SOLUSDC/1m/SOLUSDC-1m-2026-06.zip",
+      "sha256": "e65342b137fda1ccc04945ee803937471aaab481a12a38e6bdc262daea2dfacf",
+      "rows": 43200,
+      "first_open_ms": 1780272000000,
+      "last_open_ms": 1782863940000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/SOLUSDC/1m/SOLUSDC-1m-2026-07.zip",
+      "sha256": "872d30a03db53ce821894aa0325df5a8648714f0171ae0a5a9c0cae5269f1944",
+      "rows": 44640,
+      "first_open_ms": 1782864000000,
+      "last_open_ms": 1785542340000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/SOLUSDC/1m/SOLUSDC-1m-2026-08.zip",
+      "sha256": "e8f5bdf76257f53675b50186055f2d726d4aa4a1898d4cb2a1500306f1eeae71",
+      "rows": 44640,
+      "first_open_ms": 1785542400000,
+      "last_open_ms": 1788220740000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/SOLUSDC/1m/SOLUSDC-1m-2026-09.zip",
+      "sha256": "db3909458e82fe3f7aed344e89b8d74614972ea1d8eae77e7460b288895928fa",
+      "rows": 43200,
+      "first_open_ms": 1788220800000,
+      "last_open_ms": 1790812740000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/SOLUSDC/1m/SOLUSDC-1m-2026-10.zip",
+      "sha256": "ef8439e0dca25b600ebc81ad603f4d19c658d6ae8a1a2edf1950dc88651983e8",
+      "rows": 44640,
+      "first_open_ms": 1790812800000,
+      "last_open_ms": 1793491140000
+    }
+  ],
+  "missing_intervals": [],
+  "output": {
+    "path": "data/SOLUSDC-1m.npz",
+    "sha256": "dafbcf865f2146cdde3f50fcb64dcadb5101ed0c46238a1fb78b0f5e31dc3b1e",
+    "rows": 437760
+  }
+}
