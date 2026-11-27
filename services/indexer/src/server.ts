@@ -12,7 +12,7 @@
  */
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { type Address, address, createSolanaRpc, getBase58Decoder } from "@solana/kit";
+import { type Address, address, createDefaultRpcTransport, createSolanaRpcFromTransport, getBase58Decoder } from "@solana/kit";
 import {
   base64ToBytes,
   type Bucket,
@@ -33,7 +33,10 @@ import {
 const RPC_URL = process.env.FORGE_RPC_URL ?? "http://127.0.0.1:8899";
 const PORT = Number(process.env.PORT ?? 8787);
 const ORIGINS = (process.env.FORGE_ALLOWED_ORIGINS ?? "http://localhost:3000").split(",");
-const rpc = createSolanaRpc(RPC_URL);
+// Every RPC call gives up after 15 s: a request the fork never answers must not hang the indexer.
+const baseTransport = createDefaultRpcTransport({ url: RPC_URL });
+const rpc = createSolanaRpcFromTransport(((config: Parameters<typeof baseTransport>[0]) =>
+  baseTransport({ ...config, signal: config.signal ?? AbortSignal.timeout(15_000) })) as typeof baseTransport);
 
 const KNOWN: Record<string, string> = {
   So11111111111111111111111111111111111111112: "SOL",
@@ -43,12 +46,21 @@ const symbol = (m: string) => KNOWN[m] ?? `${m.slice(0, 4)}…`;
 const Q64 = 2 ** 64;
 
 const cache = new Map<string, { at: number; v: unknown }>();
+const inflight = new Map<string, Promise<unknown>>();
+/** Short-lived cache; concurrent requests for the same key share one RPC round trip. */
 async function cached<T>(key: string, ttlMs: number, f: () => Promise<T>): Promise<T> {
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < ttlMs) return hit.v as T;
-  const v = await f();
-  cache.set(key, { at: Date.now(), v });
-  return v;
+  const running = inflight.get(key);
+  if (running) return running as Promise<T>;
+  const p = f()
+    .then((v) => {
+      cache.set(key, { at: Date.now(), v });
+      return v;
+    })
+    .finally(() => inflight.delete(key));
+  inflight.set(key, p);
+  return p;
 }
 
 const discOf = (name: string) => getBase58Decoder().decode(Uint8Array.from(IDL.accounts.find((a) => a.name === name)!.discriminator));
