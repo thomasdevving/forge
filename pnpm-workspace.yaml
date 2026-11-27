@@ -7,3 +7,5 @@ packages:
   - tests
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  - railway@3.19.1
