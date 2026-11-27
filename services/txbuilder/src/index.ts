@@ -5,3 +5,4 @@ export * from "./orca.js";
 export * from "./program.js";
 export * from "./tx.js";
 export * from "./lp.js";
+export * from "./analytics.js";

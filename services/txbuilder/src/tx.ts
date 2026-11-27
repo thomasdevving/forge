@@ -61,7 +61,7 @@ function build(payer: TransactionSigner | Address, ixs: Instruction[], blockhash
 function measure(msg: ReturnType<typeof build>) {
   const tx = compileTransaction(msg);
   const wire = getBase64EncodedWireTransaction(tx);
-  const bytes = Buffer.from(wire, "base64").length;
+  const bytes = Math.floor((wire.length * 3) / 4) - (wire.endsWith("==") ? 2 : wire.endsWith("=") ? 1 : 0);
   const staticAccounts = msg.instructions.flatMap((i) => (i.accounts ?? []).map((a) => a.address));
   const loaded = new Set([String(typeof msg.feePayer === "object" ? msg.feePayer.address : msg.feePayer), ...staticAccounts.map(String), ...msg.instructions.map((i) => String(i.programAddress))]);
   return { wire, bytes, loadedAccounts: loaded.size };

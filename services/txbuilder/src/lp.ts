@@ -1,7 +1,7 @@
 /** LP instruction builders: deposits, ladder deposits, claims, withdrawals, fee collection. */
 import { type Address, getAddressEncoder, getBase58Decoder, getProgramDerivedAddress, type Instruction, type Rpc, type SolanaRpcApi, type TransactionSigner } from "@solana/kit";
 import { type Bucket, fetchBucket, fetchMarket, type Market } from "./accounts.js";
-import { decodeAccount, IDL } from "./idl.js";
+import { base64ToBytes, decodeAccount, IDL } from "./idl.js";
 import { bucketTickArrays, liquidityDeltas, type PoolState, readPool, tickArrayStart } from "./orca.js";
 import { type AccountInputs, FORGE_PROGRAM_ID, forgeIx, pdas, SYSTEM_PROGRAM_ID, TOKEN_PROGRAM_ID, WHIRLPOOL_PROGRAM_ID } from "./program.js";
 
@@ -200,7 +200,7 @@ export async function openLegsOnBucket(rpc: Rpc<SolanaRpcApi>, bucket: Address):
   for (const acc of res as unknown as { pubkey: Address; account: { data: [string, string] } }[]) {
     const s = decodeAccount<{ state: string; leg_count: number; legs: { bucket: Address; executed: boolean; restored: boolean }[] }>(
       "Strategy",
-      new Uint8Array(Buffer.from(acc.account.data[0], "base64")),
+      base64ToBytes(acc.account.data[0]),
     );
     if (!["Open", "PendingClose", "Recovery"].includes(s.state)) continue;
     s.legs.slice(0, s.leg_count).forEach((l, i) => {

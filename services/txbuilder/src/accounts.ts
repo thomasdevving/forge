@@ -1,5 +1,5 @@
 import type { Address, Rpc, SolanaRpcApi } from "@solana/kit";
-import { decodeAccount } from "./idl.js";
+import { base64ToBytes, decodeAccount } from "./idl.js";
 
 export type UtilizationCurve = { base_ppm: number; slope1_ppm: number; kink_ppm: number; slope2_ppm: number; cap_ppm: number };
 export type MarketParams = {
@@ -156,7 +156,7 @@ export type ScenarioReference = { market_whirlpool: Address; signer: Address; pr
 
 export async function fetchRaw(rpc: Rpc<SolanaRpcApi>, a: Address): Promise<Uint8Array | null> {
   const { value } = await rpc.getAccountInfo(a, { encoding: "base64" }).send();
-  return value ? new Uint8Array(Buffer.from(value.data[0], "base64")) : null;
+  return value ? base64ToBytes(value.data[0]) : null;
 }
 
 async function fetchTyped<T>(rpc: Rpc<SolanaRpcApi>, name: string, a: Address): Promise<T> {

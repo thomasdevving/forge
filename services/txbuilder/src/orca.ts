@@ -17,6 +17,7 @@ export type PoolState = {
   vaultB: Address;
   feeGrowthGlobalA: bigint;
   feeGrowthGlobalB: bigint;
+  liquidity: bigint;
 };
 
 export async function readPool(rpc: Rpc<SolanaRpcApi>, address: Address): Promise<PoolState> {
@@ -32,6 +33,7 @@ export async function readPool(rpc: Rpc<SolanaRpcApi>, address: Address): Promis
     vaultB: w.data.tokenVaultB,
     feeGrowthGlobalA: w.data.feeGrowthGlobalA,
     feeGrowthGlobalB: w.data.feeGrowthGlobalB,
+    liquidity: w.data.liquidity,
   };
 }
 
