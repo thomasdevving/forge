@@ -6,11 +6,14 @@ import { AppShell, Bar } from "@/components/AppShell";
 import { Architect, type Design } from "@/components/studio/Architect";
 import { type Horizon, type Moves, PayoffChart } from "@/components/studio/PayoffChart";
 import { api, type BucketInfo, type BuiltTx, type CompileResponse, type Feasibility, type MarketInfo } from "@/lib/api";
+import { legUtilization, liquidityScale, sigmaFromMoves, suggestedBudget } from "@/lib/fairvalue";
 import { ago, fmtNum, fmtPrice, fmtUsd, short } from "@/lib/format";
 import { KIND_LABEL, kindTag, type Point, PRESETS } from "@/lib/payoff";
 import { tokenAccount, tokenBalance } from "@/lib/rpc";
 import { baseSymbol, defaultUnits, MarketPicker, pickMarket, quoteSymbol, useMarketChoice } from "@/lib/market";
 import { useWallet } from "@/lib/wallet";
+
+const HOLDING_DAYS = 30;
 
 const KIND_NAME: Record<string, string> = { borrow_put: "BorrowQuote", borrow_call: "BorrowBase", provide_put: "ProvideQuote", provide_call: "ProvideBase" };
 
@@ -190,13 +193,31 @@ export default function Studio() {
       if (l.kind.startsWith("borrow") && b && BigInt(b.totalLiquidity) > 0n) {
         const u = Math.min(0.8, (Number(BigInt(b.borrowed) + BigInt(b.reserved)) + L) / Number(BigInt(b.totalLiquidity)));
         const c = market.params.curve;
-        mult = u <= c.kink_ppm / 1e6 ? 1 + (c.slope1_ppm / 1e6) * u : 1 + (c.slope1_ppm / 1e6) * (c.kink_ppm / 1e6) + (c.slope2_ppm / 1e6) * (u - c.kink_ppm / 1e6);
+        const base = c.base_ppm / 1e6;
+        mult = u <= c.kink_ppm / 1e6 ? base + (c.slope1_ppm / 1e6) * u : base + (c.slope1_ppm / 1e6) * (c.kink_ppm / 1e6) + (c.slope2_ppm / 1e6) * (u - c.kink_ppm / 1e6);
       }
       const ra = Math.sqrt(l.price_lower), rb = Math.sqrt(l.price_upper);
       const notional = l.kind.endsWith("put") ? L * scale * (rb - ra) : L * scale * (1 / ra - 1 / rb) * market.poolPrice;
       return { ...l, mult, notional };
     });
   }, [legs, buckets, market, scale]);
+
+  // suggested premium budget for HOLDING_DAYS: an estimate from the token's past moves (lib/fairvalue)
+  const suggestion = useMemo(() => {
+    if (!market || !moves || !legs.some((l) => l.kind.startsWith("borrow"))) return null;
+    const q: Record<string, { p5?: number; p95?: number }> = {};
+    for (const [h, v] of Object.entries(moves.horizons)) q[h] = v.quantiles;
+    const s = sigmaFromMoves(q, HOLDING_DAYS);
+    if (!s) return null;
+    const r = suggestedBudget({
+      legs: legs.map((l) => ({ ...l, utilization: legUtilization(l, buckets, market.params.curve) })),
+      spot: market.poolPrice, sigma: s.sigma, days: HOLDING_DAYS, scale: liquidityScale(market.baseDecimals, market.quoteDecimals), params: market.params,
+    });
+    if (!(r.budget > 0)) return null;
+    const m = moves as Moves & { from_ms?: number; to_ms?: number };
+    const day = (ms?: number) => (ms ? new Date(ms).toISOString().slice(0, 10) : "?");
+    return { budget: Math.ceil(r.budget * 100) / 100, sigma: s.sigma, horizon: s.horizon, period: `${day(m.from_ms)} to ${day(m.to_ms)}` };
+  }, [legs, buckets, market, moves]);
 
   const floorPerDay = market ? legRows.filter((l) => l.kind.startsWith("borrow")).reduce((a, l) => a + l.notional, 0) * (market.params.floor_rate_bps / 1e4) / 365 : 0;
   const cert = compiled?.certificate ?? null;
@@ -353,6 +374,15 @@ export default function Studio() {
                 </label>
               ))}
             </div>
+            {suggestion && (
+              <button
+                className={`mt-1 block w-full text-right text-[11px] underline decoration-dotted underline-offset-2 hover:text-ink ${budget < suggestion.budget ? "text-warn" : "text-ink-3"}`}
+                onClick={() => setBudget(suggestion.budget)}
+                title={`Estimate from ${baseSymbol(market)}'s past ${suggestion.horizon} moves (Binance, ${suggestion.period}; volatility about ${(suggestion.sigma * 100).toFixed(0)}%/yr): for each borrowed range, the larger of the time floor and m(u) × the range's expected payoff over ${HOLDING_DAYS} days, plus the keeper's share. Actual premium depends on trading. The keeper closes the position when the budget is used, so a smaller budget can end the cover early. Click to use it.`}
+              >
+                Suggested for {HOLDING_DAYS} days: {fmtUsd(suggestion.budget)}
+              </button>
+            )}
             <div className="kv mt-2"><span>Wallet</span><span>{walletBal ? `${fmtNum(walletBal.base, 2)} ${baseSymbol(market)} · ${fmtNum(walletBal.quote, 0)} ${quoteSymbol(market)}` : "—"}</span></div>
             <div className="kv">
               <span className="flex items-center gap-2">

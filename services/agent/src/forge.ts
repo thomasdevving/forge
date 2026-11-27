@@ -6,6 +6,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import * as fv from "./fairvalue.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -233,5 +234,30 @@ export function costFacts(m: Market, bs: Bucket[], legs: Leg[], budget: number) 
     keeper_closes_at_premium_usd: trigger,
     max_days_of_cover_at_floor_rate: floorPerDay > 0 ? trigger / floorPerDay : null,
     note: "Premium per borrowed range is the larger of the time floor and the multiplier times the trading fees the range would have earned. Fees depend on future trading, so only the floor is known now. The keeper closes the position when accrued premium reaches the trigger, so cover can end sooner than the floor-rate figure.",
+  };
+}
+
+/**
+ * Suggested premium budget for a holding period: per borrowed leg, the larger of the time floor and m(u) ×
+ * the leg's fair value (expected payoff, lognormal with σ from the token's past moves), grossed up for the
+ * keeper bounty and the keeper trigger. An estimate: the actual premium depends on future trading.
+ */
+export function budgetSuggestion(m: Market, bs: Bucket[], legs: Leg[], budget: number, days: number) {
+  const q = moveQuantiles(m);
+  const s = q ? fv.sigmaFromMoves(q.horizons as Record<string, { p5?: number; p95?: number }>, days) : null;
+  if (!q || !s) return { holding_days: days, suggested_premium_budget_usd: null, sigma_annual: null, sigma_from: null, budget_below_suggestion: null };
+  const r = fv.suggestedBudget({
+    legs: legs.map((l) => ({ ...l, utilization: fv.legUtilization(l, bs, m.params.curve) })),
+    spot: m.poolPrice, sigma: s.sigma, days, scale: fv.liquidityScale(m.baseDecimals, m.quoteDecimals), params: m.params,
+  });
+  return {
+    holding_days: days,
+    suggested_premium_budget_usd: Number(r.budget.toFixed(2)),
+    expected_premium_usd: Number(r.expected_premium.toFixed(2)),
+    borrowed_legs_fair_value_usd: Number(r.fair_value.toFixed(2)),
+    sigma_annual: Number(s.sigma.toFixed(3)),
+    sigma_from: `${s.horizon} move quantiles (p5/p95), ${q.source}, ${q.period}`,
+    budget_below_suggestion: budget < r.budget,
+    suggestion_note: "Estimate from the token's past moves, not a quote: per borrowed range the larger of the time floor and m(u) × the range's fair value over the holding period, grossed up for the keeper bounty and the keeper's close trigger. Actual premium depends on trading; the keeper closes the position when the budget is used.",
   };
 }

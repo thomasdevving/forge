@@ -30,20 +30,26 @@ describe("architect tools", () => {
   it("compiles and verifies a collar with compiler numbers", async () => {
     const c = await call("compile_strategy", {
       market: "JUP", label: "Balanced", structure: "collar", units: 3000, floor_price: spot * 0.9, cap_price: spot * 1.12,
-      lower_price: null, points: null, premium_budget_usd: 20, quote_holdings_usd: null,
+      lower_price: null, points: null, premium_budget_usd: 20, quote_holdings_usd: null, holding_days: null,
     });
     expect(c.status).toBe("ok");
     expect(c.verified).toBe(true);
     expect(c.certified_error_bound_usd).toBeLessThanOrEqual(c.tolerance_usd);
     expect(c.premium_floor_per_day_usd).toBeGreaterThan(0);
     expect(c.value_at_floor_usd).toBeCloseTo(3000 * spot * 0.9, 1);
+    expect(c.holding_days).toBe(30);
+    expect(c.suggested_premium_budget_usd).toBeGreaterThan(0);
+    expect(c.sigma_annual).toBeGreaterThan(0);
+    expect(c.sigma_from).toMatch(/^30d move quantiles/);
+    expect(typeof c.budget_below_suggestion).toBe("boolean");
+    expect(c.budget_below_suggestion).toBe(20 < c.suggested_premium_budget_usd);
     ok = c.construction_id;
   }, 120_000);
 
   it("refuses to present or prepare what did not compile", async () => {
     const bad = await call("compile_strategy", {
       market: "JUP", label: "Impossible", structure: "protective_put", units: 5_000_000, floor_price: spot * 0.99,
-      lower_price: null, cap_price: null, points: null, premium_budget_usd: 1, quote_holdings_usd: 0,
+      lower_price: null, cap_price: null, points: null, premium_budget_usd: 1, quote_holdings_usd: 0, holding_days: 7,
     });
     expect(bad.status).not.toBe("ok");
     const shown = await call("present_options", { options: [{ construction_id: bad.construction_id, title: "x", summary: "x", tradeoffs: [], recommended: false }] });

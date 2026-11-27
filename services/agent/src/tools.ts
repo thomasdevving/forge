@@ -151,7 +151,7 @@ export function makeTools(s: Session, emit: (e: AgentEvent) => void) {
     betaZodTool({
       ...common,
       name: "compile_strategy",
-      description: "Build a payoff from a structure and its levels, then run the FORGE compiler against live funded liquidity. Returns a construction_id with the compiler's facts: status, certified error bound, legs, capital locked and premium facts. The compiler, not you, decides feasibility and every number. Compile each alternative you want to compare.",
+      description: "Build a payoff from a structure and its levels, then run the FORGE compiler against live funded liquidity. Returns a construction_id with the compiler's facts: status, certified error bound, legs, capital locked, premium facts and a suggested premium budget for the holding period (an estimate from past moves). The compiler, not you, decides feasibility and every number. Compile each alternative you want to compare.",
       inputSchema: z.object({
         market: z.string(),
         label: z.string().describe("Short name, e.g. Balanced"),
@@ -163,10 +163,11 @@ export function makeTools(s: Session, emit: (e: AgentEvent) => void) {
         points: z.array(z.object({ price: z.number(), value_usd: z.number() })).nullable().describe("custom only: breakpoints of the position's value in USD by price"),
         premium_budget_usd: z.number().describe("Most the user will pay in premium for this position"),
         quote_holdings_usd: z.number().nullable().describe("USDC the user can commit; null to use the wallet balance"),
+        holding_days: z.number().nullable().describe("How long the user intends to keep the position, in days; null for 30. Sets the horizon of the suggested premium budget."),
       }),
       run: wrap("compile_strategy", async (a: {
         market: string; label: string; structure: forge.Structure; units: number; floor_price: number | null; cap_price: number | null;
-        lower_price: number | null; points: { price: number; value_usd: number }[] | null; premium_budget_usd: number; quote_holdings_usd: number | null;
+        lower_price: number | null; points: { price: number; value_usd: number }[] | null; premium_budget_usd: number; quote_holdings_usd: number | null; holding_days: number | null;
       }) => {
         const m = await forge.findMarket(a.market);
         if (m.opensPaused) throw new Error(`${m.name} has opens paused`);
@@ -186,7 +187,11 @@ export function makeTools(s: Session, emit: (e: AgentEvent) => void) {
           market: { address: m.address, name: m.name, baseDecimals: m.baseDecimals, quoteDecimals: m.quoteDecimals, params: m.params },
           spec, payoff, limits, spotAtCompile: m.poolPrice, response, verified: null, facts: {},
         };
-        if (response.result.construction) c.facts = forge.costFacts(m, bs, response.result.construction.legs, a.premium_budget_usd);
+        if (response.result.construction) {
+          const legs = response.result.construction.legs;
+          const days = a.holding_days != null && a.holding_days > 0 ? a.holding_days : 30;
+          c.facts = { ...forge.costFacts(m, bs, legs, a.premium_budget_usd), ...forge.budgetSuggestion(m, bs, legs, a.premium_budget_usd, days) };
+        }
         if (response.certificate) {
           const v = await forge.verify(response.certificate);
           c.verified = { valid: v.valid && v.hash === response.certificate.hash, hash: v.hash, stored: false };

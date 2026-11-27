@@ -43,6 +43,12 @@ few). Until every leg is executed the position is *Opening*; it can be cancelled
 price. Premium accrues as `max(time floor, m(u) × fees the LPs forgo)`. When accrued premium reaches
 80% of your cap, anyone may close the position (and earns the keeper bounty).
 
+Size the cap for how long you want the protection. Premium grows fastest exactly when the price
+trades into your borrowed ranges, which is when the protection pays, so a cap set at the time floor
+gets closed just then. After a compile the Studio shows a suggested cap for 30 days: the fair value
+of the borrowed ranges (from the token's past price moves) times the multiplier, grossed up for the
+bounty and the 80% trigger. It is an estimate; actual premium depends on trading.
+
 ## 6. Close
 
 Closing restores every borrowed range to the pool, swaps through the separate restoration pool where
