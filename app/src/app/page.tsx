@@ -2,8 +2,8 @@ import Link from "next/link";
 import bench from "@/data/benchmarks.json";
 import { HeroGraphic } from "@/components/landing/HeroGraphic";
 import { Example } from "@/components/landing/Example";
-import { AgentsSection } from "@/components/landing/AgentsSection";
-import { Hero } from "@/components/landing/Hero";
+import { AgentApiSection, ArchitectSection } from "@/components/landing/AgentsSection";
+import { ForMode, Hero } from "@/components/landing/Hero";
 import { LiveStrip } from "@/components/landing/LiveStrip";
 import { CountUp, Reveal } from "@/components/landing/Reveal";
 import { type Step, Walkthrough } from "@/components/landing/Walkthrough";
@@ -33,7 +33,7 @@ const UNITS = `${snap.holdings.base.toLocaleString("en-US")} ${snap.base}`;
 const pctR = (x: number) => (x === 1 ? "100%" : `${(x * 100).toFixed(1)}%`);
 const fmt = (n: number, d = 0) => n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 
-function Head({ n, kicker, title, intro }: { n: string; kicker: string; title: React.ReactNode; intro?: string }) {
+function Head({ n, kicker, title, intro }: { n: React.ReactNode; kicker: string; title: React.ReactNode; intro?: string }) {
   return (
     <Reveal className="mx-auto grid max-w-[1480px] gap-6 px-5 sm:px-8 lg:grid-cols-[1fr_1fr] lg:items-end">
       <div>
@@ -72,6 +72,14 @@ const TRADER: Step[] = [
   },
 ];
 
+const AGENT_FAQ = [
+  ["What does my agent need?", "A Solana key holding fork USDC, and an HTTP client that can answer a 402. The repository's client (@forge/fork/x402-client) does it in one call and checks the price against your cap before it signs anything. No SOL is needed: FORGE pays the network fee."],
+  ["Is this real money?", "No. Payments settle in fork USDC on FORGE's Surfpool fork of mainnet, under the network id solana:forge-surfpool, which a client set up for mainnet refuses. The service will not start against anything but a Surfpool fork."],
+  ["How does my agent know the hedge is right?", "Every option comes with a certificate: the exact worst-case error between what was asked and what the Orca ranges deliver. POST /x402/verify re-checks it for free, and the certificate is public by its hash."],
+  ["What does it cost?", "A compile is $0.01. A hedge (the Architect, which runs a model) has a provisional price until its cost per run is measured. If the work fails after payment, the same request is served again without a second charge."],
+  ["Can FORGE move my agent's funds?", "No. FORGE returns an unsigned plan; your agent, or the human behind it, signs the open. The example treasury agent stops and asks its human signer before it opens anything."],
+] as const;
+
 const FAQ = [
   ["Is this an options exchange?", "No order book. Each position is built from Orca liquidity ranges: a borrowed range below the price acts as a put, one above as a call. LPs who deposit into FORGE buckets are the other side and are paid a premium."],
   ["Which tokens work?", "Any token with an Orca Whirlpool and a Pyth price feed. The math is the same for every pool, so a new market is one command: point it at the pool, a second pool for restoration swaps, and the feed. The demo fork runs SOL, JUP and BONK against USDC; add another token from the Studio with “+ Add”."],
@@ -97,6 +105,7 @@ export default function Landing() {
 
       <Hero />
 
+      <ForMode only="people">
       <Example />
 
 
@@ -118,15 +127,15 @@ export default function Landing() {
         />
       </section>
 
-      {/* the AI side: describe it to the Architect, or let an agent buy it */}
-      <section id="agents" className="scroll-mt-14 py-28">
+      {/* the Architect: describe it instead of drawing it */}
+      <section id="architect" className="scroll-mt-14 py-28">
         <Head
           n="02"
-          kicker="Draw it, or describe it"
-          title={<>Or just say<br />what you want.</>}
-          intro="The Architect is Claude, built into the Studio. Describe the hedge in words. It reads your holdings, prices, past price moves and funded liquidity, then compiles alternatives with FORGE's compiler."
+          kicker="The Architect"
+          title={<>Or describe it.</>}
+          intro="Tell the Architect what you hold and what you want. It compiles the alternatives with FORGE's compiler; you pick one and sign."
         />
-        <AgentsSection />
+        <ArchitectSection />
       </section>
 
       {/* idea */}
@@ -198,10 +207,24 @@ export default function Landing() {
           </Reveal>
         )}
       </section>
+      </ForMode>
+
+      <ForMode only="agents">
+        {/* the agent API */}
+        <section id="agents" className="scroll-mt-14 py-28">
+          <Head
+            n="01"
+            kicker="FORGE for agents"
+            title={<>A hedge is one<br />paid request.</>}
+            intro="Programs and AI agents pay in USDC over x402, HTTP's 402 status: no account, no API key. FORGE checks the payment, settles it on the fork, then compiles and certifies the hedge."
+          />
+          <AgentApiSection />
+        </section>
+      </ForMode>
 
       {/* proof */}
       <section id="proof" className="glow-top scroll-mt-14 pt-28 pb-24">
-        <Head n="05" kicker="Proof" title={<>Measured on {PROOF_BASE},<br />not promised.</>} intro={`FORGE works on any Orca Whirlpool. The proof runs on ${PROOF_MARKET}, a long-tail market whose pools hold a fraction of SOL’s liquidity, so every number is earned the hard way. Real positions on the fork, ten months of Binance ${PROOF_BASE} prices, one command to reproduce.`} />
+        <Head n={<><ForMode only="people">05</ForMode><ForMode only="agents">02</ForMode></>} kicker="Proof" title={<>Measured on {PROOF_BASE},<br />not promised.</>} intro={`FORGE works on any Orca Whirlpool. The proof runs on ${PROOF_MARKET}, a long-tail market whose pools hold a fraction of SOL’s liquidity, so every number is earned the hard way. Real positions on the fork, ten months of Binance ${PROOF_BASE} prices, one command to reproduce.`} />
         <div className="mx-auto mt-14 max-w-[1480px] px-5 sm:px-8">
           <Reveal>
             <div className="grid border border-line bg-panel/60 md:grid-cols-3">
@@ -264,6 +287,7 @@ export default function Landing() {
         </div>
       </section>
 
+      <ForMode only="people">
       {/* faq */}
       <section id="faq" className="scroll-mt-14 py-28">
         <div className="mx-auto grid max-w-[1480px] gap-12 px-5 sm:px-8 lg:grid-cols-[1fr_1.4fr]">
@@ -290,7 +314,36 @@ export default function Landing() {
           </Reveal>
         </div>
       </section>
+      </ForMode>
+      <ForMode only="agents">
+      {/* faq */}
+      <section id="faq-agents" className="scroll-mt-14 py-28">
+        <div className="mx-auto grid max-w-[1480px] gap-12 px-5 sm:px-8 lg:grid-cols-[1fr_1.4fr]">
+          <Reveal>
+            <div className="num flex items-center gap-3 text-[12px] text-ink-3"><span className="text-ink">03</span><span className="h-px w-8 bg-line-strong" />Questions</div>
+            <h2 className="mt-5 font-display text-[clamp(2rem,4vw,3.3rem)] font-semibold leading-[0.98] tracking-[-0.03em]">What your agent should know.</h2>
+          </Reveal>
+          <Reveal delay={100}>
+            <div className="border-b border-line">
+              {AGENT_FAQ.map(([q, a]) => (
+                <details key={q} className="group border-t border-line">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-5 text-[15px] font-medium [&::-webkit-details-marker]:hidden">
+                    {q}
+                    <span className="relative size-3 shrink-0" aria-hidden>
+                      <span className="absolute inset-x-0 top-1/2 h-px bg-ink-2" />
+                      <span className="absolute inset-y-0 left-1/2 w-px bg-ink-2 transition-transform group-open:scale-y-0" />
+                    </span>
+                  </summary>
+                  <p className="max-w-2xl pb-5 text-[14px] leading-relaxed text-ink-2">{a}</p>
+                </details>
+              ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+      </ForMode>
 
+      <ForMode only="people">
       {/* cta */}
       <section className="glow-top">
         <div className="mx-auto max-w-[1480px] px-5 py-28 sm:px-8">
@@ -306,6 +359,23 @@ export default function Landing() {
           </Reveal>
         </div>
       </section>
+      </ForMode>
+      <ForMode only="agents">
+      <section className="glow-top">
+        <div className="mx-auto max-w-[1480px] px-5 py-28 sm:px-8">
+          <Reveal>
+            <h2 className="max-w-4xl font-display text-[clamp(2.2rem,5.4vw,4.8rem)] font-semibold leading-[0.95] tracking-[-0.035em]">
+              Point your agent at /x402. <span className="text-ink-3">It pays per request and gets back a certified hedge.</span>
+            </h2>
+            <div className="mt-10 flex flex-wrap items-center gap-3">
+              <Link href="/docs/agents" className="btn btn-primary !px-5 !py-2.5">Read the agent docs <span aria-hidden>→</span></Link>
+              <a href={`${config.repoUrl}/tree/main/agents/treasury`} className="btn btn-ghost !px-5 !py-2.5" target="_blank" rel="noreferrer">See the treasury agent</a>
+              <span className="cap ml-2">Test environment · fork USDC · no real funds</span>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+      </ForMode>
 
       <footer className="bg-gradient-to-b from-transparent to-sunk/80">
         <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-5 py-8 text-[12px] text-ink-3 sm:flex-row sm:items-center sm:px-8">

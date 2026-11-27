@@ -11,8 +11,7 @@ export function SiteNav({ solid = false }: { solid?: boolean }) {
         <Logo />
         <nav className="hidden items-center gap-5 whitespace-nowrap text-[14px] text-ink-2 md:flex lg:gap-7">
           <a href="/#how" className="transition-colors hover:text-ink">How it works</a>
-          <Link href="/studio" className="transition-colors hover:text-ink">Studio</Link>
-          <a href="/#agents" className="transition-colors hover:text-ink">For agents</a>
+          <a href="/?for=agents" className="transition-colors hover:text-ink">For agents</a>
           <a href="/#lps" className="transition-colors hover:text-ink">For LPs</a>
           <Link href="/proof" className="transition-colors hover:text-ink">Proof</Link>
           <Link href="/docs" className="transition-colors hover:text-ink">Docs</Link>
