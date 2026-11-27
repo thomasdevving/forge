@@ -55,19 +55,25 @@ export function Example() {
   const floor = m.target[1]!, cap = m.target[2]!;
   const borrowed = m.legs.filter((l) => l.kind.startsWith("borrow"));
   const provided = m.legs.filter((l) => l.kind.startsWith("provide"));
+  const steps = [
+    {
+      t: "Pick a floor and a cap",
+      d: `If ${m.base} falls below ${usd(floor[0])}, your ${units} ${m.base} still count as ${usd(floor[1])}. In return, gains stop at ${usd(cap[1])} once ${m.base} passes ${usd(cap[0])}.`,
+    },
+    {
+      t: `FORGE builds it from ${m.base}'s Orca liquidity`,
+      d: `It borrows ${borrowed.length} price range${borrowed.length === 1 ? "" : "s"} below the price from liquidity providers, and puts ${provided.length === 1 ? "one range" : `${provided.length} ranges`} of your own ${m.base} to work above it.`,
+    },
+    {
+      t: "Check the math, then open it",
+      d: `A certificate proves the result stays within ±${usd(m.certifiedBound, 2)} of what you asked for. You sign, and it opens on-chain${m.openTransactions ? ` in ${m.openTransactions} transactions` : ""}.`,
+    },
+  ];
   const cells = [
     { k: "You hold", v: `${units} ${m.base}`, s: `worth ${usd(now, 2)} at ${usd(m.spot)}` },
-    {
-      k: "Most you can lose",
-      v: usd(now - floor[1]),
-      s: `value never below ${usd(floor[1])}, even if ${m.base} falls under ${usd(floor[0])}; plus at most ${usd(m.premiumBudget)} premium`,
-    },
-    { k: "Most you can gain", v: usd(cap[1] - now), s: `value capped at ${usd(cap[1])} once ${m.base} is above ${usd(cap[0])}` },
-    {
-      k: "FORGE builds it from",
-      v: `${m.legs.length} Orca ranges`,
-      s: `${borrowed.length} borrowed from LPs below ${usd(Math.max(...borrowed.map((l) => l.priceUpper)))}, ${provided.length} of your own ${m.base} above ${usd(Math.min(...provided.map((l) => l.priceLower)))}. Max error ±${usd(m.certifiedBound, 2)}`,
-    },
+    { k: "Worst case", v: usd(floor[1]), s: `however far ${m.base} falls (${usd(now - floor[1])} below today)` },
+    { k: "Best case", v: usd(cap[1]), s: `however high ${m.base} goes (${usd(cap[1] - now)} above today)` },
+    { k: "You pay at most", v: usd(m.premiumBudget), s: "in premium to the liquidity providers, set by you; the rest comes back" },
   ];
   return (
     <section id="example" className="scroll-mt-14">
@@ -79,24 +85,34 @@ export function Example() {
             The example
           </div>
           <h2 className="mt-5 font-display text-[clamp(1.9rem,3.4vw,3rem)] font-semibold leading-[1.02] tracking-[-0.03em]">
-            {units} {m.base}, a floor and a cap.
+            Protect {units} {m.base}. No options market needed.
           </h2>
           <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-ink-2">
             Most Solana tokens trade on Orca but have no options market. {m.base} is one of them: there is nowhere to buy a {m.base} put.
-            So you draw the payoff instead, and FORGE builds it from {m.base}&apos;s own liquidity, certifies the worst-case error and opens it
-            on-chain.
+            With FORGE you build one yourself.
           </p>
-          <div className="mt-8 border border-line bg-panel/50 p-3 sm:p-4">
-            <PayoffDiagram />
-          </div>
+          <ol className="mt-7 max-w-lg space-y-4">
+            {steps.map((st, i) => (
+              <li key={st.t} className="grid grid-cols-[28px_1fr] gap-x-3">
+                <span className="num pt-[1px] text-[13px] text-ink-3">{String(i + 1).padStart(2, "0")}</span>
+                <div>
+                  <div className="text-[15px] font-medium text-ink">{st.t}</div>
+                  <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{st.d}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
         </Reveal>
         <Reveal delay={120}>
-          <dl className="grid border border-line sm:grid-cols-2">
+          <div className="border border-line bg-panel/50 p-3 sm:p-4">
+            <PayoffDiagram />
+          </div>
+          <dl className="grid grid-cols-2 border-x border-b border-line">
             {cells.map((c, i) => (
-              <div key={c.k} className={`border-line p-6 ${i % 2 ? "sm:border-l" : ""} ${i >= 2 ? "border-t" : i === 1 ? "border-t sm:border-t-0" : ""}`}>
+              <div key={c.k} className={`border-line p-5 ${i % 2 ? "border-l" : ""} ${i >= 2 ? "border-t" : ""}`}>
                 <dt className="cap">{c.k}</dt>
-                <dd className="num mt-2 text-[28px] font-medium leading-none tracking-tight">{c.v}</dd>
-                <dd className="mt-3 text-[13px] leading-relaxed text-ink-2">{c.s}</dd>
+                <dd className="num mt-2 text-[24px] font-medium leading-none tracking-tight">{c.v}</dd>
+                <dd className="mt-2 text-[12.5px] leading-relaxed text-ink-2">{c.s}</dd>
               </div>
             ))}
           </dl>
