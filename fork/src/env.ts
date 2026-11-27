@@ -41,6 +41,11 @@ export type Deployment = {
     referenceKind: "PythPair" | "ForkScenario";
     referenceBase: Address;
     referenceQuote: Address;
+    /** present for markets bootstrapped after multi-market support; SOL/USDC defaults apply otherwise */
+    baseDecimals?: number;
+    quoteDecimals?: number;
+    feedBase?: string;
+    feedQuote?: string;
     buckets: { tickLower: number; tickUpper: number; address: Address }[];
     lookupTable: Address;
     scenarioPrice: number;
@@ -66,16 +71,22 @@ export async function ata(owner: Address, mint: Address): Promise<Address> {
 export async function fundWallet(
   rpc: Rpc<SolanaRpcApi>,
   w: KeyPairSigner,
-  opts: { sol?: number; wsol?: bigint; usdc?: bigint; usdcMint: Address },
-): Promise<{ wsol: Address; usdc: Address }> {
-  await airdrop(rpc, w.address, (opts.sol ?? 10) + Number(opts.wsol ?? 0n) / 1e9);
+  opts: { sol?: number; wsol?: bigint; usdc?: bigint; usdcMint: Address; baseMint?: Address; base?: bigint },
+): Promise<{ wsol: Address; usdc: Address; base: Address }> {
+  // `base` funds any base token; wrapped SOL needs real lamports, every other mint is set directly.
+  const baseMint = opts.baseMint ?? WSOL;
+  const baseAmount = opts.base ?? opts.wsol ?? 0n;
+  const wrap = baseMint === WSOL ? baseAmount : 0n;
+  await airdrop(rpc, w.address, (opts.sol ?? 10) + Number(wrap) / 1e9);
   const wsol = await ata(w.address, WSOL);
   const usdc = await ata(w.address, opts.usdcMint);
   const ixs: Instruction[] = [await getCreateAssociatedTokenIdempotentInstructionAsync({ payer: w, owner: w.address, mint: WSOL })];
-  if (opts.wsol && opts.wsol > 0n) {
-    ixs.push(getTransferSolInstruction({ source: w, destination: wsol, amount: opts.wsol }), getSyncNativeInstruction({ account: wsol }));
+  if (wrap > 0n) {
+    ixs.push(getTransferSolInstruction({ source: w, destination: wsol, amount: wrap }), getSyncNativeInstruction({ account: wsol }));
   }
   await sendInstructions(rpc, w, ixs);
   if (opts.usdc !== undefined) await setTokenBalance(w.address, opts.usdcMint, opts.usdc);
-  return { wsol, usdc };
+  if (baseMint !== WSOL && baseAmount > 0n) await setTokenBalance(w.address, baseMint, baseAmount);
+  const base = baseMint === WSOL ? wsol : await ata(w.address, baseMint);
+  return { wsol: base, usdc, base };
 }

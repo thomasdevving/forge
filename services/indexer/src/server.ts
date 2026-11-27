@@ -12,7 +12,15 @@
  */
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { type Address, address, createDefaultRpcTransport, createSolanaRpcFromTransport, getBase58Decoder } from "@solana/kit";
+import {
+  type Address,
+  address,
+  createDefaultRpcTransport,
+  createSolanaRpcFromTransport,
+  getAddressEncoder,
+  getBase58Decoder,
+  getProgramDerivedAddress,
+} from "@solana/kit";
 import {
   base64ToBytes,
   type Bucket,
@@ -41,8 +49,36 @@ const rpc = createSolanaRpcFromTransport(((config: Parameters<typeof baseTranspo
 const KNOWN: Record<string, string> = {
   So11111111111111111111111111111111111111112: "SOL",
   EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: "USDC",
+  JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN: "JUP",
 };
-const symbol = (m: string) => KNOWN[m] ?? `${m.slice(0, 4)}…`;
+const METADATA_PROGRAM = address("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+const symbols = new Map<string, string>(Object.entries(KNOWN));
+/** Token symbol from its Metaplex metadata account (works for any SPL token); short mint as fallback. */
+async function symbol(mint: string): Promise<string> {
+  const hit = symbols.get(mint);
+  if (hit) return hit;
+  let s = `${mint.slice(0, 4)}…`;
+  try {
+    const [pda] = await getProgramDerivedAddress({
+      programAddress: METADATA_PROGRAM,
+      seeds: [new TextEncoder().encode("metadata"), getAddressEncoder().encode(METADATA_PROGRAM), getAddressEncoder().encode(address(mint))],
+    });
+    const { value } = await rpc.getAccountInfo(pda, { encoding: "base64" }).send();
+    if (value) {
+      // key u8 | update authority 32 | mint 32 | name: u32 len + bytes | symbol: u32 len + bytes
+      const d = Buffer.from(value.data[0], "base64");
+      const nameLen = d.readUInt32LE(65);
+      const symOff = 69 + nameLen;
+      const symLen = d.readUInt32LE(symOff);
+      const raw = d.subarray(symOff + 4, symOff + 4 + symLen).toString("utf8").replace(/\0/g, "").trim().replace(/^\$/, "");
+      if (raw) s = raw;
+    }
+  } catch {
+    /* no metadata: keep the short mint */
+  }
+  symbols.set(mint, s);
+  return s;
+}
 const Q64 = 2 ** 64;
 
 const cache = new Map<string, { at: number; v: unknown }>();
@@ -126,7 +162,7 @@ async function marketSummary(addr: Address, m: Market) {
   const poolPrice = m.base_is_a ? sqrt * sqrt * 10 ** (m.base_decimals - m.quote_decimals) : (1 / (sqrt * sqrt)) * 10 ** (m.base_decimals - m.quote_decimals);
   return {
     address: addr,
-    name: `${symbol(m.base_mint)}/${symbol(m.quote_mint)}`,
+    name: `${await symbol(m.base_mint)}/${await symbol(m.quote_mint)}`,
     whirlpool: m.whirlpool,
     swapPool: m.swap_pool,
     baseMint: m.base_mint,

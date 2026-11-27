@@ -8,6 +8,7 @@
  *   POST /build/close  { owner, market, strategy, userBase, userQuote }
  *   GET  /health
  */
+import { existsSync, readFileSync, statSync } from "node:fs";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import {
@@ -29,11 +30,24 @@ import { loadLookupTables, prepareTransaction, SimulationError, TransactionLimit
 const RPC_URL = process.env.FORGE_RPC_URL ?? "http://127.0.0.1:8899";
 const PORT = Number(process.env.PORT ?? 8788);
 const ORIGINS = (process.env.FORGE_ALLOWED_ORIGINS ?? "http://localhost:3000").split(",");
-const LOOKUP_TABLES = (process.env.FORGE_LOOKUP_TABLES ?? "").split(",").filter(Boolean).map((a) => address(a));
+const STATIC_TABLES = (process.env.FORGE_LOOKUP_TABLES ?? "").split(",").filter(Boolean).map((a) => address(a));
+// Markets added while the service runs bring their own lookup table: when a deployment file is
+// given, its tables are re-read whenever it changes, so no restart is needed for a new market.
+const DEPLOYMENT_FILE = process.env.FORGE_DEPLOYMENT_FILE;
+let fileTables: { mtime: number; tables: Address[] } = { mtime: 0, tables: [] };
+function lookupTableList(): Address[] {
+  if (!DEPLOYMENT_FILE || !existsSync(DEPLOYMENT_FILE)) return STATIC_TABLES;
+  const mtime = statSync(DEPLOYMENT_FILE).mtimeMs;
+  if (mtime !== fileTables.mtime) {
+    const d = JSON.parse(readFileSync(DEPLOYMENT_FILE, "utf8")) as { markets: Record<string, { lookupTable?: string }> };
+    fileTables = { mtime, tables: Object.values(d.markets).flatMap((m) => (m.lookupTable ? [address(m.lookupTable)] : [])) };
+  }
+  return [...new Set([...STATIC_TABLES, ...fileTables.tables])];
+}
 const rpc = createSolanaRpc(RPC_URL);
 
 async function encode(owner: Address, plan: Parameters<typeof prepareTransaction>[2][]) {
-  const tables = await loadLookupTables(rpc, LOOKUP_TABLES);
+  const tables = await loadLookupTables(rpc, lookupTableList());
   const out = [];
   for (const ixs of plan) {
     // a no-op signer stands in for the wallet: the signature slot stays empty
@@ -53,7 +67,7 @@ app.setErrorHandler((err, _req, reply) => {
   return reply.code(400).send({ error: err instanceof Error ? err.message : String(err) });
 });
 
-app.get("/health", async () => ({ ok: true, rpc: RPC_URL.replace(/\/\/[^@]*@/, "//"), lookupTables: LOOKUP_TABLES }));
+app.get("/health", async () => ({ ok: true, rpc: RPC_URL.replace(/\/\/[^@]*@/, "//"), lookupTables: lookupTableList() }));
 
 type OpenBody = {
   owner: string; market: string; nonce: string;

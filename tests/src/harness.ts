@@ -14,13 +14,18 @@ import {
 } from "@solana/kit";
 import { loadLookupTables, prepareTransaction, readPool, type Prepared } from "@forge/txbuilder";
 import { ata, fundWallet, readDeployment } from "@forge/fork/env";
-import { FEED_SOL_USD, FEED_USDC_USD, PYTH_SOL_USD, PYTH_USDC_USD, setScenarioPrice } from "@forge/fork/pyth";
+import { humanFromSqrt, marketSpec } from "@forge/fork/markets";
+import { setScenarioPrice } from "@forge/fork/pyth";
 import { movePoolTo } from "@forge/fork/price";
 import { assertFork, forkClock, forkRpc, timeTravel, USDC, WSOL } from "@forge/fork/surfnet";
 
 export const rpc = forkRpc();
 export const deployment = readDeployment();
-export const sol = deployment.markets["SOL/USDC"]!;
+/** The market under test: FORGE_MARKET (default SOL/USDC). Every helper below follows it. */
+export const spec = marketSpec();
+export const sol = deployment.markets[spec.name]!;
+if (!sol) throw new Error(`${spec.name} is not bootstrapped on this fork`);
+const unit = (decimals: number) => 10n ** BigInt(decimals);
 export let tables: Record<Address, Address[]> = {};
 
 export async function setup() {
@@ -43,10 +48,12 @@ export async function send(payer: KeyPairSigner, ixs: Instruction[]): Promise<{ 
   throw new Error(`${sig} not confirmed`);
 }
 
+/** A funded user. `wsol` is the market's base token account (wrapped SOL on SOL/USDC). */
 export async function newUser(opts: { wsol?: bigint; usdc?: bigint } = {}) {
   const user = await generateKeyPairSigner();
-  const acc = await fundWallet(rpc, user, { sol: 25, wsol: opts.wsol ?? 200_000_000_000n, usdc: opts.usdc ?? 200_000_000_000n, usdcMint: USDC });
-  return { user, wsol: acc.wsol, usdc: acc.usdc };
+  const base = opts.wsol ?? BigInt(Math.ceil(spec.benchUnits * 20)) * unit(spec.baseDecimals);
+  const acc = await fundWallet(rpc, user, { sol: 25, baseMint: spec.baseMint, base, usdc: opts.usdc ?? 200_000n * unit(spec.quoteDecimals), usdcMint: spec.quoteMint });
+  return { user, wsol: acc.base, usdc: acc.usdc };
 }
 
 export async function tokenAmount(a: Address): Promise<bigint> {
@@ -60,26 +67,28 @@ export async function tokenAmount(a: Address): Promise<bigint> {
 
 export const humanPrice = async (pool: Address) => {
   const p = await readPool(rpc, pool);
-  return (Number(p.sqrtPrice) / 2 ** 64) ** 2 * 1e3;
+  return humanFromSqrt(p.sqrtPrice, spec);
 };
 
-/** Labelled fork scenario: publish `price` as the SOL/USD reference (USDC at $1), fresh. */
+/** Labelled fork scenario: publish `price` as the base/USD reference (quote at $1), fresh. */
 export async function publishReference(price: number, opts: { ageSeconds?: number; confBps?: number } = {}) {
-  await setScenarioPrice(PYTH_SOL_USD, FEED_SOL_USD, price, opts.confBps ?? 5, opts.ageSeconds ?? 0);
-  await setScenarioPrice(PYTH_USDC_USD, FEED_USDC_USD, 1.0, 5, opts.ageSeconds ?? 0);
+  await setScenarioPrice(spec.pythBase, spec.feedBase, price, opts.confBps ?? 5, opts.ageSeconds ?? 0);
+  await setScenarioPrice(spec.pythQuote, spec.feedQuote, 1.0, 5, opts.ageSeconds ?? 0);
 }
 
 let trader: Awaited<ReturnType<typeof newUser>> | undefined;
 async function getTrader() {
-  trader ??= await newUser({ wsol: 2_000_000_000_000_000n, usdc: 200_000_000_000_000n });
+  // ~$150M a side, enough to push either pool across the whole ladder
+  const px = await humanPrice(sol.whirlpool);
+  trader ??= await newUser({ wsol: BigInt(Math.ceil(150_000_000 / px)) * unit(spec.baseDecimals), usdc: 150_000_000n * unit(spec.quoteDecimals) });
   return trader;
 }
 
 /** Move both the target and restoration pools with real swaps, then publish the reference. */
 export async function moveMarket(target: number, opts: { swapPool?: number; reference?: number } = {}) {
   const t = await getTrader();
-  const got = await movePoolTo(rpc, t.user, sol.whirlpool, target, t.wsol, t.usdc);
-  const gotSwap = await movePoolTo(rpc, t.user, sol.swapPool, opts.swapPool ?? target, t.wsol, t.usdc);
+  const got = await movePoolTo(rpc, t.user, sol.whirlpool, target, t.wsol, t.usdc, spec.baseDecimals, spec.quoteDecimals);
+  const gotSwap = await movePoolTo(rpc, t.user, sol.swapPool, opts.swapPool ?? target, t.wsol, t.usdc, spec.baseDecimals, spec.quoteDecimals);
   await publishReference(opts.reference ?? got);
   return { target: got, swap: gotSwap };
 }
@@ -121,7 +130,7 @@ export async function openPut(
     legs,
     premiumBudget: opts.budget ?? 500_000_000n,
     expiry: 0n,
-    openReferenceX64: humanPriceToX64(price, 9, 6),
+    openReferenceX64: humanPriceToX64(price, spec.baseDecimals, spec.quoteDecimals),
     openToleranceBps: m.params.open_tolerance_bps,
     swapSlippageBps: opts.slippageBps ?? m.params.swap_slippage_bps,
     certificateHash: new Uint8Array(32),
