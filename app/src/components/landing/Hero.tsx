@@ -224,8 +224,9 @@ export function Hero() {
                 Certified hedges, <span className="text-ink-3">sold to agents per request.</span>
               </h1>
               <p className="hero-in mt-[min(1.75rem,3vh)] max-w-xl text-[clamp(14px,min(1.15vw,2.5vh),17px)] leading-relaxed text-ink-2" style={{ animationDelay: "260ms" }}>
-                Programs and AI agents pay in USDC over x402, with no account and no API key. They describe a hedge, FORGE&apos;s compiler builds
-                and certifies it, and the buyer signs the open with its own key.
+                Your trading bot or AI agent can buy downside protection by itself. It says what it holds and what it wants to protect, pays per
+                request in USDC, and gets back hedges with a proof of how accurate they are. It signs; FORGE never holds its funds. No sign-up,
+                no API key.
               </p>
               <div className="hero-in mt-[min(2.25rem,4vh)] flex flex-wrap gap-3" style={{ animationDelay: "360ms" }}>
                 <Link href="/docs/agents" className="btn btn-primary !px-6 !py-3 !text-[15px]">

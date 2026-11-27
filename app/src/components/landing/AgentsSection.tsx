@@ -93,13 +93,67 @@ export function ArchitectSection() {
   );
 }
 
-/** FORGE for agents: the x402 flow, endpoints and client. */
+const t = data.treasury.result;
+
+/** What an agent can buy, in plain words, with the endpoint behind each. The hedge example is the real treasury run. */
+const USES = [
+  {
+    title: "Protect what it holds",
+    body: "Your agent says what it holds and what it wants, in plain words. It gets back hedges that are already checked and ready to sign.",
+    example: `“Protect ${t.units.toLocaleString("en-US")} ${t.base} against a 30% drop, at most $${t.premiumBudgetUsd} premium.” → a put flooring it at $${t.floor}, certified to ±$${t.certifiedErrorUsd.toFixed(2)}.`,
+    endpoint: "POST /x402/hedge",
+  },
+  {
+    title: "Price any payoff",
+    body: "Send the payoff it wants, as price points. FORGE answers with the exact Orca ranges, the capital it locks, the premium and the worst-case error.",
+    example: "Lets a trading bot see what protection costs before it commits.",
+    endpoint: "POST /x402/compile",
+  },
+  {
+    title: "Check before it trusts",
+    body: "Re-check any certificate, its own or one it was handed. The math is redone from scratch.",
+    example: "Free, so an agent can verify every number it is shown.",
+    endpoint: "POST /x402/verify",
+  },
+  {
+    title: "Find what it can hedge",
+    body: "List the tokens FORGE supports, with live pool prices and limits.",
+    example: "Free. Any token with an Orca pool and a price feed can be added.",
+    endpoint: "GET /x402/markets",
+  },
+] as const;
+
+const priceOf = (path: string) => data.x402.endpoints.find((e) => path.endsWith(e.path))?.price ?? "";
+
+/** FORGE for agents: what an agent can do, how a paid request works, the endpoints and the client. */
 export function AgentApiSection() {
   return (
     <div className="mx-auto mt-14 max-w-[1480px] px-5 sm:px-8">
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[1fr_1.3fr] lg:items-start lg:gap-14">
+      <Reveal>
+        <div className="grid border border-line sm:grid-cols-2 lg:grid-cols-4">
+          {USES.map((u, i) => (
+            <div key={u.title} className={`flex flex-col border-line p-6 ${i > 0 ? "max-sm:border-t" : ""} ${i % 2 ? "sm:border-l" : ""} ${i >= 2 ? "sm:max-lg:border-t" : ""} ${i > 0 ? "lg:border-l" : ""}`}>
+              <div className="num text-[12px] text-ink-3">{String(i + 1).padStart(2, "0")}</div>
+              <h3 className="mt-3 font-display text-[19px] font-semibold tracking-tight">{u.title}</h3>
+              <p className="mt-2 text-[14px] leading-relaxed text-ink-2">{u.body}</p>
+              <p className="mt-3 text-[12.5px] leading-relaxed text-ink-3">{u.example}</p>
+              <div className="num mt-auto flex items-center justify-between gap-3 pt-5 text-[11.5px]">
+                <span className="text-ink-2">{u.endpoint}</span>
+                <span className={priceOf(u.endpoint) === "free" ? "text-ink-3" : "text-ink"}>{priceOf(u.endpoint)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="cap mt-3">
+          The hedge example is a real run: an example treasury agent paid ${t.apiSpendUsd.toFixed(2)}, checked the certificate against its own rules, asked its human, then
+          opened the position in {t.transactions} transactions.
+        </p>
+      </Reveal>
+
+      <div className="mt-20 grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[1fr_1.3fr] lg:items-start lg:gap-14">
         <Reveal>
-          <ol className="max-w-lg space-y-5">
+          <h3 className="font-display text-[clamp(1.4rem,2.2vw,1.9rem)] font-semibold leading-tight tracking-[-0.02em]">How a paid request works</h3>
+          <ol className="mt-6 max-w-lg space-y-5">
             {FLOW.map(([t, d], i) => (
               <li key={t} className="grid grid-cols-[28px_1fr] gap-x-3">
                 <span className="num pt-[1px] text-[13px] text-ink-3">{String(i + 1).padStart(2, "0")}</span>

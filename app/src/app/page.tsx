@@ -215,8 +215,8 @@ export default function Landing() {
           <Head
             n="01"
             kicker="FORGE for agents"
-            title={<>A hedge is one<br />paid request.</>}
-            intro="Programs and AI agents pay in USDC over x402, HTTP's 402 status: no account, no API key. FORGE checks the payment, settles it on the fork, then compiles and certifies the hedge."
+            title={<>What your agent<br />can do with FORGE.</>}
+            intro="Any program that holds Solana tokens can use FORGE on its own: a DAO's treasury agent, a trading bot, a wallet. Each request is paid in USDC over x402 (the web's 402 Payment Required), so there is no account or API key to set up."
           />
           <AgentApiSection />
         </section>
