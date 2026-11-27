@@ -10,8 +10,8 @@
  * The FORGE program still runs every check (owner, verification level, feed id, staleness,
  * confidence, pool deviation); nothing here disables a guard.
  */
-import { type Address } from "@solana/kit";
-import { forkClock, rawRpc } from "./surfnet.js";
+import { type Address, getBase64Encoder } from "@solana/kit";
+import { forkClock, forkRpc, surfnetRpc } from "./surfnet.js";
 
 export const PYTH_RECEIVER = "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ" as Address;
 export const PYTH_SOL_USD = "7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE" as Address;
@@ -22,13 +22,9 @@ export const FEED_USDC_USD = "eaa020c61cc479712813461ce153894a96a6c00b21ed0cfc27
 export type PythPrice = { price: bigint; conf: bigint; exponent: number; publishTime: bigint; feedId: string };
 
 async function getRaw(addr: Address, url?: string): Promise<{ data: Uint8Array; lamports: number; owner: string }> {
-  const r = await rawRpc<{ value: { data: [string, string]; lamports: number; owner: string } | null }>(
-    "getAccountInfo",
-    [addr, { encoding: "base64" }],
-    url,
-  );
-  if (!r.value) throw new Error(`account ${addr} not found`);
-  return { data: new Uint8Array(Buffer.from(r.value.data[0], "base64")), lamports: r.value.lamports, owner: r.value.owner };
+  const { value } = await forkRpc(url).getAccountInfo(addr, { encoding: "base64" }).send();
+  if (!value) throw new Error(`account ${addr} not found`);
+  return { data: new Uint8Array(getBase64Encoder().encode(value.data[0])), lamports: Number(value.lamports), owner: value.owner };
 }
 
 export function decodePriceUpdate(d: Uint8Array): PythPrice {
@@ -72,7 +68,7 @@ export async function readPyth(addr: Address, url?: string): Promise<PythPrice> 
 }
 
 async function writeAccount(addr: Address, data: Uint8Array, lamports: number, owner: string): Promise<void> {
-  await rawRpc("surfnet_setAccount", [addr, { lamports, owner, data: Buffer.from(data).toString("hex") }]);
+  await surfnetRpc().surfnet_setAccount(addr, { lamports, owner: owner as Address, data: Buffer.from(data).toString("hex") }).send();
 }
 
 async function forkNow(): Promise<{ ts: bigint; slot: bigint }> {

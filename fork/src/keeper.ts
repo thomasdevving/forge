@@ -15,8 +15,8 @@
  */
 import {
   type Address,
+  assertIsTransactionWithBlockhashLifetime,
   getBase58Decoder,
-  getBase64EncodedWireTransaction,
   getSignatureFromTransaction,
   type Instruction,
   type KeyPairSigner,
@@ -37,7 +37,7 @@ import {
   rw,
 } from "@forge/txbuilder";
 import { ata, loadKey, readDeployment } from "./env.js";
-import { airdrop, forkClock, forkRpc } from "./surfnet.js";
+import { airdrop, forkClock, forkRpc, sendAndConfirm } from "./surfnet.js";
 
 const rpc = forkRpc();
 const INTERVAL = Number(process.env.KEEPER_INTERVAL_S ?? 30) * 1000;
@@ -63,19 +63,13 @@ async function refreshTables() {
   tables = await loadLookupTables(rpc, Object.values(d.markets).map((m) => m.lookupTable));
 }
 
+/** Simulated and sized by prepareTransaction (txbuilder), then sent and confirmed with kit. */
 async function send(keeper: KeyPairSigner, ixs: Instruction[]): Promise<string> {
   const prepared = await prepareTransaction(rpc, keeper, ixs, tables);
   const tx = await signTransactionMessageWithSigners(prepared.message);
-  const sig = getSignatureFromTransaction(tx);
-  await rpc.sendTransaction(getBase64EncodedWireTransaction(tx), { encoding: "base64", skipPreflight: true }).send();
-  for (let i = 0; i < 80; i++) {
-    const { value } = await rpc.getSignatureStatuses([sig]).send();
-    const st = value[0];
-    if (st?.err) throw new Error(`${sig} failed: ${JSON.stringify(st.err, (_, v) => (typeof v === "bigint" ? v.toString() : v))}`);
-    if (st?.confirmationStatus === "confirmed" || st?.confirmationStatus === "finalized") return sig;
-    await new Promise((r) => setTimeout(r, 250));
-  }
-  throw new Error(`${sig} not confirmed`);
+  assertIsTransactionWithBlockhashLifetime(tx);
+  await sendAndConfirm(rpc)(tx, { commitment: "confirmed", skipPreflight: true });
+  return getSignatureFromTransaction(tx);
 }
 
 /** The program's crank_allowed: accrued · 10^4 ≥ lp_cap · trigger_bps. */

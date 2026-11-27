@@ -5,13 +5,13 @@
  */
 import { readFileSync } from "node:fs";
 import { type Address, address, getAddressEncoder, getProgramDerivedAddress } from "@solana/kit";
-import { rawRpc } from "./surfnet.js";
+import { surfnetRpc } from "./surfnet.js";
 
 const LOADER = address("BPFLoaderUpgradeab1e11111111111111111111111");
 const enc = getAddressEncoder();
 
 async function setAccount(addr: Address, data: Uint8Array, executable: boolean, lamports: number) {
-  await rawRpc("surfnet_setAccount", [addr, { lamports, data: Buffer.from(data).toString("hex"), owner: LOADER, executable }]);
+  await surfnetRpc().surfnet_setAccount(addr, { lamports, data: Buffer.from(data).toString("hex"), owner: LOADER, executable }).send();
 }
 
 export async function installProgram(programId: Address, soPath: string, upgradeAuthority: Address): Promise<Address> {

@@ -53,7 +53,12 @@ async function encode(owner: Address, plan: Parameters<typeof prepareTransaction
     // a no-op signer stands in for the wallet: the signature slot stays empty
     const prepared = await prepareTransaction(rpc, createNoopSigner(owner), ixs, tables);
     const wire = getBase64EncodedWireTransaction(compileTransaction(prepared.message));
-    out.push({ transaction: wire, computeUnits: prepared.unitsConsumed, computeUnitLimit: prepared.computeUnitLimit, bytes: prepared.bytes, accounts: prepared.loadedAccounts });
+    // the blockhash's last valid block height lets a client confirm with kit's sendAndConfirmTransactionFactory
+    const life = prepared.message.lifetimeConstraint as { lastValidBlockHeight?: bigint };
+    out.push({
+      transaction: wire, computeUnits: prepared.unitsConsumed, computeUnitLimit: prepared.computeUnitLimit, bytes: prepared.bytes, accounts: prepared.loadedAccounts,
+      lastValidBlockHeight: life.lastValidBlockHeight !== undefined ? String(life.lastValidBlockHeight) : null,
+    });
   }
   return out;
 }

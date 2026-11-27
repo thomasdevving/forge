@@ -6,6 +6,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { address, createSolanaRpc } from "@solana/kit";
 import * as fv from "./fairvalue.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -112,12 +113,12 @@ export async function holdings(owner: string) {
     byMint.set(m.quoteMint, { symbol: m.name.split("/")[1]!, price: 1 });
   }
   const out: { symbol: string; mint: string; amount: number; usd_value: number }[] = [];
+  const rpc = createSolanaRpc(cfg.rpc);
+  // classic SPL Token and Token-2022 accounts, parsed by the RPC
   for (const program of ["TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"]) {
-    const r = await http<{ result?: { value: { account: { data: { parsed: { info: { mint: string; tokenAmount: { uiAmount: number | null } } } } } }[] } }>(cfg.rpc, "", {
-      jsonrpc: "2.0", id: 1, method: "getTokenAccountsByOwner", params: [owner, { programId: program }, { encoding: "jsonParsed" }],
-    });
-    for (const a of r.result?.value ?? []) {
-      const info = a.account.data.parsed.info;
+    const { value } = await rpc.getTokenAccountsByOwner(address(owner), { programId: address(program) }, { encoding: "jsonParsed" }).send();
+    for (const a of value) {
+      const info = a.account.data.parsed.info as { mint: string; tokenAmount: { uiAmount: number | null } };
       const known = byMint.get(info.mint);
       const amount = info.tokenAmount.uiAmount ?? 0;
       if (!known || amount <= 0) continue;

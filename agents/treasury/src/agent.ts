@@ -16,9 +16,17 @@ import { createInterface } from "node:readline/promises";
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { fetchWithPayment, X402ClientError } from "@forge/fork/x402-client";
-import { getBase64EncodedWireTransaction, getTransactionDecoder, signTransaction, type KeyPairSigner } from "@solana/kit";
+import {
+  address,
+  getBase64Encoder,
+  getSignatureFromTransaction,
+  getTransactionDecoder,
+  type KeyPairSigner,
+  sendAndConfirmTransactionFactory,
+  signTransaction,
+} from "@solana/kit";
 import { z } from "zod";
-import { API, balances, get, log, markets, post, policy, rpc, treasuryKey, USDC } from "./common.js";
+import { API, balances, get, log, markets, post, policy, rpc, rpcSubscriptions, treasuryKey, USDC } from "./common.js";
 
 const MODEL = process.env.TREASURY_MODEL ?? "claude-sonnet-5-5";
 const usd = (x: number) => `$${x.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
@@ -187,21 +195,20 @@ Work like this: read the treasury, decide which exposure the policy says to prot
 async function execute(key: KeyPairSigner, o: Option) {
   const ms = await markets();
   const m = ms.find((x) => x.name === o.facts.market)!;
-  const bal = await rpc<{ value: { pubkey: string; account: { data: { parsed: { info: { mint: string } } } } }[] }>("getTokenAccountsByOwner", [key.address, { programId: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }, { encoding: "jsonParsed" }]);
-  const acct = (mint: string) => bal.value.find((a) => a.account.data.parsed.info.mint === mint)?.pubkey;
+  const bal = await rpc.getTokenAccountsByOwner(key.address, { programId: address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") }, { encoding: "jsonParsed" }).send();
+  const acct = (mint: string) => bal.value.find((a) => (a.account.data.parsed.info as { mint: string }).mint === mint)?.pubkey;
+  const sendAndConfirm = sendAndConfirmTransactionFactory({ rpc: rpc as never, rpcSubscriptions: rpcSubscriptions as never });
   const body = { ...o.open, owner: key.address, nonce: String(Date.now()), userBase: acct(m.baseMint), userQuote: acct(USDC) };
   for (let guard = 0; guard < 24; guard++) {
-    const r = await post<{ transactions: { transaction: string }[]; done: boolean; strategy?: string; steps?: number }>("/tx/build/open", body);
+    const r = await post<{ transactions: { transaction: string; lastValidBlockHeight: string | null }[]; done: boolean; strategy?: string; steps?: number }>("/tx/build/open", body);
     if (r.done || r.transactions.length === 0) return log("Treasury Agent", `position ${r.strategy ?? ""} open`);
-    const tx = await signTransaction([key.keyPair], getTransactionDecoder().decode(Buffer.from(r.transactions[0]!.transaction, "base64")));
-    const sig = await rpc<string>("sendTransaction", [getBase64EncodedWireTransaction(tx), { encoding: "base64", preflightCommitment: "confirmed" }]);
-    for (let i = 0; i < 60; i++) {
-      const st = await rpc<{ value: ({ confirmationStatus?: string; err: unknown } | null)[] }>("getSignatureStatuses", [[sig]]);
-      if (st.value[0]?.err) throw new Error(`${sig} failed`);
-      if (st.value[0]?.confirmationStatus === "confirmed" || st.value[0]?.confirmationStatus === "finalized") break;
-      await new Promise((res) => setTimeout(res, 300));
-    }
-    log("Solana (fork)", `confirmed ${sig.slice(0, 16)}…`);
+    const built = r.transactions[0]!;
+    // the builder's unsigned transaction: the treasury key fills its signature slot
+    const signed = await signTransaction([key.keyPair], getTransactionDecoder().decode(getBase64Encoder().encode(built.transaction)));
+    if (!built.lastValidBlockHeight) throw new Error("the builder returned no blockhash lifetime");
+    const tx = { ...signed, lifetimeConstraint: { lastValidBlockHeight: BigInt(built.lastValidBlockHeight) } };
+    await sendAndConfirm(tx as never, { commitment: "confirmed" });
+    log("Solana (fork)", `confirmed ${getSignatureFromTransaction(signed).slice(0, 16)}…`);
     if (r.steps === 1) return log("Treasury Agent", `position ${r.strategy ?? ""} open`);
   }
 }

@@ -7,7 +7,7 @@ import { generateKeyPairSync } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createKeyPairSignerFromBytes } from "@solana/kit";
+import { address, createSolanaRpc, createSolanaRpcSubscriptions, createKeyPairSignerFromBytes } from "@solana/kit";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, "..");
@@ -48,11 +48,9 @@ export async function post<T>(p: string, body: unknown): Promise<T> {
   return JSON.parse(t) as T;
 }
 
-export async function rpc<T>(method: string, params: unknown[]): Promise<T> {
-  const r = await post<{ result?: T; error?: { message: string } }>("/rpc", { jsonrpc: "2.0", id: 1, method, params });
-  if (r.error) throw new Error(`${method}: ${r.error.message}`);
-  return r.result as T;
-}
+/** FORGE's public RPC proxy (a method allowlist in front of the fork) as typed @solana/kit clients. */
+export const rpc = createSolanaRpc(`${API}/rpc`);
+export const rpcSubscriptions = createSolanaRpcSubscriptions(`${API.replace(/^http/, "ws")}/rpc`);
 
 export type MarketRow = { name: string; baseMint: string; poolPrice: number; [k: string]: unknown };
 
@@ -72,11 +70,9 @@ export async function markets(): Promise<MarketRow[]> {
 export async function balances(owner: string): Promise<Map<string, number>> {
   const out = new Map<string, number>();
   for (const programId of ["TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"]) {
-    const r = await rpc<{ value: { account: { data: { parsed: { info: { mint: string; tokenAmount: { uiAmount: number | null } } } } } }[] }>(
-      "getTokenAccountsByOwner", [owner, { programId }, { encoding: "jsonParsed" }],
-    );
-    for (const a of r.value) {
-      const i = a.account.data.parsed.info;
+    const { value } = await rpc.getTokenAccountsByOwner(address(owner), { programId: address(programId) }, { encoding: "jsonParsed" }).send();
+    for (const a of value) {
+      const i = a.account.data.parsed.info as { mint: string; tokenAmount: { uiAmount: number | null } };
       out.set(i.mint, (out.get(i.mint) ?? 0) + (i.tokenAmount.uiAmount ?? 0));
     }
   }
