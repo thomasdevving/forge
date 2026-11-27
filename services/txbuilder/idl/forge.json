@@ -1,0 +1,2955 @@
+{
+  "address": "8RQGTBgTpbvxZ9BFHpFthHRw5JkaHiUpfrMmjfUv3NN5",
+  "metadata": {
+    "name": "forge",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "FORGE: custom derivatives compiled from Orca concentrated liquidity"
+  },
+  "instructions": [
+    {
+      "name": "abort_open",
+      "discriminator": [
+        126,
+        171,
+        172,
+        49,
+        59,
+        184,
+        63,
+        219
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "strategy",
+          "writable": true
+        },
+        {
+          "name": "market",
+          "relations": [
+            "strategy"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "begin_close",
+      "discriminator": [
+        42,
+        2,
+        204,
+        207,
+        91,
+        89,
+        124,
+        252
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "market",
+          "relations": [
+            "strategy"
+          ]
+        },
+        {
+          "name": "strategy",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "begin_open",
+      "discriminator": [
+        147,
+        139,
+        251,
+        118,
+        55,
+        79,
+        179,
+        109
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "strategy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  114,
+                  97,
+                  116,
+                  101,
+                  103,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "args.nonce"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_base",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119,
+                  95,
+                  98,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "strategy"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_quote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119,
+                  95,
+                  113,
+                  117,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "strategy"
+              }
+            ]
+          }
+        },
+        {
+          "name": "budget",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  100,
+                  103,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "strategy"
+              }
+            ]
+          }
+        },
+        {
+          "name": "base_mint"
+        },
+        {
+          "name": "quote_mint"
+        },
+        {
+          "name": "user_base",
+          "writable": true
+        },
+        {
+          "name": "user_quote",
+          "writable": true
+        },
+        {
+          "name": "whirlpool"
+        },
+        {
+          "name": "reference_base"
+        },
+        {
+          "name": "reference_quote"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "BeginOpenArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "checkpoint_leg",
+      "discriminator": [
+        249,
+        241,
+        26,
+        56,
+        43,
+        205,
+        199,
+        48
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "relations": [
+            "strategy"
+          ]
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "strategy",
+          "writable": true
+        },
+        {
+          "name": "whirlpool"
+        },
+        {
+          "name": "budget",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  100,
+                  103,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "strategy"
+              }
+            ]
+          }
+        },
+        {
+          "name": "premium_vault",
+          "writable": true
+        },
+        {
+          "name": "reference_base"
+        },
+        {
+          "name": "reference_quote"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "leg_index",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "create_bucket",
+      "discriminator": [
+        26,
+        158,
+        9,
+        222,
+        245,
+        138,
+        207,
+        185
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market"
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bucket",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  99,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "arg",
+                "path": "tick_lower"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position_mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  99,
+                  107,
+                  101,
+                  116,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bucket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true
+        },
+        {
+          "name": "position_token_account",
+          "writable": true
+        },
+        {
+          "name": "whirlpool"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "whirlpool_program",
+          "address": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+        }
+      ],
+      "args": [
+        {
+          "name": "tick_lower",
+          "type": "i32"
+        }
+      ]
+    },
+    {
+      "name": "deposit_liquidity",
+      "discriminator": [
+        245,
+        99,
+        59,
+        25,
+        151,
+        71,
+        233,
+        249
+      ],
+      "accounts": [
+        {
+          "name": "lp",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market",
+          "relations": [
+            "bucket"
+          ]
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bucket",
+          "writable": true
+        },
+        {
+          "name": "lp_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bucket"
+              },
+              {
+                "kind": "account",
+                "path": "lp"
+              }
+            ]
+          }
+        },
+        {
+          "name": "whirlpool",
+          "writable": true
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "relations": [
+            "bucket"
+          ]
+        },
+        {
+          "name": "position_token_account",
+          "relations": [
+            "bucket"
+          ]
+        },
+        {
+          "name": "tick_array_lower",
+          "writable": true
+        },
+        {
+          "name": "tick_array_upper",
+          "writable": true
+        },
+        {
+          "name": "whirlpool_vault_a",
+          "writable": true
+        },
+        {
+          "name": "whirlpool_vault_b",
+          "writable": true
+        },
+        {
+          "name": "lp_base",
+          "writable": true
+        },
+        {
+          "name": "lp_quote",
+          "writable": true
+        },
+        {
+          "name": "staging_base",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  103,
+                  105,
+                  110,
+                  103,
+                  95,
+                  98,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "staging_quote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  103,
+                  105,
+                  110,
+                  103,
+                  95,
+                  113,
+                  117,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "whirlpool_program",
+          "address": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+        }
+      ],
+      "args": [
+        {
+          "name": "liquidity",
+          "type": "u128"
+        },
+        {
+          "name": "max_base",
+          "type": "u64"
+        },
+        {
+          "name": "max_quote",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "execute_close_batch",
+      "discriminator": [
+        34,
+        23,
+        37,
+        225,
+        213,
+        1,
+        2,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "market",
+          "relations": [
+            "strategy"
+          ]
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "strategy",
+          "writable": true
+        },
+        {
+          "name": "whirlpool",
+          "writable": true
+        },
+        {
+          "name": "whirlpool_vault_a",
+          "writable": true
+        },
+        {
+          "name": "whirlpool_vault_b",
+          "writable": true
+        },
+        {
+          "name": "escrow_base",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119,
+                  95,
+                  98,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "strategy"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_quote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119,
+                  95,
+                  113,
+                  117,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "strategy"
+              }
+            ]
+          }
+        },
+        {
+          "name": "budget",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  100,
+                  103,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "strategy"
+              }
+            ]
+          }
+        },
+        {
+          "name": "premium_vault",
+          "writable": true
+        },
+        {
+          "name": "reference_base"
+        },
+        {
+          "name": "reference_quote"
+        },
+        {
+          "name": "swap_pool",
+          "writable": true
+        },
+        {
+          "name": "swap_vault_a",
+          "writable": true
+        },
+        {
+          "name": "swap_vault_b",
+          "writable": true
+        },
+        {
+          "name": "swap_tick_array_0",
+          "writable": true
+        },
+        {
+          "name": "swap_tick_array_1",
+          "writable": true
+        },
+        {
+          "name": "swap_tick_array_2",
+          "writable": true
+        },
+        {
+          "name": "swap_oracle",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "whirlpool_program",
+          "address": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+        }
+      ],
+      "args": [
+        {
+          "name": "leg_indices",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "execute_open_batch",
+      "discriminator": [
+        47,
+        100,
+        11,
+        113,
+        53,
+        34,
+        43,
+        33
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "strategy"
+          ]
+        },
+        {
+          "name": "market",
+          "relations": [
+            "strategy"
+          ]
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "strategy",
+          "writable": true
+        },
+        {
+          "name": "whirlpool",
+          "writable": true
+        },
+        {
+          "name": "whirlpool_vault_a",
+          "writable": true
+        },
+        {
+          "name": "whirlpool_vault_b",
+          "writable": true
+        },
+        {
+          "name": "escrow_base",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119,
+                  95,
+                  98,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "strategy"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_quote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119,
+                  95,
+                  113,
+                  117,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "strategy"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reference_base"
+        },
+        {
+          "name": "reference_quote"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "whirlpool_program",
+          "address": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+        }
+      ],
+      "args": [
+        {
+          "name": "leg_indices",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "finalize_close",
+      "discriminator": [
+        9,
+        206,
+        42,
+        67,
+        232,
+        143,
+        165,
+        246
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "relations": [
+            "strategy"
+          ]
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "strategy",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "relations": [
+            "strategy"
+          ]
+        },
+        {
+          "name": "escrow_base",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119,
+                  95,
+                  98,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "strategy"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_quote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119,
+                  95,
+                  113,
+                  117,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "strategy"
+              }
+            ]
+          }
+        },
+        {
+          "name": "budget",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  100,
+                  103,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "strategy"
+              }
+            ]
+          }
+        },
+        {
+          "name": "premium_vault",
+          "writable": true
+        },
+        {
+          "name": "user_base",
+          "writable": true
+        },
+        {
+          "name": "user_quote",
+          "writable": true
+        },
+        {
+          "name": "keeper_quote",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "finalize_open",
+      "discriminator": [
+        242,
+        128,
+        142,
+        217,
+        65,
+        163,
+        90,
+        196
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "strategy"
+          ]
+        },
+        {
+          "name": "strategy",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "init_scenario_reference",
+      "discriminator": [
+        75,
+        64,
+        25,
+        79,
+        168,
+        133,
+        183,
+        195
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "whirlpool"
+        },
+        {
+          "name": "scenario",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  101,
+                  110,
+                  97,
+                  114,
+                  105,
+                  111,
+                  95,
+                  114,
+                  101,
+                  102,
+                  101,
+                  114,
+                  101,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "whirlpool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "signer",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "initialize_config",
+      "discriminator": [
+        208,
+        127,
+        21,
+        1,
+        194,
+        190,
+        196,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "upgrade_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "address": "8RQGTBgTpbvxZ9BFHpFthHRw5JkaHiUpfrMmjfUv3NN5"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "admin",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "initialize_market",
+      "discriminator": [
+        35,
+        35,
+        189,
+        193,
+        155,
+        48,
+        170,
+        203
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "whirlpool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "whirlpool"
+        },
+        {
+          "name": "swap_pool"
+        },
+        {
+          "name": "base_mint"
+        },
+        {
+          "name": "quote_mint"
+        },
+        {
+          "name": "premium_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  101,
+                  109,
+                  105,
+                  117,
+                  109,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "staging_base",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  103,
+                  105,
+                  110,
+                  103,
+                  95,
+                  98,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "staging_quote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  103,
+                  105,
+                  110,
+                  103,
+                  95,
+                  113,
+                  117,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "InitializeMarketArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "record_recovery",
+      "discriminator": [
+        53,
+        75,
+        21,
+        95,
+        180,
+        26,
+        115,
+        168
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "relations": [
+            "strategy"
+          ]
+        },
+        {
+          "name": "strategy",
+          "writable": true
+        },
+        {
+          "name": "whirlpool"
+        },
+        {
+          "name": "swap_pool"
+        },
+        {
+          "name": "reference_base"
+        },
+        {
+          "name": "reference_quote"
+        }
+      ],
+      "args": [
+        {
+          "name": "leg_index",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "top_up_buffer",
+      "discriminator": [
+        112,
+        8,
+        168,
+        233,
+        111,
+        232,
+        177,
+        16
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "strategy"
+          ]
+        },
+        {
+          "name": "strategy",
+          "writable": true
+        },
+        {
+          "name": "source",
+          "writable": true
+        },
+        {
+          "name": "escrow",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "leg_index",
+          "type": "u8"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_market",
+      "discriminator": [
+        153,
+        39,
+        2,
+        197,
+        179,
+        50,
+        199,
+        217
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "option": {
+              "defined": {
+                "name": "MarketParams"
+              }
+            }
+          }
+        },
+        {
+          "name": "opens_paused",
+          "type": {
+            "option": "bool"
+          }
+        },
+        {
+          "name": "borrow_paused",
+          "type": {
+            "option": "bool"
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_scenario_reference",
+      "discriminator": [
+        38,
+        68,
+        237,
+        167,
+        1,
+        148,
+        111,
+        61
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "signer": true,
+          "relations": [
+            "scenario"
+          ]
+        },
+        {
+          "name": "scenario",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "price_x64",
+          "type": "u128"
+        },
+        {
+          "name": "conf_bps",
+          "type": "u16"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Bucket",
+      "discriminator": [
+        27,
+        203,
+        100,
+        76,
+        218,
+        12,
+        58,
+        168
+      ]
+    },
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
+      ]
+    },
+    {
+      "name": "LpPosition",
+      "discriminator": [
+        105,
+        241,
+        37,
+        200,
+        224,
+        2,
+        252,
+        90
+      ]
+    },
+    {
+      "name": "Market",
+      "discriminator": [
+        219,
+        190,
+        213,
+        55,
+        0,
+        227,
+        198,
+        154
+      ]
+    },
+    {
+      "name": "ScenarioReference",
+      "discriminator": [
+        222,
+        194,
+        178,
+        159,
+        8,
+        221,
+        199,
+        61
+      ]
+    },
+    {
+      "name": "Strategy",
+      "discriminator": [
+        174,
+        110,
+        39,
+        119,
+        82,
+        106,
+        169,
+        102
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6001,
+      "name": "TokenMaxExceeded",
+      "msg": "Token amount exceeds u64"
+    },
+    {
+      "code": 6002,
+      "name": "ZeroAmount",
+      "msg": "Amount must be positive"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidTick",
+      "msg": "Invalid tick"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidParameters",
+      "msg": "Invalid market parameters"
+    },
+    {
+      "code": 6005,
+      "name": "UnsupportedMint",
+      "msg": "Unsupported mint or token program (classic SPL Token only)"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidOrcaAccount",
+      "msg": "Account is not the expected Orca account"
+    },
+    {
+      "code": 6007,
+      "name": "IneligiblePool",
+      "msg": "Pool is not eligible for FORGE"
+    },
+    {
+      "code": 6008,
+      "name": "ReferenceMismatch",
+      "msg": "Reference price account does not match the market configuration"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidReference",
+      "msg": "Reference price is invalid"
+    },
+    {
+      "code": 6010,
+      "name": "StaleReference",
+      "msg": "Reference price is stale"
+    },
+    {
+      "code": 6011,
+      "name": "ReferenceConfidence",
+      "msg": "Reference confidence interval too wide"
+    },
+    {
+      "code": 6012,
+      "name": "PoolDeviation",
+      "msg": "Pool price deviates from the reference beyond the limit"
+    },
+    {
+      "code": 6013,
+      "name": "OpenTolerance",
+      "msg": "Reference moved beyond the signed opening tolerance"
+    },
+    {
+      "code": 6014,
+      "name": "SwapSlippage",
+      "msg": "Swap execution price outside the allowed slippage"
+    },
+    {
+      "code": 6015,
+      "name": "UtilizationCap",
+      "msg": "Utilization cap exceeded"
+    },
+    {
+      "code": 6016,
+      "name": "EmptyBucket",
+      "msg": "Bucket has no liquidity"
+    },
+    {
+      "code": 6017,
+      "name": "MisalignedBucket",
+      "msg": "Bucket is not aligned to the market grid"
+    },
+    {
+      "code": 6018,
+      "name": "BorrowNotOutOfRange",
+      "msg": "Borrowed range must be strictly out of range on the required side"
+    },
+    {
+      "code": 6019,
+      "name": "ProvideNotSingleSided",
+      "msg": "Provided range must be single-sided on the required side"
+    },
+    {
+      "code": 6020,
+      "name": "TooManyLegs",
+      "msg": "Too many legs"
+    },
+    {
+      "code": 6021,
+      "name": "TooManyOps",
+      "msg": "Too many bucket operations in one transaction"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidLeg",
+      "msg": "Leg index invalid or already processed"
+    },
+    {
+      "code": 6023,
+      "name": "LegAccountMismatch",
+      "msg": "Account does not match the committed leg"
+    },
+    {
+      "code": 6024,
+      "name": "InvalidState",
+      "msg": "Strategy is in the wrong state for this action"
+    },
+    {
+      "code": 6025,
+      "name": "DeadlinePassed",
+      "msg": "Pending operation deadline has passed"
+    },
+    {
+      "code": 6026,
+      "name": "CloseNotAllowed",
+      "msg": "Close is not permitted for this caller yet"
+    },
+    {
+      "code": 6027,
+      "name": "OpensPaused",
+      "msg": "New opens are paused in this market"
+    },
+    {
+      "code": 6028,
+      "name": "BorrowPaused",
+      "msg": "Borrowing is paused in this market pending shortfall review"
+    },
+    {
+      "code": 6029,
+      "name": "InsufficientRestorationFunds",
+      "msg": "Escrow and buffer are insufficient to restore the bucket"
+    },
+    {
+      "code": 6030,
+      "name": "RestorationMismatch",
+      "msg": "Restoration did not restore the exact borrowed liquidity"
+    },
+    {
+      "code": 6031,
+      "name": "UnexpectedCpiAmounts",
+      "msg": "Orca CPI produced unexpected token amounts"
+    },
+    {
+      "code": 6032,
+      "name": "ClockWentBackwards",
+      "msg": "Clock went backwards"
+    },
+    {
+      "code": 6033,
+      "name": "InvalidExpiry",
+      "msg": "Expiry must be at least the minimum after activation"
+    },
+    {
+      "code": 6034,
+      "name": "Unauthorized",
+      "msg": "Unauthorized"
+    },
+    {
+      "code": 6035,
+      "name": "LiquidityLocked",
+      "msg": "Liquidity is borrowed or reserved and cannot be withdrawn"
+    },
+    {
+      "code": 6036,
+      "name": "NoticeNotElapsed",
+      "msg": "Withdrawal notice period has not elapsed"
+    },
+    {
+      "code": 6037,
+      "name": "InvalidSwapPool",
+      "msg": "Restoration swap pool is not eligible"
+    },
+    {
+      "code": 6038,
+      "name": "InsufficientBudget",
+      "msg": "Premium budget is insufficient"
+    },
+    {
+      "code": 6039,
+      "name": "RecoveryNotNeeded",
+      "msg": "Restoration is possible; recovery cannot be recorded"
+    },
+    {
+      "code": 6040,
+      "name": "RewardsActive",
+      "msg": "Active reward emissions are not supported in v1"
+    }
+  ],
+  "types": [
+    {
+      "name": "BeginOpenArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "LegSpec"
+                }
+              }
+            }
+          },
+          {
+            "name": "premium_budget",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "open_reference_x64",
+            "type": "u128"
+          },
+          {
+            "name": "open_tolerance_bps",
+            "type": "u16"
+          },
+          {
+            "name": "swap_slippage_bps",
+            "type": "u16"
+          },
+          {
+            "name": "certificate_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Bucket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "tick_lower",
+            "type": "i32"
+          },
+          {
+            "name": "tick_upper",
+            "type": "i32"
+          },
+          {
+            "name": "position_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "position",
+            "type": "pubkey"
+          },
+          {
+            "name": "position_token_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_liquidity",
+            "docs": [
+              "LP-owned liquidity units. One share is one liquidity unit, so shares == total_liquidity."
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "borrowed",
+            "docs": [
+              "Liquidity currently removed from Orca by borrowers."
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "reserved",
+            "docs": [
+              "Liquidity reserved by pending opens (counts toward utilization immediately)."
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "withdrawal_requested",
+            "docs": [
+              "Liquidity with a pending LP withdrawal request (cannot be newly borrowed)."
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "withdrawal_notice_start",
+            "docs": [
+              "Earliest unfulfilled withdrawal request time (0 if none); starts the notice period."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "premium_index_x64",
+            "type": "u128"
+          },
+          {
+            "name": "premium_remainder_x64",
+            "type": "u128"
+          },
+          {
+            "name": "premium_distributed",
+            "type": "u64"
+          },
+          {
+            "name": "fee_index_a_x64",
+            "type": "u128"
+          },
+          {
+            "name": "fee_index_b_x64",
+            "type": "u128"
+          },
+          {
+            "name": "fee_remainder_a_x64",
+            "type": "u128"
+          },
+          {
+            "name": "fee_remainder_b_x64",
+            "type": "u128"
+          },
+          {
+            "name": "lp_shortfall_quote",
+            "type": "u64"
+          },
+          {
+            "name": "open_legs",
+            "docs": [
+              "Number of executed, unrestored borrowed legs on this bucket."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "checkpoint_ts",
+            "docs": [
+              "Timestamp and count of leg checkpoints in the current second. A share change is only",
+              "allowed when every open leg checkpointed in the same transaction (section 4.3)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "checkpoint_count",
+            "type": "u32"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "mint_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Config",
+      "docs": [
+        "Global configuration. Set once by the program upgrade authority, which names a separate",
+        "market-registry admin key (section 5)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InitializeMarketArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bucket_multiplier",
+            "type": "u16"
+          },
+          {
+            "name": "params",
+            "type": {
+              "defined": {
+                "name": "MarketParams"
+              }
+            }
+          },
+          {
+            "name": "reference",
+            "type": {
+              "defined": {
+                "name": "ReferenceConfig"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Leg",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "kind_tag",
+            "type": "u8"
+          },
+          {
+            "name": "bucket",
+            "type": "pubkey"
+          },
+          {
+            "name": "tick_lower",
+            "type": "i32"
+          },
+          {
+            "name": "tick_upper",
+            "type": "i32"
+          },
+          {
+            "name": "liquidity",
+            "type": "u128"
+          },
+          {
+            "name": "removed_base",
+            "docs": [
+              "Exact token amounts removed from Orca at open (the leg's principal escrow)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "removed_quote",
+            "type": "u64"
+          },
+          {
+            "name": "escrow_base",
+            "docs": [
+              "Remaining leg ledgers in escrow (principal + buffer), by mint."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "escrow_quote",
+            "type": "u64"
+          },
+          {
+            "name": "buffer",
+            "docs": [
+              "Restoration buffer funded by the user, in the removed mint."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "multiplier_ppm",
+            "type": "u32"
+          },
+          {
+            "name": "notional_quote",
+            "type": "u64"
+          },
+          {
+            "name": "opened_at",
+            "type": "i64"
+          },
+          {
+            "name": "growth_a_x64",
+            "type": "u128"
+          },
+          {
+            "name": "growth_b_x64",
+            "type": "u128"
+          },
+          {
+            "name": "cum_forgone_quote",
+            "type": "u64"
+          },
+          {
+            "name": "premium",
+            "type": "u64"
+          },
+          {
+            "name": "premium_distributed",
+            "docs": [
+              "Premium already transferred to the bucket's LP index."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "last_checkpoint_ts",
+            "type": "i64"
+          },
+          {
+            "name": "executed",
+            "type": "bool"
+          },
+          {
+            "name": "restored",
+            "type": "bool"
+          },
+          {
+            "name": "restored_at",
+            "type": "i64"
+          },
+          {
+            "name": "swap_in",
+            "type": "u64"
+          },
+          {
+            "name": "swap_out",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LegSpec",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "kind_tag",
+            "type": "u8"
+          },
+          {
+            "name": "tick_lower",
+            "type": "i32"
+          },
+          {
+            "name": "liquidity",
+            "type": "u128"
+          },
+          {
+            "name": "extra_buffer",
+            "docs": [
+              "Restoration buffer above the market minimum, in the removed mint."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LpPosition",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "bucket",
+            "type": "pubkey"
+          },
+          {
+            "name": "liquidity",
+            "type": "u128"
+          },
+          {
+            "name": "premium_index_x64",
+            "type": "u128"
+          },
+          {
+            "name": "premium_owed",
+            "type": "u64"
+          },
+          {
+            "name": "fee_index_a_x64",
+            "type": "u128"
+          },
+          {
+            "name": "fee_index_b_x64",
+            "type": "u128"
+          },
+          {
+            "name": "fee_owed_a",
+            "type": "u64"
+          },
+          {
+            "name": "fee_owed_b",
+            "type": "u64"
+          },
+          {
+            "name": "withdrawal_liquidity",
+            "type": "u128"
+          },
+          {
+            "name": "withdrawal_requested_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Market",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "whirlpool",
+            "type": "pubkey"
+          },
+          {
+            "name": "swap_pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "base_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "quote_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "base_is_a",
+            "type": "bool"
+          },
+          {
+            "name": "base_decimals",
+            "type": "u8"
+          },
+          {
+            "name": "quote_decimals",
+            "type": "u8"
+          },
+          {
+            "name": "tick_spacing",
+            "type": "u16"
+          },
+          {
+            "name": "bucket_width",
+            "docs": [
+              "Bucket width in ticks (a multiple of the tick spacing), grid anchored at tick 0."
+            ],
+            "type": "i32"
+          },
+          {
+            "name": "reference",
+            "type": {
+              "defined": {
+                "name": "ReferenceConfig"
+              }
+            }
+          },
+          {
+            "name": "params",
+            "type": {
+              "defined": {
+                "name": "MarketParams"
+              }
+            }
+          },
+          {
+            "name": "premium_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "opens_paused",
+            "type": "bool"
+          },
+          {
+            "name": "borrow_paused",
+            "type": "bool"
+          },
+          {
+            "name": "strategy_count",
+            "type": "u64"
+          },
+          {
+            "name": "unresolved_strategies",
+            "type": "u32"
+          },
+          {
+            "name": "outstanding_lp_shortfall",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketParams",
+      "docs": [
+        "Per-market economic and safety parameters (section 8.6). Snapshotted into each strategy",
+        "where they affect its terms; admin changes apply to new positions only."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "floor_rate_bps",
+            "type": "u16"
+          },
+          {
+            "name": "curve",
+            "type": {
+              "defined": {
+                "name": "UtilizationCurve"
+              }
+            }
+          },
+          {
+            "name": "notice_period_s",
+            "type": "u32"
+          },
+          {
+            "name": "restoration_buffer_bps",
+            "type": "u16"
+          },
+          {
+            "name": "swap_slippage_bps",
+            "type": "u16"
+          },
+          {
+            "name": "pool_deviation_bps",
+            "type": "u16"
+          },
+          {
+            "name": "ref_max_age_s",
+            "type": "u32"
+          },
+          {
+            "name": "ref_max_conf_bps",
+            "type": "u16"
+          },
+          {
+            "name": "open_tolerance_bps",
+            "type": "u16"
+          },
+          {
+            "name": "pending_open_deadline_s",
+            "type": "u32"
+          },
+          {
+            "name": "keeper_trigger_bps",
+            "type": "u16"
+          },
+          {
+            "name": "bounty_bps",
+            "type": "u16"
+          },
+          {
+            "name": "max_ops_per_tx",
+            "type": "u8"
+          },
+          {
+            "name": "max_buckets_per_strategy",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ReferenceConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "kind",
+            "type": {
+              "defined": {
+                "name": "ReferenceKind"
+              }
+            }
+          },
+          {
+            "name": "base_account",
+            "docs": [
+              "PythPair: base/USD PriceUpdateV2 account. ForkScenario: ScenarioReference account."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "quote_account",
+            "docs": [
+              "PythPair: quote/USD PriceUpdateV2 account. ForkScenario: unused."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "base_feed_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "quote_feed_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ReferenceKind",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "PythPair"
+          },
+          {
+            "name": "ForkScenario"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ScenarioReference",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_whirlpool",
+            "type": "pubkey"
+          },
+          {
+            "name": "signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "price_x64",
+            "docs": [
+              "Quote atoms per base atom, Q64.64."
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "conf_bps",
+            "type": "u16"
+          },
+          {
+            "name": "publish_time",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Strategy",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "StrategyState"
+              }
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "opened_at",
+            "type": "i64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "pending_deadline",
+            "type": "i64"
+          },
+          {
+            "name": "certificate_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "open_reference_x64",
+            "type": "u128"
+          },
+          {
+            "name": "open_tolerance_bps",
+            "type": "u16"
+          },
+          {
+            "name": "swap_slippage_bps",
+            "type": "u16"
+          },
+          {
+            "name": "floor_rate_bps",
+            "type": "u16"
+          },
+          {
+            "name": "keeper_trigger_bps",
+            "type": "u16"
+          },
+          {
+            "name": "premium_budget",
+            "type": "u64"
+          },
+          {
+            "name": "bounty_reserve",
+            "type": "u64"
+          },
+          {
+            "name": "premium_accrued",
+            "type": "u64"
+          },
+          {
+            "name": "premium_paid",
+            "type": "u64"
+          },
+          {
+            "name": "keeper_bounty_paid",
+            "type": "u64"
+          },
+          {
+            "name": "lp_shortfall",
+            "type": "u64"
+          },
+          {
+            "name": "close_by_keeper",
+            "type": "bool"
+          },
+          {
+            "name": "keeper",
+            "type": "pubkey"
+          },
+          {
+            "name": "cap_binding",
+            "docs": [
+              "Set when accrued premium reaches the LP cap; the remaining cap is then allocated pro",
+              "rata over unpaid leg premiums at final settlement."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "aborting",
+            "type": "bool"
+          },
+          {
+            "name": "recovery_recorded",
+            "docs": [
+              "Counted in market.unresolved_strategies while true."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "close_started_at",
+            "docs": [
+              "When the close (or abort) was authorized; a close stalled longer than the market's",
+              "pending deadline may be flagged as Recovery by anyone."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "leg_count",
+            "type": "u8"
+          },
+          {
+            "name": "legs",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "Leg"
+                  }
+                },
+                8
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "escrow_base_bump",
+            "type": "u8"
+          },
+          {
+            "name": "escrow_quote_bump",
+            "type": "u8"
+          },
+          {
+            "name": "budget_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StrategyState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "PendingOpen"
+          },
+          {
+            "name": "Open"
+          },
+          {
+            "name": "PendingClose"
+          },
+          {
+            "name": "Recovery"
+          },
+          {
+            "name": "Closed"
+          },
+          {
+            "name": "Cancelled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UtilizationCurve",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "base_ppm",
+            "type": "u32"
+          },
+          {
+            "name": "slope1_ppm",
+            "type": "u32"
+          },
+          {
+            "name": "kink_ppm",
+            "type": "u32"
+          },
+          {
+            "name": "slope2_ppm",
+            "type": "u32"
+          },
+          {
+            "name": "cap_ppm",
+            "type": "u32"
+          }
+        ]
+      }
+    }
+  ]
+}
