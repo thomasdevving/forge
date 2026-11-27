@@ -1,15 +1,18 @@
 """Benchmark 3: the conditional LP guarantee (sections 4.6, 12.4).
 
-Paired simulation over historical and synthetic SOL/USDC paths. Historical inputs are Binance
-SOL/USDC 1-minute bars (benchmarks/data/manifest.json); they drive a controlled pool
-simulation (arbitrage to each price plus optional noise volume) and are labelled
-"historical-price-driven", not a replay of Orca swaps. OHLC bars do not record intra-bar
+Paired simulation over historical and synthetic paths for one market (SOL/USDC by default, any
+market in benchmarks/markets.py with --market). Historical inputs are the market's Binance 1-minute
+bars (benchmarks/data/<SYMBOL>-1m.npz, manifest.json for SOLUSDC, manifest-<SYMBOL>.json otherwise);
+the pool fee rate comes from the market table and synthetic GBM paths start at the market spot
+(SOL/USDC keeps its original 70.0). They drive a controlled pool simulation (arbitrage to each
+price plus optional noise volume) and are labelled "historical-price-driven", not a replay of
+Orca swaps. OHLC bars do not record intra-bar
 order, so every window runs with both high-first and low-first orderings.
 
 Every path is reported, including ineligible ones (premium shortfall or restoration failure)
 and counterexamples to final-value dominance. Nothing is filtered.
 
-Usage: uv run python benchmarks/lp_guarantee.py [--quick] [--out DIR]
+Usage: uv run python benchmarks/lp_guarantee.py [--quick] [--out DIR] [--market JUP/USDC]
 """
 
 from __future__ import annotations
@@ -28,7 +31,9 @@ import numpy as np
 from forge_math.lpsim import SimParams, gbm_path, ohlc_path, simulate_path
 
 HERE = Path(__file__).resolve().parent
-DATA = HERE / "data" / "SOLUSDC-1m.npz"
+sys.path.insert(0, str(HERE))
+import markets  # noqa: E402
+
 WINDOW_MINUTES = 7 * 24 * 60
 SEED = 20261127
 
@@ -39,11 +44,12 @@ def run_id() -> str:
     return f"{datetime.now(UTC):%Y%m%d-%H%M%S}-{sha}"
 
 
-def historical_paths(quick: bool):
-    if not DATA.exists():
-        print("missing price data: run benchmarks/fetch_history.py first", file=sys.stderr)
+def historical_paths(quick: bool, mk: markets.Market):
+    data = mk.history_path()
+    if not data.exists():
+        print(f"missing price data: run benchmarks/fetch_history.py --symbol {mk.symbol} first", file=sys.stderr)
         return []
-    d = np.load(DATA)
+    d = np.load(data)
     o, h, low, c = d["open"], d["high"], d["low"], d["close"]
     n = len(c) // WINDOW_MINUTES
     if quick:
@@ -58,13 +64,13 @@ def historical_paths(quick: bool):
     return out
 
 
-def synthetic_paths(quick: bool):
+def synthetic_paths(quick: bool, start: float):
     out = []
     seeds = 3 if quick else 20
     for vol in (0.5, 0.9, 1.4):
         for i in range(seeds):
             s = SEED + int(vol * 1000) + i
-            out.append((f"gbm-vol{vol}-s{s}", gbm_path(70.0, WINDOW_MINUTES, vol, seed=s), 60.0,
+            out.append((f"gbm-vol{vol}-s{s}", gbm_path(start, WINDOW_MINUTES, vol, seed=s), 60.0,
                         "synthetic-gbm"))
     return out
 
@@ -105,8 +111,12 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--quick", action="store_true", help="few paths, for CI")
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--market", default=markets.DEFAULT, choices=sorted(markets.MARKETS))
     args = ap.parse_args(argv)
-    base = SimParams()
+    mk = markets.get(args.market)
+    spot, spot_source = markets.spot(mk)
+    gbm_start = mk.gbm_start if mk.gbm_start is not None else spot
+    base = SimParams(fee_rate=mk.fee_rate, bucket_width_ticks=mk.bucket_ticks)
     variants = {
         "base": base,
         "base+noise": replace(base, noise_volume_per_step=0.0005),
@@ -115,7 +125,7 @@ def main(argv=None) -> int:
         "stress-restoration": replace(base, restoration_buffer=0.0005, restore_cost_bps_mean=30.0,
                                       restore_cost_bps_max=120.0),
     }
-    paths = historical_paths(args.quick) + synthetic_paths(args.quick)
+    paths = historical_paths(args.quick, mk) + synthetic_paths(args.quick, gbm_start)
     rows = []
     t0 = time.time()
     for i, (pid, prices, step_s, source) in enumerate(paths):
@@ -125,12 +135,17 @@ def main(argv=None) -> int:
             d.update(source=source, variant=variant)
             rows.append({k: (v.item() if isinstance(v, np.generic) else v) for k, v in d.items()})
     summary = summarize(rows)
-    out_dir = args.out or HERE / "results" / run_id()
+    out_dir = args.out or HERE / "results" / markets.results_name(run_id(), mk)
     out_dir.mkdir(parents=True, exist_ok=True)
     params_dict = asdict(base)
     params_dict["curve"] = asdict(base.curve)
     (out_dir / "lp_guarantee.json").write_text(json.dumps({
         "benchmark": "lp_guarantee",
+        "market": mk.to_dict(),
+        "history": {"path": str(mk.history_path().relative_to(HERE)),
+                    "manifest": str(markets.manifest_path(mk.symbol).relative_to(HERE)),
+                    "label": f"Binance {mk.symbol} 1m bars"},
+        "spot": spot, "spot_source": spot_source, "gbm_start": gbm_start,
         "claim": "Conditional on successful restoration and sufficient premium funding, idle fees "
                  "plus premium paid >= fees from staying in Orca under the measured-fee "
                  "counterfactual. Not an unconditional dominance claim.",
@@ -140,7 +155,9 @@ def main(argv=None) -> int:
                          "restore_cost_bps_max")} for k, v in variants.items()},
         "seconds": round(time.time() - t0, 1), "summary": summary, "paths": rows,
     }, indent=1) + "\n")
-    lines = ["# Benchmark 3: conditional LP guarantee", "",
+    lines = [f"# Benchmark 3: conditional LP guarantee ({mk.name})", "",
+             f"Historical paths: Binance {mk.symbol} 1m bars. Synthetic GBM start {gbm_start:g}. "
+             f"Pool fee {mk.fee_rate:.2%}.", "",
              "Per borrow (the guarantee is per borrowed range): eligible = restored and fully funded.", "",
              "| slice | borrows | eligible | guarantee holds | violations | premium shortfalls "
              "| restoration failures |",

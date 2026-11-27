@@ -1,4 +1,4 @@
-"""Download and verify historical SOL/USDC prices from Binance Public Data.
+"""Download and verify historical prices (SOL/USDC, JUP/USDC, ...) from Binance Public Data.
 
 Source: https://data.binance.vision/ (documented at
 https://github.com/binance/binance-public-data). Every archive is verified against the
@@ -9,8 +9,10 @@ Usage:
     uv run python benchmarks/fetch_history.py                     # default window
     uv run python benchmarks/fetch_history.py --agg-trades        # also trade-level data
     uv run python benchmarks/fetch_history.py --symbol SOLUSDT    # labelled price proxy
+    uv run python benchmarks/fetch_history.py --symbol JUPUSDC    # JUP/USDC market
 
-Writes benchmarks/data/<symbol>-<interval>.npz and benchmarks/data/manifest.json.
+Writes benchmarks/data/<symbol>-<interval>.npz and a per-symbol manifest: benchmarks/data/manifest.json
+for SOLUSDC (kept for existing readers), benchmarks/data/manifest-<SYMBOL>.json for every other symbol.
 Raw zips are cached in benchmarks/data/raw/ (gitignored).
 """
 
@@ -29,6 +31,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from markets import manifest_path  # noqa: E402
 
 BASE = "https://data.binance.vision/data/spot/monthly"
 HERE = Path(__file__).resolve().parent
@@ -164,8 +169,9 @@ def main(argv: list[str] | None = None) -> int:
     manifest["output"] = {"path": str(out.relative_to(HERE)),
                           "sha256": hashlib.sha256(out.read_bytes()).hexdigest(),
                           "rows": int(len(k))}
-    (DATA / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
-    print(f"wrote {out} ({len(k)} rows) and manifest.json")
+    mpath = manifest_path(args.symbol)
+    mpath.write_text(json.dumps(manifest, indent=2) + "\n")
+    print(f"wrote {out} ({len(k)} rows) and {mpath.name}")
     return 0
 
 

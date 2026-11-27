@@ -1,0 +1,87 @@
+{
+  "source": "Binance Public Data (https://data.binance.vision/)",
+  "symbol": "JUPUSDC",
+  "label": "JUPUSDC spot",
+  "interval": "1m",
+  "timestamp_unit": "ms (normalized)",
+  "interpolation": "none; gaps are recorded below",
+  "generated_at_utc": "2026-11-27T15:54:52+00:00",
+  "archives": [
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/JUPUSDC/1m/JUPUSDC-1m-2026-01.zip",
+      "sha256": "d4a2fbc104037a4ec37bfeac80d9cbe9298d3e41d6a4820faba8d70cd8cb198a",
+      "rows": 44640,
+      "first_open_ms": 1767225600000,
+      "last_open_ms": 1769903940000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/JUPUSDC/1m/JUPUSDC-1m-2026-02.zip",
+      "sha256": "a2adb6cac3c9d662d94416e831abb446797d57bfb7e1d7b800974e22ceb9d849",
+      "rows": 40320,
+      "first_open_ms": 1769904000000,
+      "last_open_ms": 1772323140000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/JUPUSDC/1m/JUPUSDC-1m-2026-03.zip",
+      "sha256": "2b49235d1fadc5450d3bb26bf08cd2637ed1c6864ac7a827cd10226e1f6a6917",
+      "rows": 44640,
+      "first_open_ms": 1772323200000,
+      "last_open_ms": 1775001540000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/JUPUSDC/1m/JUPUSDC-1m-2026-04.zip",
+      "sha256": "8e634d6bf091be357e09e069cc8877d57719dc422723105756079db78ebb71d1",
+      "rows": 43200,
+      "first_open_ms": 1775001600000,
+      "last_open_ms": 1777593540000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/JUPUSDC/1m/JUPUSDC-1m-2026-05.zip",
+      "sha256": "5bcc26b36a2d20247c9c97bbc71e7e34475f2d40cc3bfc48c1caa50ac8bb4aaa",
+      "rows": 44640,
+      "first_open_ms": 1777593600000,
+      "last_open_ms": 1780271940000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/JUPUSDC/1m/JUPUSDC-1m-2026-06.zip",
+      "sha256": "0fad6983db2274efaa376149ed319809d52056ea8fa1b5e949c786f734c4aa17",
+      "rows": 43200,
+      "first_open_ms": 1780272000000,
+      "last_open_ms": 1782863940000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/JUPUSDC/1m/JUPUSDC-1m-2026-07.zip",
+      "sha256": "5944b828b89661ab4493c85827e5ae078822f53abe31fb42b8435882bbc7d2fc",
+      "rows": 44640,
+      "first_open_ms": 1782864000000,
+      "last_open_ms": 1785542340000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/JUPUSDC/1m/JUPUSDC-1m-2026-08.zip",
+      "sha256": "be7f5aa6fe6775f5124228c10ab52f87981b1b7b2693204ab540e2b2f8bcc0e4",
+      "rows": 44640,
+      "first_open_ms": 1785542400000,
+      "last_open_ms": 1788220740000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/JUPUSDC/1m/JUPUSDC-1m-2026-09.zip",
+      "sha256": "ffdbcf504455985f017bb0ae86b84f40cd848d7b2378c528a14411b1e9353588",
+      "rows": 43200,
+      "first_open_ms": 1788220800000,
+      "last_open_ms": 1790812740000
+    },
+    {
+      "url": "https://data.binance.vision/data/spot/monthly/klines/JUPUSDC/1m/JUPUSDC-1m-2026-10.zip",
+      "sha256": "4ad87c46a2fe83067448440d271a0ba7f5af1163be3d8f46b4d83413259f39ff",
+      "rows": 44640,
+      "first_open_ms": 1790812800000,
+      "last_open_ms": 1793491140000
+    }
+  ],
+  "missing_intervals": [],
+  "output": {
+    "path": "data/JUPUSDC-1m.npz",
+    "sha256": "449164b6d029be26c33af060f958dc7640d7b88ec8845f75da1800960f465803",
+    "rows": 437760
+  }
+}

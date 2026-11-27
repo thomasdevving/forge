@@ -1,0 +1,749 @@
+{
+ "benchmark": "realized",
+ "market": "JUP/USDC",
+ "rows": [
+  {
+   "market": "JUP/USDC",
+   "units": 3000,
+   "swap_slippage_bps": 150,
+   "payoff": "protective_put",
+   "move": 0.9,
+   "status": "refused",
+   "guard": "SwapSlippage"
+  },
+  {
+   "market": "JUP/USDC",
+   "units": 3000,
+   "swap_slippage_bps": 150,
+   "payoff": "protective_put",
+   "move": 1,
+   "spot": 0.24557957985493123,
+   "close_price": 0.24557957985493123,
+   "legs": [
+    "BorrowQuote@-15104",
+    "BorrowQuote@-14848",
+    "BorrowBase@-13824"
+   ],
+   "certificate_hash": "ccda0963e6aefebccd59343682f4eeb0890c67644cca637ed70d26d69c37f1af",
+   "target": 736.7387395647936,
+   "construction": 734.6971010319871,
+   "certified_bound": 2.095686692350874,
+   "construction_detail": {
+    "cash": 0,
+    "base": 2991.686448303183,
+    "legs": [
+     {
+      "kind": "borrow_put",
+      "side": "borrowed",
+      "tick_lower": -15104,
+      "tick_upper": -14848,
+      "price_lower": 0.22083830760624934,
+      "price_upper": 0.2265644640752788,
+      "liquidity_onchain": 71707907015
+     },
+     {
+      "kind": "borrow_put",
+      "side": "borrowed",
+      "tick_lower": -14848,
+      "tick_upper": -14592,
+      "price_lower": 0.2265644640752788,
+      "price_upper": 0.2324390950923304,
+      "liquidity_onchain": 41163929229
+     },
+     {
+      "kind": "borrow_call",
+      "side": "borrowed",
+      "tick_lower": -13824,
+      "tick_upper": -13568,
+      "price_lower": 0.25099283536821243,
+      "price_upper": 0.2575008740481967,
+      "liquidity_onchain": 1521984360
+     }
+    ]
+   },
+   "target_breakpoints": [
+    [
+     0.1350687689202122,
+     677.7996403996102
+    ],
+    [
+     0.22593321346653675,
+     677.7996403996102
+    ],
+    [
+     0.39292732776788997,
+     1178.78198330367
+    ]
+   ],
+   "realized_full_gross": 734.6970987864075,
+   "realized_net": 734.6970957864075,
+   "premium": 0.000003,
+   "fee_credits": 0,
+   "restoration_swap_cost": 0,
+   "gap_to_construction": -0.0000022455795942732948,
+   "gap_to_target": -2.0416407783860677
+  },
+  {
+   "market": "JUP/USDC",
+   "units": 3000,
+   "swap_slippage_bps": 150,
+   "payoff": "protective_put",
+   "move": 1.1,
+   "spot": 0.24557957985493123,
+   "close_price": 0.27013753784042444,
+   "legs": [
+    "BorrowQuote@-15104",
+    "BorrowQuote@-14848",
+    "BorrowBase@-13824"
+   ],
+   "certificate_hash": "ccda0963e6aefebccd59343682f4eeb0890c67644cca637ed70d26d69c37f1af",
+   "target": 810.4126135212733,
+   "construction": 808.7815670706931,
+   "certified_bound": 2.095686692350874,
+   "construction_detail": {
+    "cash": 0,
+    "base": 2991.686448303183,
+    "legs": [
+     {
+      "kind": "borrow_put",
+      "side": "borrowed",
+      "tick_lower": -15104,
+      "tick_upper": -14848,
+      "price_lower": 0.22083830760624934,
+      "price_upper": 0.2265644640752788,
+      "liquidity_onchain": 71707907015
+     },
+     {
+      "kind": "borrow_put",
+      "side": "borrowed",
+      "tick_lower": -14848,
+      "tick_upper": -14592,
+      "price_lower": 0.2265644640752788,
+      "price_upper": 0.2324390950923304,
+      "liquidity_onchain": 41163929229
+     },
+     {
+      "kind": "borrow_call",
+      "side": "borrowed",
+      "tick_lower": -13824,
+      "tick_upper": -13568,
+      "price_lower": 0.25099283536821243,
+      "price_upper": 0.2575008740481967,
+      "liquidity_onchain": 1521984360
+     }
+    ]
+   },
+   "target_breakpoints": [
+    [
+     0.1350687689202122,
+     677.7996403996102
+    ],
+    [
+     0.22593321346653675,
+     677.7996403996102
+    ],
+    [
+     0.39292732776788997,
+     1178.78198330367
+    ]
+   ],
+   "realized_full_gross": 808.7745143222375,
+   "realized_net": 808.7487683222374,
+   "premium": 0.025746,
+   "fee_credits": 0,
+   "restoration_swap_cost": 0.007050355598718028,
+   "gap_to_construction": -0.007052748455635083,
+   "gap_to_target": -1.638099199035878
+  },
+  {
+   "market": "JUP/USDC",
+   "units": 3000,
+   "swap_slippage_bps": 150,
+   "payoff": "collar",
+   "move": 0.9,
+   "status": "refused",
+   "guard": "PoolDeviation"
+  },
+  {
+   "market": "JUP/USDC",
+   "units": 3000,
+   "swap_slippage_bps": 150,
+   "payoff": "collar",
+   "move": 1,
+   "spot": 0.24557957985493123,
+   "close_price": 0.24557957985493123,
+   "legs": [
+    "BorrowQuote@-15104",
+    "BorrowQuote@-14848",
+    "ProvideBase@-13568",
+    "ProvideBase@-13312"
+   ],
+   "certificate_hash": "516fa0af389709291e529fc54770655f7ed1d53d93d66138d31a1fb3e0f96298",
+   "target": 736.7387395647937,
+   "construction": 737.5154470191584,
+   "certified_bound": 2.7392759311879233,
+   "construction_detail": {
+    "cash": 0.7767074574820423,
+    "base": 0,
+    "legs": [
+     {
+      "kind": "borrow_put",
+      "side": "borrowed",
+      "tick_lower": -15104,
+      "tick_upper": -14848,
+      "price_lower": 0.22083830760624934,
+      "price_upper": 0.2265644640752788,
+      "liquidity_onchain": 93729532224
+     },
+     {
+      "kind": "borrow_put",
+      "side": "borrowed",
+      "tick_lower": -14848,
+      "tick_upper": -14592,
+      "price_lower": 0.2265644640752788,
+      "price_upper": 0.2324390950923304,
+      "liquidity_onchain": 19730535375
+     },
+     {
+      "kind": "provide_call",
+      "side": "provided",
+      "tick_lower": -13568,
+      "tick_upper": -13312,
+      "price_lower": 0.2575008740481967,
+      "price_upper": 0.26417766084164024,
+      "liquidity_onchain": 30126536804
+     },
+     {
+      "kind": "provide_call",
+      "side": "provided",
+      "tick_lower": -13312,
+      "tick_upper": -13056,
+      "price_lower": 0.26417766084164024,
+      "price_upper": 0.2710275712489351,
+      "liquidity_onchain": 90728594307
+     }
+    ]
+   },
+   "target_breakpoints": [
+    [
+     0.1350687689202122,
+     677.7996403996102
+    ],
+    [
+     0.22593321346653675,
+     677.7996403996102
+    ],
+    [
+     0.26522594624332574,
+     795.6778387299772
+    ],
+    [
+     0.39292732776788997,
+     795.6778387299772
+    ]
+   ],
+   "realized_full_gross": 737.5154447766961,
+   "realized_net": 737.5154427766961,
+   "premium": 0.000002,
+   "fee_credits": 0,
+   "restoration_swap_cost": 0,
+   "gap_to_construction": -0.000002242462301182968,
+   "gap_to_target": 0.7767052119023674
+  },
+  {
+   "market": "JUP/USDC",
+   "units": 3000,
+   "swap_slippage_bps": 150,
+   "payoff": "collar",
+   "move": 1.1,
+   "spot": 0.24557957985493123,
+   "close_price": 0.27013753784042444,
+   "legs": [
+    "BorrowQuote@-15104",
+    "BorrowQuote@-14848",
+    "ProvideBase@-13568",
+    "ProvideBase@-13312"
+   ],
+   "certificate_hash": "516fa0af389709291e529fc54770655f7ed1d53d93d66138d31a1fb3e0f96298",
+   "target": 795.6778387299772,
+   "construction": 798.2850463781547,
+   "certified_bound": 2.7392759311879233,
+   "construction_detail": {
+    "cash": 0.7767074574820423,
+    "base": 0,
+    "legs": [
+     {
+      "kind": "borrow_put",
+      "side": "borrowed",
+      "tick_lower": -15104,
+      "tick_upper": -14848,
+      "price_lower": 0.22083830760624934,
+      "price_upper": 0.2265644640752788,
+      "liquidity_onchain": 93729532224
+     },
+     {
+      "kind": "borrow_put",
+      "side": "borrowed",
+      "tick_lower": -14848,
+      "tick_upper": -14592,
+      "price_lower": 0.2265644640752788,
+      "price_upper": 0.2324390950923304,
+      "liquidity_onchain": 19730535375
+     },
+     {
+      "kind": "provide_call",
+      "side": "provided",
+      "tick_lower": -13568,
+      "tick_upper": -13312,
+      "price_lower": 0.2575008740481967,
+      "price_upper": 0.26417766084164024,
+      "liquidity_onchain": 30126536804
+     },
+     {
+      "kind": "provide_call",
+      "side": "provided",
+      "tick_lower": -13312,
+      "tick_upper": -13056,
+      "price_lower": 0.26417766084164024,
+      "price_upper": 0.2710275712489351,
+      "liquidity_onchain": 90728594307
+     }
+    ]
+   },
+   "target_breakpoints": [
+    [
+     0.1350687689202122,
+     677.7996403996102
+    ],
+    [
+     0.22593321346653675,
+     677.7996403996102
+    ],
+    [
+     0.26522594624332574,
+     795.6778387299772
+    ],
+    [
+     0.39292732776788997,
+     795.6778387299772
+    ]
+   ],
+   "realized_full_gross": 798.2850433728123,
+   "realized_net": 800.1699343728123,
+   "premium": 0.000005,
+   "fee_credits": 1.884896,
+   "restoration_swap_cost": 0,
+   "gap_to_construction": -0.0000030053423643039423,
+   "gap_to_target": 2.607204642835086
+  },
+  {
+   "market": "JUP/USDC",
+   "units": 3000,
+   "swap_slippage_bps": 150,
+   "payoff": "call_spread",
+   "move": 0.9,
+   "spot": 0.24557957985493123,
+   "close_price": 0.22102162186943813,
+   "legs": [
+    "BorrowBase@-13824",
+    "ProvideBase@-13312",
+    "ProvideBase@-13056"
+   ],
+   "certificate_hash": "6be79568ea2e2e24c699d48753bab62cba28fbbccd78f196aacc2cae999d25a0",
+   "target": 331.5324328041572,
+   "construction": 330.7894529163015,
+   "certified_bound": 1.406257958166993,
+   "construction_detail": {
+    "cash": 0,
+    "base": 0,
+    "legs": [
+     {
+      "kind": "borrow_call",
+      "side": "borrowed",
+      "tick_lower": -13824,
+      "tick_upper": -13568,
+      "price_lower": 0.25099283536821243,
+      "price_upper": 0.2575008740481967,
+      "liquidity_onchain": 59089463492
+     },
+     {
+      "kind": "provide_call",
+      "side": "provided",
+      "tick_lower": -13312,
+      "tick_upper": -13056,
+      "price_lower": 0.26417766084164024,
+      "price_upper": 0.2710275712489351,
+      "liquidity_onchain": 34996315299
+     },
+     {
+      "kind": "provide_call",
+      "side": "provided",
+      "tick_lower": -13056,
+      "tick_upper": -12800,
+      "price_lower": 0.2710275712489351,
+      "price_upper": 0.27805509422361546,
+      "liquidity_onchain": 25817778966
+     }
+    ]
+   },
+   "target_breakpoints": [
+    [
+     0.1350687689202122,
+     202.60315338031828
+    ],
+    [
+     0.2554027630491285,
+     383.1041445736928
+    ],
+    [
+     0.2701375378404244,
+     427.30846894758037
+    ],
+    [
+     0.39292732776788997,
+     611.4931538387788
+    ]
+   ],
+   "realized_full_gross": 330.78945248766473,
+   "realized_net": 330.78944948766474,
+   "premium": 0.000003,
+   "fee_credits": 0,
+   "restoration_swap_cost": 0,
+   "gap_to_construction": -4.2863678118010284e-7,
+   "gap_to_target": -0.742980316492492
+  },
+  {
+   "market": "JUP/USDC",
+   "units": 3000,
+   "swap_slippage_bps": 150,
+   "payoff": "call_spread",
+   "move": 1,
+   "spot": 0.24557957985493123,
+   "close_price": 0.24557957985493123,
+   "legs": [
+    "BorrowBase@-13824",
+    "ProvideBase@-13312",
+    "ProvideBase@-13056"
+   ],
+   "certificate_hash": "6be79568ea2e2e24c699d48753bab62cba28fbbccd78f196aacc2cae999d25a0",
+   "target": 368.36936978239686,
+   "construction": 367.5438365736683,
+   "certified_bound": 1.406257958166993,
+   "construction_detail": {
+    "cash": 0,
+    "base": 0,
+    "legs": [
+     {
+      "kind": "borrow_call",
+      "side": "borrowed",
+      "tick_lower": -13824,
+      "tick_upper": -13568,
+      "price_lower": 0.25099283536821243,
+      "price_upper": 0.2575008740481967,
+      "liquidity_onchain": 59089463492
+     },
+     {
+      "kind": "provide_call",
+      "side": "provided",
+      "tick_lower": -13312,
+      "tick_upper": -13056,
+      "price_lower": 0.26417766084164024,
+      "price_upper": 0.2710275712489351,
+      "liquidity_onchain": 34996315299
+     },
+     {
+      "kind": "provide_call",
+      "side": "provided",
+      "tick_lower": -13056,
+      "tick_upper": -12800,
+      "price_lower": 0.2710275712489351,
+      "price_upper": 0.27805509422361546,
+      "liquidity_onchain": 25817778966
+     }
+    ]
+   },
+   "target_breakpoints": [
+    [
+     0.1350687689202122,
+     202.60315338031828
+    ],
+    [
+     0.2554027630491285,
+     383.1041445736928
+    ],
+    [
+     0.2701375378404244,
+     427.30846894758037
+    ],
+    [
+     0.39292732776788997,
+     611.4931538387788
+    ]
+   ],
+   "realized_full_gross": 367.5438360974052,
+   "realized_net": 367.5438350974052,
+   "premium": 0.000001,
+   "fee_credits": 0,
+   "restoration_swap_cost": 0,
+   "gap_to_construction": -4.762630965160497e-7,
+   "gap_to_target": -0.825533684991683
+  },
+  {
+   "market": "JUP/USDC",
+   "units": 3000,
+   "swap_slippage_bps": 150,
+   "payoff": "call_spread",
+   "move": 1.1,
+   "spot": 0.24557957985493123,
+   "close_price": 0.27013753784042444,
+   "legs": [
+    "BorrowBase@-13824",
+    "ProvideBase@-13312",
+    "ProvideBase@-13056"
+   ],
+   "certificate_hash": "6be79568ea2e2e24c699d48753bab62cba28fbbccd78f196aacc2cae999d25a0",
+   "target": 427.3084689475804,
+   "construction": 425.9022194081166,
+   "certified_bound": 1.406257958166993,
+   "construction_detail": {
+    "cash": 0,
+    "base": 0,
+    "legs": [
+     {
+      "kind": "borrow_call",
+      "side": "borrowed",
+      "tick_lower": -13824,
+      "tick_upper": -13568,
+      "price_lower": 0.25099283536821243,
+      "price_upper": 0.2575008740481967,
+      "liquidity_onchain": 59089463492
+     },
+     {
+      "kind": "provide_call",
+      "side": "provided",
+      "tick_lower": -13312,
+      "tick_upper": -13056,
+      "price_lower": 0.26417766084164024,
+      "price_upper": 0.2710275712489351,
+      "liquidity_onchain": 34996315299
+     },
+     {
+      "kind": "provide_call",
+      "side": "provided",
+      "tick_lower": -13056,
+      "tick_upper": -12800,
+      "price_lower": 0.2710275712489351,
+      "price_upper": 0.27805509422361546,
+      "liquidity_onchain": 25817778966
+     }
+    ]
+   },
+   "target_breakpoints": [
+    [
+     0.1350687689202122,
+     202.60315338031828
+    ],
+    [
+     0.2554027630491285,
+     383.1041445736928
+    ],
+    [
+     0.2701375378404244,
+     427.30846894758037
+    ],
+    [
+     0.39292732776788997,
+     611.4931538387788
+    ]
+   ],
+   "realized_full_gross": 424.8557081517654,
+   "realized_net": 424.37743115176534,
+   "premium": 1.006476,
+   "fee_credits": 0.528199,
+   "restoration_swap_cost": 1.0465099823682067,
+   "gap_to_construction": -1.0465112563512093,
+   "gap_to_target": -2.4527607958150384
+  },
+  {
+   "market": "JUP/USDC",
+   "units": 3000,
+   "swap_slippage_bps": 150,
+   "payoff": "strangle",
+   "move": 0.9,
+   "status": "refused",
+   "guard": "PoolDeviation"
+  },
+  {
+   "market": "JUP/USDC",
+   "units": 3000,
+   "swap_slippage_bps": 150,
+   "payoff": "strangle",
+   "move": 1,
+   "spot": 0.24557957985493123,
+   "close_price": 0.24557957985493123,
+   "legs": [
+    "BorrowQuote@-15104",
+    "BorrowQuote@-14848",
+    "BorrowBase@-13568",
+    "BorrowBase@-13312"
+   ],
+   "certificate_hash": "d4d38e9b45e468fa8beecb76a9702ff8a1fd0195fbd1102cf201193e06434ad4",
+   "target": 0,
+   "construction": 0,
+   "certified_bound": 3.3745175458708645,
+   "construction_detail": {
+    "cash": 0,
+    "base": 0,
+    "legs": [
+     {
+      "kind": "borrow_put",
+      "side": "borrowed",
+      "tick_lower": -15104,
+      "tick_upper": -14848,
+      "price_lower": 0.22083830760624934,
+      "price_upper": 0.2265644640752788,
+      "liquidity_onchain": 42402257172
+     },
+     {
+      "kind": "borrow_put",
+      "side": "borrowed",
+      "tick_lower": -14848,
+      "tick_upper": -14592,
+      "price_lower": 0.2265644640752788,
+      "price_upper": 0.2324390950923304,
+      "liquidity_onchain": 69332275662
+     },
+     {
+      "kind": "borrow_call",
+      "side": "borrowed",
+      "tick_lower": -13568,
+      "tick_upper": -13312,
+      "price_lower": 0.2575008740481967,
+      "price_upper": 0.26417766084164024,
+      "liquidity_onchain": 64155920274
+     },
+     {
+      "kind": "borrow_call",
+      "side": "borrowed",
+      "tick_lower": -13312,
+      "tick_upper": -13056,
+      "price_lower": 0.26417766084164024,
+      "price_upper": 0.2710275712489351,
+      "liquidity_onchain": 58495685475
+     }
+    ]
+   },
+   "target_breakpoints": [
+    [
+     0.1350687689202122,
+     279.96072103462166
+    ],
+    [
+     0.22838900926508607,
+     0
+    ],
+    [
+     0.2627701504447764,
+     0
+    ],
+    [
+     0.39292732776788997,
+     390.4715319693407
+    ]
+   ],
+   "realized_full_gross": -0.0000024911591597098625,
+   "realized_net": -0.000006491159159709862,
+   "premium": 0.000004,
+   "fee_credits": 0,
+   "restoration_swap_cost": 0,
+   "gap_to_construction": -0.0000024911591597098625,
+   "gap_to_target": -0.0000024911591597098625
+  },
+  {
+   "market": "JUP/USDC",
+   "units": 3000,
+   "swap_slippage_bps": 150,
+   "payoff": "strangle",
+   "move": 1.1,
+   "spot": 0.24557957985493123,
+   "close_price": 0.27013753784042444,
+   "legs": [
+    "BorrowQuote@-15104",
+    "BorrowQuote@-14848",
+    "BorrowBase@-13568",
+    "BorrowBase@-13312"
+   ],
+   "certificate_hash": "d4d38e9b45e468fa8beecb76a9702ff8a1fd0195fbd1102cf201193e06434ad4",
+   "target": 22.102162186944053,
+   "construction": 18.76804870663932,
+   "certified_bound": 3.3745175458708645,
+   "construction_detail": {
+    "cash": 0,
+    "base": 0,
+    "legs": [
+     {
+      "kind": "borrow_put",
+      "side": "borrowed",
+      "tick_lower": -15104,
+      "tick_upper": -14848,
+      "price_lower": 0.22083830760624934,
+      "price_upper": 0.2265644640752788,
+      "liquidity_onchain": 42402257172
+     },
+     {
+      "kind": "borrow_put",
+      "side": "borrowed",
+      "tick_lower": -14848,
+      "tick_upper": -14592,
+      "price_lower": 0.2265644640752788,
+      "price_upper": 0.2324390950923304,
+      "liquidity_onchain": 69332275662
+     },
+     {
+      "kind": "borrow_call",
+      "side": "borrowed",
+      "tick_lower": -13568,
+      "tick_upper": -13312,
+      "price_lower": 0.2575008740481967,
+      "price_upper": 0.26417766084164024,
+      "liquidity_onchain": 64155920274
+     },
+     {
+      "kind": "borrow_call",
+      "side": "borrowed",
+      "tick_lower": -13312,
+      "tick_upper": -13056,
+      "price_lower": 0.26417766084164024,
+      "price_upper": 0.2710275712489351,
+      "liquidity_onchain": 58495685475
+     }
+    ]
+   },
+   "target_breakpoints": [
+    [
+     0.1350687689202122,
+     279.96072103462166
+    ],
+    [
+     0.22838900926508607,
+     0
+    ],
+    [
+     0.2627701504447764,
+     0
+    ],
+    [
+     0.39292732776788997,
+     390.4715319693407
+    ]
+   ],
+   "realized_full_gross": 15.932140531898465,
+   "realized_net": 13.843896531898466,
+   "premium": 2.088244,
+   "fee_credits": 0,
+   "restoration_swap_cost": 2.835904942144282,
+   "gap_to_construction": -2.8359081747408545,
+   "gap_to_target": -6.170021655045588
+  }
+ ]
+}

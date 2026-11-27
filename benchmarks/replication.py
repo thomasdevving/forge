@@ -1,11 +1,17 @@
 """Benchmark 1: replication accuracy, baseline vs FORGE optimizer (section 12.2).
 
-Realistic payoffs at varied levels and widths on the SOL/USDC ts64 grid (bucket = 4 x 64 ticks,
-about 2.6% wide). For each payoff and compiler: feasibility, certified max error from the
-independent verifier, legs, locked capital and solve time. Every certificate's bound is checked
-against a dense out-of-sample evaluation; a violation fails the run.
+Realistic payoffs at varied levels and widths on a ts64 Whirlpool grid (bucket = 4 x 64 ticks,
+about 2.6% wide); SOL/USDC by default, any market in benchmarks/markets.py with --market. For each
+payoff and compiler: feasibility, certified max error from the independent verifier, legs, locked
+capital and solve time. Every certificate's bound is checked against a dense out-of-sample
+evaluation; a violation fails the run.
 
-Usage: uv run python benchmarks/replication.py [--quick] [--out DIR]
+Market scaling (see markets.py): SOL/USDC keeps its pinned spot 73.23, 10 SOL units and raw
+liquidity 4e13 (deep) / 6e10 (thin). Other markets use the last close of their Binance history as
+spot, units and base holdings with the same USD notional, and raw liquidity with the same USD of
+quote per bucket.
+
+Usage: uv run python benchmarks/replication.py [--quick] [--out DIR] [--market JUP/USDC]
 """
 
 from __future__ import annotations
@@ -26,30 +32,26 @@ from forge_verifier.certificate import build_certificate, construction_from_dict
 from forge_verifier.exact import construction_value
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import markets  # noqa: E402
 from lp_guarantee import run_id  # noqa: E402
 
-SPOT = 73.23
-UNITS = 10.0
-LIQUIDITY = {"deep": 4 * 10**13, "thin": 6 * 10**10}
 
-
-def payoff_set(quick: bool):
-    s = SPOT
+def payoff_set(quick: bool, s: float, units: float):
     out = []
     for fl in (0.6, 0.7, 0.8, 0.9):
-        out.append((f"protective_put/{fl}", presets.protective_put(UNITS, fl * s, s)))
+        out.append((f"protective_put/{fl}", presets.protective_put(units, fl * s, s)))
     for fl, cap in ((0.75, 1.15), (0.75, 1.3), (0.85, 1.15), (0.85, 1.3)):
-        out.append((f"collar/{fl}-{cap}", presets.collar(UNITS, fl * s, cap * s, s)))
+        out.append((f"collar/{fl}-{cap}", presets.collar(units, fl * s, cap * s, s)))
     for up, low in ((0.9, 0.75), (0.85, 0.65), (0.92, 0.8)):
-        out.append((f"put_spread/{up}-{low}", presets.put_spread(UNITS, up * s, low * s, s)))
+        out.append((f"put_spread/{up}-{low}", presets.put_spread(units, up * s, low * s, s)))
     for low, up in ((1.1, 1.3), (1.2, 1.45), (1.08, 1.2)):
-        out.append((f"call_spread/{low}-{up}", presets.call_spread(UNITS / 2, low * s, up * s, s)))
+        out.append((f"call_spread/{low}-{up}", presets.call_spread(units / 2, low * s, up * s, s)))
     for k in (1.0, 0.9, 1.1):
-        out.append((f"straddle/{k}", presets.straddle(UNITS, k * s, s)))
+        out.append((f"straddle/{k}", presets.straddle(units, k * s, s)))
     for p, c in ((0.85, 1.15), (0.75, 1.3), (0.9, 1.1)):
-        out.append((f"strangle/{p}-{c}", presets.strangle(UNITS, p * s, c * s, s)))
+        out.append((f"strangle/{p}-{c}", presets.strangle(units, p * s, c * s, s)))
     for lo, mid, hi in ((1.1, 1.2, 1.3), (1.05, 1.15, 1.25), (1.15, 1.3, 1.45)):
-        out.append((f"butterfly/{lo}-{mid}-{hi}", presets.butterfly(UNITS / 4, lo * s, mid * s, hi * s, s)))
+        out.append((f"butterfly/{lo}-{mid}-{hi}", presets.butterfly(units / 4, lo * s, mid * s, hi * s, s)))
     return out[::3] if quick else out
 
 
@@ -67,14 +69,24 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--quick", action="store_true")
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--market", default=markets.DEFAULT, choices=sorted(markets.MARKETS))
     args = ap.parse_args(argv)
-    limits = UserLimits(base_holdings=40.0, quote_holdings=5_000.0, premium_budget=25.0, max_legs=8)
+    mk = markets.get(args.market)
+    spot, spot_source = markets.spot(mk)
+    scale = markets.notional_scale(mk)
+    units = markets.REF_UNITS * scale
+    liquidity = markets.liquidity_raw(mk)
+    bd, qd = mk.base_decimals, mk.quote_decimals
+    limits = UserLimits(base_holdings=markets.REF_BASE_HOLDINGS * scale, quote_holdings=5_000.0,
+                        premium_budget=25.0, max_legs=8)
     rows, violations = [], []
     t_all = time.time()
-    for liq_name, liq in LIQUIDITY.items():
-        g0 = grid_for_market(SPOT, 64, 4, 14)
-        grid = grid_for_market(SPOT, 64, 4, 14, borrowable={b.tick_lower: liq for b in g0.buckets})
-        for name, payoff in payoff_set(args.quick):
+    ts, mult = mk.tick_spacing, mk.bucket_multiplier
+    for liq_name, liq in liquidity.items():
+        g0 = grid_for_market(spot, ts, mult, 14, base_decimals=bd, quote_decimals=qd)
+        grid = grid_for_market(spot, ts, mult, 14, borrowable={b.tick_lower: liq for b in g0.buckets},
+                               base_decimals=bd, quote_decimals=qd)
+        for name, payoff in payoff_set(args.quick, spot, units):
             for method, fn in (("baseline", compile_baseline), ("optimizer", compile_optimizer)):
                 res = fn(payoff, grid, limits)
                 row = {"payoff": name, "liquidity": liq_name, "method": method, "status": res.status,
@@ -82,7 +94,7 @@ def main(argv=None) -> int:
                        "tolerance": payoff.default_tolerance(), "notional": payoff.notional_scale()}
                 if res.construction is not None and res.construction.legs:
                     cert = build_certificate(
-                        market={"whirlpool": "SOL/USDC ts64", "base_decimals": 9, "quote_decimals": 6, "spot": SPOT},
+                        market={"whirlpool": mk.label, "base_decimals": bd, "quote_decimals": qd, "spot": spot},
                         target=list(payoff.breakpoints), construction=res.construction.to_dict(),
                         premium_budget=limits.premium_budget, liquidity_check=[])
                     assert verify_certificate(cert)
@@ -109,15 +121,23 @@ def main(argv=None) -> int:
             "mean_solve_ms": float(np.mean([r["solve_seconds"] for r in rs]) * 1e3),
         }
 
-    summary = {f"{m}/{liq}": stats(m, liq) for liq in LIQUIDITY for m in ("baseline", "optimizer")}
-    out_dir = args.out or Path(__file__).resolve().parent / "results" / run_id()
+    summary = {f"{m}/{liq}": stats(m, liq) for liq in liquidity for m in ("baseline", "optimizer")}
+    out_dir = args.out or Path(__file__).resolve().parent / "results" / markets.results_name(run_id(), mk)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "replication.json").write_text(json.dumps({
-        "benchmark": "replication", "spot": SPOT, "grid": "SOL/USDC ts64, bucket 256 ticks",
-        "limits": limits.__dict__, "liquidity_scenarios": LIQUIDITY, "summary": summary,
+        "benchmark": "replication", "market": mk.to_dict(), "spot": spot, "spot_source": spot_source,
+        "units": units, "grid": f"{mk.label}, bucket {mk.bucket_ticks} ticks",
+        "sizing": "units and base holdings carry the SOL/USDC reference USD notional "
+                  f"({markets.REF_UNITS:g} SOL at {markets.MARKETS[markets.REF].pinned_spot}); liquidity "
+                  "scenarios carry the same USD of quote in the bucket just below spot",
+        "limits": limits.__dict__, "liquidity_scenarios": liquidity,
+        "liquidity_usd_per_bucket": markets.liquidity_usd(), "summary": summary,
         "bound_violations": violations, "rows": rows, "seconds": round(time.time() - t_all, 1),
     }, indent=1) + "\n")
-    lines = ["# Benchmark 1: replication accuracy", "",
+    lines = [f"# Benchmark 1: replication accuracy ({mk.name})", "",
+             f"Spot {spot:g} ({spot_source}); payoff units {units:.6g} {mk.base}; borrowable liquidity "
+             + ", ".join(f"{k} {v} raw L (~${u:,.0f} quote per bucket)"
+                         for (k, v), u in zip(liquidity.items(), markets.liquidity_usd().values())) + ".", "",
              "| method / liquidity | payoffs | feasible | median error (bps of notional) | max error (bps) "
              "| mean legs | mean solve (ms) |", "|---|---|---|---|---|---|---|"]
     for k, s in summary.items():
