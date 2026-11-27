@@ -42,8 +42,8 @@ export function HeroGraphic() {
     <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="A drawn collar payoff compiled into concentrated-liquidity ranges">
       <defs>
         <linearGradient id="hg-put" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="var(--ember)" stopOpacity="0.95" />
-          <stop offset="1" stopColor="var(--ember)" stopOpacity="0.35" />
+          <stop offset="0" stopColor="var(--accent)" stopOpacity="0.95" />
+          <stop offset="1" stopColor="var(--accent)" stopOpacity="0.35" />
         </linearGradient>
         <linearGradient id="hg-call" x1="0" x2="0" y1="0" y2="1">
           <stop offset="0" stopColor="var(--steel)" stopOpacity="0.9" />
@@ -64,7 +64,7 @@ export function HeroGraphic() {
             width={x1 - x0}
             y={H - 52 - 64}
             height={64}
-            rx="3"
+            
             fill={r.kind === "put" ? "url(#hg-put)" : "url(#hg-call)"}
             className="animate-rise"
             style={{ animationDelay: `${1.3 + i * 0.12}s` }}
@@ -74,21 +74,21 @@ export function HeroGraphic() {
       {/* unhedged holding */}
       <path d={path((p) => p)} fill="none" stroke="var(--ink-3)" strokeWidth="1.5" strokeDasharray="2 6" opacity="0.7" />
       {/* drawn target */}
-      <path d={path(target)} fill="none" stroke="var(--ember)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="animate-draw" style={{ ["--len" as string]: 1400 }} />
+      <path d={path(target)} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="miter" className="animate-draw" style={{ ["--len" as string]: 1400 }} />
       {/* compiled */}
       <path d={path(compiled)} fill="none" stroke="var(--ink)" strokeWidth="1.6" strokeDasharray="1400" className="animate-draw" style={{ ["--len" as string]: 1400, animationDelay: "2.1s" }} />
       <g fontFamily="var(--font-mono)" fontSize="11">
-        <rect x={W - 196} y={20} width={168} height={66} rx="8" fill="var(--bg-elev)" stroke="var(--line)" />
-        <line x1={W - 184} x2={W - 160} y1={38} y2={38} stroke="var(--ember)" strokeWidth="3" />
-        <text x={W - 152} y={42} fill="var(--ink-2)">target you draw</text>
+        <rect x={W - 196} y={20} width={168} height={66} fill="var(--bg)" stroke="var(--line)" />
+        <line x1={W - 184} x2={W - 160} y1={38} y2={38} stroke="var(--accent)" strokeWidth="3" />
+        <text x={W - 152} y={42} fill="var(--ink-2)">target</text>
         <line x1={W - 184} x2={W - 160} y1={56} y2={56} stroke="var(--ink)" strokeWidth="1.6" />
-        <text x={W - 152} y={60} fill="var(--ink-2)">compiled ranges</text>
+        <text x={W - 152} y={60} fill="var(--ink-2)">compiled</text>
         <line x1={W - 184} x2={W - 160} y1={74} y2={74} stroke="var(--ink-3)" strokeDasharray="2 4" />
-        <text x={W - 152} y={78} fill="var(--ink-2)">just holding</text>
+        <text x={W - 152} y={78} fill="var(--ink-2)">hold</text>
       </g>
       <text x={PAD} y={H - 30} fill="var(--ink-3)" fontSize="11" fontFamily="var(--font-mono)">price →</text>
-      <text x={xs(0.875)} y={H - 30} fill="var(--ember)" fontSize="11" fontFamily="var(--font-mono)" textAnchor="middle">borrowed (long put)</text>
-      <text x={xs(1.12)} y={H - 30} fill="var(--steel)" fontSize="11" fontFamily="var(--font-mono)" textAnchor="middle">provided (covered call)</text>
+      <text x={xs(0.875)} y={H - 30} fill="var(--accent)" fontSize="11" fontFamily="var(--font-mono)" textAnchor="middle">borrowed · put</text>
+      <text x={xs(1.12)} y={H - 30} fill="var(--steel)" fontSize="11" fontFamily="var(--font-mono)" textAnchor="middle">provided · call</text>
     </svg>
   );
 }

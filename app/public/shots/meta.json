@@ -1,0 +1,50 @@
+{
+ "capturedAt": "2026-11-27T15:34:52.005Z",
+ "market": "SOL/USDC",
+ "spot": 63.499999999999986,
+ "holdings": {
+  "base": 10,
+  "quote": 2000
+ },
+ "premiumBudget": 20,
+ "target": [
+  [
+   34.925,
+   571.4999999999999
+  ],
+  [
+   57.14999999999999,
+   571.4999999999999
+  ],
+  [
+   71.11999999999999,
+   711.1999999999999
+  ],
+  [
+   101.59999999999998,
+   711.1999999999999
+  ]
+ ],
+ "legs": [
+  {
+   "kind": "borrow_put",
+   "priceLower": 56.86605723193372,
+   "priceUpper": 58.34054752764556
+  },
+  {
+   "kind": "provide_call",
+   "priceLower": 69.7898364877607,
+   "priceUpper": 71.59942979613466
+  },
+  {
+   "kind": "provide_call",
+   "priceLower": 71.59942979613466,
+   "priceUpper": 73.4559443770966
+  }
+ ],
+ "capitalLocked": 645.0769139636183,
+ "certifiedBound": 3.6520713839502803,
+ "maxErrorAt": 71.11999999999999,
+ "solveMs": 102,
+ "hash": "9433c9dad40ea67e3780ba7b19707ee497ef410e924f7b5a1593ce6b5ead410e"
+}
