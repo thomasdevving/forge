@@ -285,6 +285,20 @@ pub enum LegKind {
     BorrowQuote,
     /// Borrow a range above spot (base-only): call-like payoff.
     BorrowBase,
+    /// User provides quote in a range below spot: cash-secured put.
+    ProvideQuote,
+    /// User provides base in a range above spot: covered call.
+    ProvideBase,
+}
+
+impl LegKind {
+    pub fn is_borrow(self) -> bool {
+        matches!(self, LegKind::BorrowQuote | LegKind::BorrowBase)
+    }
+    /// The single token the range holds at open (true = quote).
+    pub fn holds_quote(self) -> bool {
+        matches!(self, LegKind::BorrowQuote | LegKind::ProvideQuote)
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq, InitSpace)]
@@ -295,6 +309,16 @@ pub enum StrategyState {
     Recovery,
     Closed,
     Cancelled,
+}
+
+pub fn kind_from_tag(tag: u8) -> Result<LegKind> {
+    match tag {
+        0 => Ok(LegKind::BorrowQuote),
+        1 => Ok(LegKind::BorrowBase),
+        2 => Ok(LegKind::ProvideQuote),
+        3 => Ok(LegKind::ProvideBase),
+        _ => err!(ForgeError::InvalidLeg),
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, Default, PartialEq, Eq, InitSpace)]
@@ -327,15 +351,19 @@ pub struct Leg {
     pub restored_at: i64,
     pub swap_in: u64,
     pub swap_out: u64,
+    /// Provided legs: tokens the user funded, tokens returned at close, and actual Orca fees
+    /// the position collected (fee credits, never projected fees).
+    pub provided_base: u64,
+    pub provided_quote: u64,
+    pub returned_base: u64,
+    pub returned_quote: u64,
+    pub fees_base: u64,
+    pub fees_quote: u64,
 }
 
 impl Leg {
     pub fn kind(&self) -> Result<LegKind> {
-        match self.kind_tag {
-            0 => Ok(LegKind::BorrowQuote),
-            1 => Ok(LegKind::BorrowBase),
-            _ => err!(ForgeError::InvalidLeg),
-        }
+        kind_from_tag(self.kind_tag)
     }
 }
 
@@ -370,11 +398,20 @@ pub struct Strategy {
     pub aborting: bool,
     /// Counted in market.unresolved_strategies while true.
     pub recovery_recorded: bool,
+    /// Fee credits from provided legs (actual collected fees), netted against premium in the UI
+    /// and returned to the owner at settlement; never used to raise authorized spending.
+    pub fee_credit_base: u64,
+    pub fee_credit_quote: u64,
+    pub authority_bump: u8,
+    pub provide_base_bump: u8,
+    pub provide_quote_bump: u8,
     /// When the close (or abort) was authorized; a close stalled longer than the market's
     /// pending deadline may be flagged as Recovery by anyone.
     pub close_started_at: i64,
     pub leg_count: u8,
-    pub legs: [Leg; MAX_LEGS],
+    /// Heap-allocated on deserialization (a fixed array would overflow the 4 KB SBF frame).
+    #[max_len(8)]
+    pub legs: Vec<Leg>,
     pub bump: u8,
     pub escrow_base_bump: u8,
     pub escrow_quote_bump: u8,

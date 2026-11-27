@@ -15,6 +15,10 @@ pub const ESCROW_BASE_SEED: &[u8] = b"escrow_base";
 pub const ESCROW_QUOTE_SEED: &[u8] = b"escrow_quote";
 pub const BUDGET_SEED: &[u8] = b"budget";
 pub const SCENARIO_SEED: &[u8] = b"scenario_reference";
+pub const STRATEGY_AUTHORITY_SEED: &[u8] = b"strategy_authority";
+pub const PROVIDE_BASE_SEED: &[u8] = b"provide_base";
+pub const PROVIDE_QUOTE_SEED: &[u8] = b"provide_quote";
+pub const LEG_MINT_SEED: &[u8] = b"leg_mint";
 
 /// Hard ceilings that no market parameter may exceed.
 pub const MAX_LEGS: usize = 8;

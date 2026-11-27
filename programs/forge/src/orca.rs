@@ -21,6 +21,7 @@ const IX_DECREASE_LIQUIDITY: [u8; 8] = [160, 38, 208, 111, 104, 91, 44, 1];
 const IX_UPDATE_FEES_AND_REWARDS: [u8; 8] = [154, 230, 250, 13, 236, 209, 75, 223];
 const IX_COLLECT_FEES: [u8; 8] = [164, 152, 207, 99, 30, 186, 19, 182];
 const IX_SWAP: [u8; 8] = [248, 198, 158, 145, 225, 117, 135, 200];
+const IX_CLOSE_POSITION: [u8; 8] = [123, 134, 81, 0, 49, 68, 98, 98];
 
 fn rd_u16(d: &[u8], o: usize) -> u16 {
     u16::from_le_bytes([d[o], d[o + 1]])
@@ -478,6 +479,46 @@ pub fn swap(
             a.tick_array_1.clone(),
             a.tick_array_2.clone(),
             a.oracle.clone(),
+            a.whirlpool_program.clone(),
+        ],
+        signer,
+    )
+    .map_err(Into::into)
+}
+
+pub struct ClosePositionAccounts<'a, 'info> {
+    pub position_authority: &'a AccountInfo<'info>,
+    pub receiver: &'a AccountInfo<'info>,
+    pub position: &'a AccountInfo<'info>,
+    pub position_mint: &'a AccountInfo<'info>,
+    pub position_token_account: &'a AccountInfo<'info>,
+    pub token_program: &'a AccountInfo<'info>,
+    pub whirlpool_program: &'a AccountInfo<'info>,
+}
+
+/// Close an empty classic-NFT position (liquidity, fees and rewards owed must be zero).
+pub fn close_position(a: &ClosePositionAccounts, signer: &[&[&[u8]]]) -> Result<()> {
+    let ix = Instruction {
+        program_id: WHIRLPOOL_PROGRAM_ID,
+        accounts: vec![
+            AccountMeta::new_readonly(*a.position_authority.key, true),
+            rw(a.receiver.key),
+            rw(a.position.key),
+            rw(a.position_mint.key),
+            rw(a.position_token_account.key),
+            ro(a.token_program.key),
+        ],
+        data: IX_CLOSE_POSITION.to_vec(),
+    };
+    invoke_signed(
+        &ix,
+        &[
+            a.position_authority.clone(),
+            a.receiver.clone(),
+            a.position.clone(),
+            a.position_mint.clone(),
+            a.position_token_account.clone(),
+            a.token_program.clone(),
             a.whirlpool_program.clone(),
         ],
         signer,

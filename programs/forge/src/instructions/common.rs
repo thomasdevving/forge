@@ -70,12 +70,30 @@ pub fn check_borrow_side(
     let only_a = w.tick_current_index < tick_lower
         && w.sqrt_price < sqrt_price_from_tick_index(tick_lower)?;
     let only_b = w.tick_current_index > tick_upper;
-    let ok = match (kind, base_is_a) {
-        (LegKind::BorrowQuote, true) | (LegKind::BorrowBase, false) => only_b,
-        (LegKind::BorrowQuote, false) | (LegKind::BorrowBase, true) => only_a,
+    let ok = match (kind.holds_quote(), base_is_a) {
+        (true, true) | (false, false) => only_b,
+        (true, false) | (false, true) => only_a,
     };
     require!(ok, ForgeError::BorrowNotOutOfRange);
     Ok(())
+}
+
+/// A provided leg must be single-sided at opening: cash-secured put strictly below spot (quote
+/// only), covered call strictly above spot (base only). Same geometry as the borrow rule.
+pub fn check_provide_side(
+    kind: LegKind,
+    base_is_a: bool,
+    w: &WhirlpoolView,
+    tick_lower: i32,
+    tick_upper: i32,
+) -> Result<()> {
+    let as_borrow = match kind {
+        LegKind::ProvideQuote => LegKind::BorrowQuote,
+        LegKind::ProvideBase => LegKind::BorrowBase,
+        _ => return err!(ForgeError::InvalidLeg),
+    };
+    check_borrow_side(as_borrow, base_is_a, w, tick_lower, tick_upper)
+        .map_err(|_| error!(ForgeError::ProvideNotSingleSided))
 }
 
 pub fn to_base_quote(base_is_a: bool, a: u64, b: u64) -> (u64, u64) {

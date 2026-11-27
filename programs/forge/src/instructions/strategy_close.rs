@@ -6,7 +6,7 @@ use crate::error::ForgeError;
 use crate::math::orca::liquidity_token_deltas;
 use crate::math::premium::{base_to_quote, crank_allowed, quote_to_base};
 use crate::math::{ceil_div_u128, mul_div, to_u64, U256, BPS, Q64};
-use crate::orca::{self, read_position, read_whirlpool, LiquidityAccounts, SwapAccounts};
+use crate::orca::{self, read_position, read_whirlpool, ClosePositionAccounts, CollectFeesAccounts, LiquidityAccounts, SwapAccounts};
 use crate::reference::{check_pool_deviation, load_reference, ReferencePrice};
 use crate::state::*;
 use crate::token_util;
@@ -87,6 +87,11 @@ pub fn abort_open<'info>(ctx: Context<'info, AbortOpen<'info>>) -> Result<()> {
         if s.legs[i].executed {
             continue;
         }
+        if !s.legs[i].kind()?.is_borrow() {
+            // unexecuted provided leg: its funding sits in the provide accounts, refunded at settlement
+            s.legs[i].restored = true;
+            continue;
+        }
         let info = ctx.remaining_accounts.get(k).ok_or(error!(ForgeError::LegAccountMismatch))?;
         k += 1;
         require_keys_eq!(*info.key, s.legs[i].bucket, ForgeError::LegAccountMismatch);
@@ -145,7 +150,7 @@ pub fn checkpoint_leg<'info>(ctx: Context<'info, CheckpointLeg<'info>>, leg_inde
     let idx = leg_index as usize;
     require!(idx < s.leg_count as usize, ForgeError::InvalidLeg);
     let leg = s.legs[idx];
-    require!(leg.executed && !leg.restored, ForgeError::InvalidLeg);
+    require!(leg.executed && !leg.restored && leg.kind()?.is_borrow(), ForgeError::InvalidLeg);
     // remaining: bucket, tick_array_lower, tick_array_upper
     let rem = ctx.remaining_accounts;
     require!(rem.len() == 3, ForgeError::LegAccountMismatch);
@@ -248,6 +253,18 @@ pub struct ExecuteCloseBatch<'info> {
     /// CHECK: swap pool oracle PDA.
     #[account(mut, address = orca::oracle_address(&market.swap_pool))]
     pub swap_oracle: UncheckedAccount<'info>,
+    /// CHECK: per-strategy authority owning provided positions.
+    #[account(seeds = [STRATEGY_AUTHORITY_SEED, strategy.key().as_ref()], bump = strategy.authority_bump)]
+    pub strategy_authority: UncheckedAccount<'info>,
+    /// CHECK: provided-leg funding/proceeds (base).
+    #[account(mut, seeds = [PROVIDE_BASE_SEED, strategy.key().as_ref()], bump = strategy.provide_base_bump)]
+    pub provide_base: UncheckedAccount<'info>,
+    /// CHECK: provided-leg funding/proceeds (quote).
+    #[account(mut, seeds = [PROVIDE_QUOTE_SEED, strategy.key().as_ref()], bump = strategy.provide_quote_bump)]
+    pub provide_quote: UncheckedAccount<'info>,
+    /// CHECK: strategy owner; receives provided-position rent when positions close.
+    #[account(mut, address = strategy.owner)]
+    pub owner: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token>,
     /// CHECK: Orca Whirlpool program.
     #[account(address = WHIRLPOOL_PROGRAM_ID)]
@@ -284,13 +301,23 @@ pub fn execute_close_batch<'info>(
         // idempotent: already-restored or never-executed legs are skipped by the client
         require!(leg.executed && !leg.restored, ForgeError::InvalidLeg);
         let infos = leg_infos(ctx.remaining_accounts, slot)?;
-        let mut bucket = load_leg_bucket(&infos, &leg, &market_key)?;
-
-        // 1. Final premium checkpoint for this leg: accrual runs until restoration.
         let w = read_whirlpool(&a.whirlpool.to_account_info())?;
         require_keys_eq!(a.whirlpool_vault_a.key(), w.vault_a, ForgeError::InvalidOrcaAccount);
         require_keys_eq!(a.whirlpool_vault_b.key(), w.vault_b, ForgeError::InvalidOrcaAccount);
+        // the price guard protects provided legs too (e.g. from a keeper closing into a
+        // manipulated pool)
         check_pool_deviation(w.sqrt_price, market.base_is_a, &reference, market.params.pool_deviation_bps)?;
+        if !leg.kind()?.is_borrow() {
+            close_provided_leg(a, &mut s.legs[idx], &infos)?;
+            s.fee_credit_base += s.legs[idx].fees_base;
+            s.fee_credit_quote += s.legs[idx].fees_quote;
+            s.legs[idx].restored = true;
+            s.legs[idx].restored_at = now;
+            continue;
+        }
+        let mut bucket = load_leg_bucket(&infos, &leg, &market_key)?;
+
+        // 1. Final premium checkpoint for this leg: accrual runs until restoration.
         let growth = growth_inside(&w, &market.whirlpool, infos.tick_array_lower, infos.tick_array_upper, leg.tick_lower, leg.tick_upper)?;
         let lp_cap = s.lp_cap();
         let floor_rate = s.floor_rate_bps;
@@ -326,6 +353,79 @@ pub fn execute_close_batch<'info>(
     }
     s.premium_accrued = s.legs().iter().map(|l| l.premium).sum();
     write_back(&mut ctx.accounts.strategy, &mut s);
+    Ok(())
+}
+
+/// Unwind a provided leg: withdraw all of the user's liquidity and actual collected fees into
+/// the strategy's own accounts, then close the empty Orca position.
+#[inline(never)]
+fn close_provided_leg<'info>(a: &ExecuteCloseBatch<'info>, leg: &mut Leg, infos: &LegInfos<'info>) -> Result<()> {
+    let market = &a.market;
+    let strategy_key = a.strategy.key();
+    require_keys_eq!(*infos.bucket.key, leg.bucket, ForgeError::LegAccountMismatch);
+    require_keys_eq!(*infos.position.key, orca::position_address(infos.bucket.key).0, ForgeError::LegAccountMismatch);
+    let ab = [a.strategy.authority_bump];
+    let seeds: &[&[u8]] = &[STRATEGY_AUTHORITY_SEED, strategy_key.as_ref(), &ab];
+    let (owner_a, owner_b) = if market.base_is_a {
+        (a.provide_base.to_account_info(), a.provide_quote.to_account_info())
+    } else {
+        (a.provide_quote.to_account_info(), a.provide_base.to_account_info())
+    };
+    let tp = a.token_program.to_account_info();
+    let b0 = token_util::amount(&a.provide_base.to_account_info())?;
+    let q0 = token_util::amount(&a.provide_quote.to_account_info())?;
+    let liq = LiquidityAccounts {
+        whirlpool: &a.whirlpool.to_account_info(),
+        token_program: &tp,
+        position_authority: &a.strategy_authority.to_account_info(),
+        position: infos.position,
+        position_token_account: infos.position_token_account,
+        owner_a: &owner_a,
+        owner_b: &owner_b,
+        vault_a: &a.whirlpool_vault_a.to_account_info(),
+        vault_b: &a.whirlpool_vault_b.to_account_info(),
+        tick_array_lower: infos.tick_array_lower,
+        tick_array_upper: infos.tick_array_upper,
+        whirlpool_program: &a.whirlpool_program.to_account_info(),
+    };
+    orca::decrease_liquidity(&liq, leg.liquidity, 0, 0, &[seeds])?;
+    let b1 = token_util::amount(&a.provide_base.to_account_info())?;
+    let q1 = token_util::amount(&a.provide_quote.to_account_info())?;
+    // the liquidity change accrued fees into the position (Orca Full checkpoint); collect them
+    orca::collect_fees(
+        &CollectFeesAccounts {
+            whirlpool: &a.whirlpool.to_account_info(),
+            position_authority: &a.strategy_authority.to_account_info(),
+            position: infos.position,
+            position_token_account: infos.position_token_account,
+            owner_a: &owner_a,
+            vault_a: &a.whirlpool_vault_a.to_account_info(),
+            owner_b: &owner_b,
+            vault_b: &a.whirlpool_vault_b.to_account_info(),
+            token_program: &tp,
+            whirlpool_program: &a.whirlpool_program.to_account_info(),
+        },
+        &[seeds],
+    )?;
+    let b2 = token_util::amount(&a.provide_base.to_account_info())?;
+    let q2 = token_util::amount(&a.provide_quote.to_account_info())?;
+    require!(read_position(infos.position)?.liquidity == 0, ForgeError::RestorationMismatch);
+    orca::close_position(
+        &ClosePositionAccounts {
+            position_authority: &a.strategy_authority.to_account_info(),
+            receiver: &a.owner.to_account_info(),
+            position: infos.position,
+            position_mint: infos.bucket,
+            position_token_account: infos.position_token_account,
+            token_program: &tp,
+            whirlpool_program: &a.whirlpool_program.to_account_info(),
+        },
+        &[seeds],
+    )?;
+    leg.returned_base = b1 - b0;
+    leg.returned_quote = q1 - q0;
+    leg.fees_base = b2 - b1;
+    leg.fees_quote = q2 - q1;
     Ok(())
 }
 
@@ -529,7 +629,7 @@ pub fn record_recovery(ctx: Context<RecordRecovery>, leg_index: u8) -> Result<()
     let idx = leg_index as usize;
     require!(idx < s.leg_count as usize, ForgeError::InvalidLeg);
     let leg = s.legs[idx];
-    require!(leg.executed && !leg.restored, ForgeError::InvalidLeg);
+    require!(leg.executed && !leg.restored && leg.kind()?.is_borrow(), ForgeError::InvalidLeg);
 
     let blocked = match load_reference(
         market,
@@ -603,7 +703,7 @@ pub fn top_up_buffer(ctx: Context<TopUpBuffer>, leg_index: u8, amount: u64) -> R
         ForgeError::InvalidState
     );
     let idx = leg_index as usize;
-    require!(idx < s.leg_count as usize && !s.legs[idx].restored, ForgeError::InvalidLeg);
+    require!(idx < s.leg_count as usize && !s.legs[idx].restored && s.legs[idx].kind()?.is_borrow(), ForgeError::InvalidLeg);
     let base_escrow = Pubkey::create_program_address(&[ESCROW_BASE_SEED, s_key.as_ref(), &[s.escrow_base_bump]], &crate::ID)
         .map_err(|_| error!(ForgeError::LegAccountMismatch))?;
     let quote_escrow = Pubkey::create_program_address(&[ESCROW_QUOTE_SEED, s_key.as_ref(), &[s.escrow_quote_bump]], &crate::ID)
@@ -670,6 +770,15 @@ pub struct FinalizeClose<'info> {
     /// CHECK: keeper's quote token account (bounty); checked in the handler when used.
     #[account(mut)]
     pub keeper_quote: UncheckedAccount<'info>,
+    /// CHECK: per-strategy authority owning provided positions.
+    #[account(seeds = [STRATEGY_AUTHORITY_SEED, strategy.key().as_ref()], bump = strategy.authority_bump)]
+    pub strategy_authority: UncheckedAccount<'info>,
+    /// CHECK: provided-leg proceeds (base).
+    #[account(mut, seeds = [PROVIDE_BASE_SEED, strategy.key().as_ref()], bump = strategy.provide_base_bump)]
+    pub provide_base: UncheckedAccount<'info>,
+    /// CHECK: provided-leg proceeds (quote).
+    #[account(mut, seeds = [PROVIDE_QUOTE_SEED, strategy.key().as_ref()], bump = strategy.provide_quote_bump)]
+    pub provide_quote: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token>,
 }
 
@@ -759,6 +868,20 @@ pub fn finalize_close<'info>(ctx: Context<'info, FinalizeClose<'info>>) -> Resul
     let ledger_base: u64 = s.legs().iter().map(|l| l.escrow_base).sum();
     let ledger_quote: u64 = s.legs().iter().map(|l| l.escrow_quote).sum();
     require!(esc_base == ledger_base && esc_quote == ledger_quote, ForgeError::UnexpectedCpiAmounts);
+    // provided legs: unwound legs hold proceeds + fee credits; never-executed legs hold funding
+    let prov_base = token_util::amount(&a.provide_base.to_account_info())?;
+    let prov_quote = token_util::amount(&a.provide_quote.to_account_info())?;
+    let (mut pl_base, mut pl_quote) = (0u64, 0u64);
+    for l in s.legs().iter().filter(|l| !l.kind().map(|k| k.is_borrow()).unwrap_or(true)) {
+        if l.executed {
+            pl_base += l.returned_base + l.fees_base;
+            pl_quote += l.returned_quote + l.fees_quote;
+        } else {
+            pl_base += l.provided_base;
+            pl_quote += l.provided_quote;
+        }
+    }
+    require!(prov_base == pl_base && prov_quote == pl_quote, ForgeError::UnexpectedCpiAmounts);
 
     token_util::transfer_signed(&tp, &a.budget.to_account_info(), &a.user_quote.to_account_info(), &vault, budget_left, signer)?;
     token_util::transfer_signed(&tp, &a.escrow_quote.to_account_info(), &a.user_quote.to_account_info(), &vault, esc_quote, signer)?;
@@ -766,6 +889,15 @@ pub fn finalize_close<'info>(ctx: Context<'info, FinalizeClose<'info>>) -> Resul
     let owner = a.owner.to_account_info();
     for acc in [&a.budget, &a.escrow_quote, &a.escrow_base] {
         token_util::close_signed(&tp, &acc.to_account_info(), &owner, &vault, signer)?;
+    }
+    let strategy_key = a.strategy.key();
+    let ab = [s.authority_bump];
+    let auth: &[&[u8]] = &[STRATEGY_AUTHORITY_SEED, strategy_key.as_ref(), &ab];
+    let authority = a.strategy_authority.to_account_info();
+    token_util::transfer_signed(&tp, &a.provide_quote.to_account_info(), &a.user_quote.to_account_info(), &authority, prov_quote, &[auth])?;
+    token_util::transfer_signed(&tp, &a.provide_base.to_account_info(), &a.user_base.to_account_info(), &authority, prov_base, &[auth])?;
+    for acc in [&a.provide_quote, &a.provide_base] {
+        token_util::close_signed(&tp, &acc.to_account_info(), &owner, &authority, &[auth])?;
     }
     for l in s.legs[..s.leg_count as usize].iter_mut() {
         l.escrow_base = 0;

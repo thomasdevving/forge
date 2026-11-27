@@ -8,11 +8,12 @@ use crate::error::ForgeError;
 use crate::math::orca::liquidity_token_deltas;
 use crate::math::premium::{base_to_quote, bounty_reserve, utilization_ppm};
 use crate::math::{ceil_div_u128, deviation_bps, to_u64, BPS};
-use crate::orca::{self, read_whirlpool, LiquidityAccounts};
+use crate::orca::{self, read_position, read_whirlpool, LiquidityAccounts, OpenPositionAccounts};
 use crate::reference::{check_pool_deviation, load_reference};
 use crate::state::*;
 use crate::token_util;
 use anchor_lang::prelude::*;
+use anchor_spl::associated_token::{get_associated_token_address, AssociatedToken};
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug)]
@@ -58,6 +59,15 @@ pub struct BeginOpen<'info> {
     #[account(init, payer = owner, seeds = [BUDGET_SEED, strategy.key().as_ref()], bump,
         token::mint = quote_mint, token::authority = vault)]
     pub budget: Box<Account<'info, TokenAccount>>,
+    /// CHECK: per-strategy PDA that owns this user's provided positions and their funding.
+    #[account(seeds = [STRATEGY_AUTHORITY_SEED, strategy.key().as_ref()], bump)]
+    pub strategy_authority: UncheckedAccount<'info>,
+    #[account(init, payer = owner, seeds = [PROVIDE_BASE_SEED, strategy.key().as_ref()], bump,
+        token::mint = base_mint, token::authority = strategy_authority)]
+    pub provide_base: Box<Account<'info, TokenAccount>>,
+    #[account(init, payer = owner, seeds = [PROVIDE_QUOTE_SEED, strategy.key().as_ref()], bump,
+        token::mint = quote_mint, token::authority = strategy_authority)]
+    pub provide_quote: Box<Account<'info, TokenAccount>>,
     #[account(address = market.base_mint)]
     pub base_mint: Box<Account<'info, Mint>>,
     #[account(address = market.quote_mint)]
@@ -84,14 +94,15 @@ pub fn begin_open<'info>(ctx: Context<'info, BeginOpen<'info>>, args: BeginOpenA
     let market = &ctx.accounts.market;
     let p = market.params;
     require!(!market.opens_paused, ForgeError::OpensPaused);
-    require!(!market.borrow_paused, ForgeError::BorrowPaused);
     let n = args.legs.len();
+    let any_borrow = args.legs.iter().any(|l| l.kind_tag <= 1);
+    require!(!(any_borrow && market.borrow_paused), ForgeError::BorrowPaused);
     require!(
         n >= 1 && n <= p.max_buckets_per_strategy as usize && n <= MAX_LEGS,
         ForgeError::TooManyLegs
     );
     require!(ctx.remaining_accounts.len() == n, ForgeError::LegAccountMismatch);
-    require!(args.premium_budget > 0, ForgeError::InsufficientBudget);
+    require!(!any_borrow || args.premium_budget > 0, ForgeError::InsufficientBudget);
     require!(
         args.open_tolerance_bps > 0 && args.open_tolerance_bps <= p.open_tolerance_bps,
         ForgeError::InvalidParameters
@@ -118,94 +129,49 @@ pub fn begin_open<'info>(ctx: Context<'info, BeginOpen<'info>>, args: BeginOpenA
     let w = read_whirlpool(&ctx.accounts.whirlpool.to_account_info())?;
     check_pool_deviation(w.sqrt_price, market.base_is_a, &reference, p.pool_deviation_bps)?;
 
-    let mut legs = [Leg::default(); MAX_LEGS];
+    let strategy_key = ctx.accounts.strategy.key();
+    let mut legs = vec![Leg::default(); n];
     let mut buffer_base: u64 = 0;
     let mut buffer_quote: u64 = 0;
+    let mut fund_base: u64 = 0;
+    let mut fund_quote: u64 = 0;
     for (i, spec) in args.legs.iter().enumerate() {
         require!(spec.liquidity > 0, ForgeError::ZeroAmount);
-        let kind = match spec.kind_tag {
-            0 => LegKind::BorrowQuote,
-            1 => LegKind::BorrowBase,
-            _ => return err!(ForgeError::InvalidLeg),
-        };
+        let kind = kind_from_tag(spec.kind_tag)?;
         let info = &ctx.remaining_accounts[i];
         for prev in &legs[..i] {
             require_keys_neq!(prev.bucket, *info.key, ForgeError::LegAccountMismatch);
         }
-        let mut bucket: Account<'info, Bucket> = Account::try_from(info)?;
-        require_keys_eq!(bucket.market, market_key, ForgeError::LegAccountMismatch);
-        require!(bucket.tick_lower == spec.tick_lower, ForgeError::LegAccountMismatch);
-        check_borrow_side(kind, market.base_is_a, &w, bucket.tick_lower, bucket.tick_upper)?;
-
-        // Reserve: counts toward utilization immediately; withdrawal-requested liquidity
-        // cannot be newly borrowed.
-        let committed = bucket
-            .borrowed
-            .checked_add(bucket.reserved)
-            .and_then(|v| v.checked_add(spec.liquidity))
-            .ok_or(error!(ForgeError::MathOverflow))?;
-        require!(
-            committed
-                .checked_add(bucket.withdrawal_requested)
-                .ok_or(error!(ForgeError::MathOverflow))?
-                <= bucket.total_liquidity,
-            ForgeError::UtilizationCap
-        );
-        let u = utilization_ppm(committed, bucket.total_liquidity)?;
-        let multiplier_ppm = p.curve.multiplier_ppm(u)?;
-
-        // Removed amounts are price-independent while strictly out of range.
-        let (ra, rb) = liquidity_token_deltas(
-            w.tick_current_index,
-            w.sqrt_price,
-            bucket.tick_lower,
-            bucket.tick_upper,
-            spec.liquidity,
-            false,
-        )?;
-        let (removed_base, removed_quote) = to_base_quote(market.base_is_a, ra, rb);
-        let removed = match kind {
-            LegKind::BorrowQuote => {
-                require!(removed_base == 0 && removed_quote > 0, ForgeError::BorrowNotOutOfRange);
-                removed_quote
+        if kind.is_borrow() {
+            legs[i] = reserve_borrowed_leg(info, &market_key, market, &w, &reference, spec, kind, &mut buffer_base, &mut buffer_quote)?;
+        } else {
+            // Provided leg: the user's own funded liquidity in a grid range, held under this
+            // strategy's dedicated authority. `info` must be the leg's position-mint PDA.
+            let (mint, _) = Pubkey::find_program_address(&[LEG_MINT_SEED, strategy_key.as_ref(), &[i as u8]], &crate::ID);
+            require_keys_eq!(*info.key, mint, ForgeError::LegAccountMismatch);
+            require!(spec.tick_lower.rem_euclid(market.bucket_width) == 0, ForgeError::MisalignedBucket);
+            let tick_upper = spec.tick_lower.checked_add(market.bucket_width).ok_or(error!(ForgeError::InvalidTick))?;
+            check_provide_side(kind, market.base_is_a, &w, spec.tick_lower, tick_upper)?;
+            let (fa, fb) = liquidity_token_deltas(w.tick_current_index, w.sqrt_price, spec.tick_lower, tick_upper, spec.liquidity, true)?;
+            let (pb, pq) = to_base_quote(market.base_is_a, fa, fb);
+            if kind == LegKind::ProvideQuote {
+                require!(pb == 0 && pq > 0, ForgeError::ProvideNotSingleSided);
+            } else {
+                require!(pq == 0 && pb > 0, ForgeError::ProvideNotSingleSided);
             }
-            LegKind::BorrowBase => {
-                require!(removed_quote == 0 && removed_base > 0, ForgeError::BorrowNotOutOfRange);
-                removed_base
-            }
-        };
-        let min_buffer = to_u64(ceil_div_u128(
-            removed as u128 * p.restoration_buffer_bps as u128,
-            BPS,
-        )?)?;
-        let buffer = min_buffer
-            .checked_add(spec.extra_buffer)
-            .ok_or(error!(ForgeError::MathOverflow))?;
-        let notional_quote = match kind {
-            LegKind::BorrowQuote => removed_quote,
-            LegKind::BorrowBase => base_to_quote(removed_base, reference.price_x64)?,
-        };
-        match kind {
-            LegKind::BorrowQuote => buffer_quote = buffer_quote.checked_add(buffer).ok_or(error!(ForgeError::MathOverflow))?,
-            LegKind::BorrowBase => buffer_base = buffer_base.checked_add(buffer).ok_or(error!(ForgeError::MathOverflow))?,
+            fund_base = fund_base.checked_add(pb).ok_or(error!(ForgeError::MathOverflow))?;
+            fund_quote = fund_quote.checked_add(pq).ok_or(error!(ForgeError::MathOverflow))?;
+            legs[i] = Leg {
+                kind_tag: spec.kind_tag,
+                bucket: mint,
+                tick_lower: spec.tick_lower,
+                tick_upper,
+                liquidity: spec.liquidity,
+                provided_base: pb,
+                provided_quote: pq,
+                ..Leg::default()
+            };
         }
-        legs[i] = Leg {
-            kind_tag: spec.kind_tag,
-            bucket: bucket.key(),
-            tick_lower: bucket.tick_lower,
-            tick_upper: bucket.tick_upper,
-            liquidity: spec.liquidity,
-            removed_base,
-            removed_quote,
-            escrow_base: if kind == LegKind::BorrowBase { buffer } else { 0 },
-            escrow_quote: if kind == LegKind::BorrowQuote { buffer } else { 0 },
-            buffer,
-            multiplier_ppm,
-            notional_quote,
-            ..Leg::default()
-        };
-        bucket.reserved = bucket.reserved.checked_add(spec.liquidity).ok_or(error!(ForgeError::MathOverflow))?;
-        bucket.exit(&crate::ID)?;
     }
 
     // Lock all user funding (budget and buffers) before any liquidity is removed.
@@ -214,6 +180,9 @@ pub fn begin_open<'info>(ctx: Context<'info, BeginOpen<'info>>, args: BeginOpenA
     token_util::transfer_from_user(&tp, &ctx.accounts.user_quote.to_account_info(), &ctx.accounts.budget.to_account_info(), &owner, args.premium_budget)?;
     token_util::transfer_from_user(&tp, &ctx.accounts.user_quote.to_account_info(), &ctx.accounts.escrow_quote.to_account_info(), &owner, buffer_quote)?;
     token_util::transfer_from_user(&tp, &ctx.accounts.user_base.to_account_info(), &ctx.accounts.escrow_base.to_account_info(), &owner, buffer_base)?;
+    // provided legs are fully funded at opening (section 3.3)
+    token_util::transfer_from_user(&tp, &ctx.accounts.user_quote.to_account_info(), &ctx.accounts.provide_quote.to_account_info(), &owner, fund_quote)?;
+    token_util::transfer_from_user(&tp, &ctx.accounts.user_base.to_account_info(), &ctx.accounts.provide_base.to_account_info(), &owner, fund_base)?;
 
     let s = &mut ctx.accounts.strategy;
     s.owner = ctx.accounts.owner.key();
@@ -237,15 +206,93 @@ pub fn begin_open<'info>(ctx: Context<'info, BeginOpen<'info>>, args: BeginOpenA
     s.escrow_base_bump = ctx.bumps.escrow_base;
     s.escrow_quote_bump = ctx.bumps.escrow_quote;
     s.budget_bump = ctx.bumps.budget;
+    s.authority_bump = ctx.bumps.strategy_authority;
+    s.provide_base_bump = ctx.bumps.provide_base;
+    s.provide_quote_bump = ctx.bumps.provide_quote;
     ctx.accounts.market.strategy_count += 1;
     Ok(())
 }
 
+/// Validate and reserve one borrowed leg (section 3.3, 4.3). Kept out of line: SBF frames are 4 KB.
+#[inline(never)]
+#[allow(clippy::too_many_arguments)]
+fn reserve_borrowed_leg<'info>(
+    info: &'info AccountInfo<'info>,
+    market_key: &Pubkey,
+    market: &Market,
+    w: &crate::orca::WhirlpoolView,
+    reference: &crate::reference::ReferencePrice,
+    spec: &LegSpec,
+    kind: LegKind,
+    buffer_base: &mut u64,
+    buffer_quote: &mut u64,
+) -> Result<Leg> {
+    let p = market.params;
+    let mut bucket: Account<'info, Bucket> = Account::try_from(info)?;
+    require_keys_eq!(bucket.market, *market_key, ForgeError::LegAccountMismatch);
+    require!(bucket.tick_lower == spec.tick_lower, ForgeError::LegAccountMismatch);
+    check_borrow_side(kind, market.base_is_a, w, bucket.tick_lower, bucket.tick_upper)?;
+    // Reserve: counts toward utilization immediately; withdrawal-requested liquidity cannot be
+    // newly borrowed.
+    let committed = bucket
+        .borrowed
+        .checked_add(bucket.reserved)
+        .and_then(|v| v.checked_add(spec.liquidity))
+        .ok_or(error!(ForgeError::MathOverflow))?;
+    require!(
+        committed.checked_add(bucket.withdrawal_requested).ok_or(error!(ForgeError::MathOverflow))? <= bucket.total_liquidity,
+        ForgeError::UtilizationCap
+    );
+    let u = utilization_ppm(committed, bucket.total_liquidity)?;
+    let multiplier_ppm = p.curve.multiplier_ppm(u)?;
+    // Removed amounts are price-independent while strictly out of range.
+    let (ra, rb) = liquidity_token_deltas(w.tick_current_index, w.sqrt_price, bucket.tick_lower, bucket.tick_upper, spec.liquidity, false)?;
+    let (removed_base, removed_quote) = to_base_quote(market.base_is_a, ra, rb);
+    let removed = if kind == LegKind::BorrowQuote {
+        require!(removed_base == 0 && removed_quote > 0, ForgeError::BorrowNotOutOfRange);
+        removed_quote
+    } else {
+        require!(removed_quote == 0 && removed_base > 0, ForgeError::BorrowNotOutOfRange);
+        removed_base
+    };
+    let min_buffer = to_u64(ceil_div_u128(removed as u128 * p.restoration_buffer_bps as u128, BPS)?)?;
+    let buffer = min_buffer.checked_add(spec.extra_buffer).ok_or(error!(ForgeError::MathOverflow))?;
+    let notional_quote = if kind == LegKind::BorrowQuote {
+        removed_quote
+    } else {
+        base_to_quote(removed_base, reference.price_x64)?
+    };
+    if kind == LegKind::BorrowQuote {
+        *buffer_quote = buffer_quote.checked_add(buffer).ok_or(error!(ForgeError::MathOverflow))?;
+    } else {
+        *buffer_base = buffer_base.checked_add(buffer).ok_or(error!(ForgeError::MathOverflow))?;
+    }
+    let leg = Leg {
+        kind_tag: spec.kind_tag,
+        bucket: bucket.key(),
+        tick_lower: bucket.tick_lower,
+        tick_upper: bucket.tick_upper,
+        liquidity: spec.liquidity,
+        removed_base,
+        removed_quote,
+        escrow_base: if kind == LegKind::BorrowBase { buffer } else { 0 },
+        escrow_quote: if kind == LegKind::BorrowQuote { buffer } else { 0 },
+        buffer,
+        multiplier_ppm,
+        notional_quote,
+        ..Leg::default()
+    };
+    bucket.reserved = bucket.reserved.checked_add(spec.liquidity).ok_or(error!(ForgeError::MathOverflow))?;
+    bucket.exit(&crate::ID)?;
+    Ok(leg)
+}
+
 #[derive(Accounts)]
 pub struct ExecuteOpenBatch<'info> {
+    #[account(mut)]
     pub owner: Signer<'info>,
     pub market: Box<Account<'info, Market>>,
-    /// CHECK: vault PDA (position authority).
+    /// CHECK: vault PDA (position authority for borrowed buckets).
     #[account(seeds = [VAULT_SEED, market.key().as_ref()], bump = market.vault_bump)]
     pub vault: UncheckedAccount<'info>,
     #[account(mut, has_one = owner @ ForgeError::Unauthorized, has_one = market)]
@@ -265,11 +312,23 @@ pub struct ExecuteOpenBatch<'info> {
     /// CHECK: strategy escrow (quote).
     #[account(mut, seeds = [ESCROW_QUOTE_SEED, strategy.key().as_ref()], bump = strategy.escrow_quote_bump)]
     pub escrow_quote: UncheckedAccount<'info>,
+    /// CHECK: per-strategy authority owning provided positions.
+    #[account(seeds = [STRATEGY_AUTHORITY_SEED, strategy.key().as_ref()], bump = strategy.authority_bump)]
+    pub strategy_authority: UncheckedAccount<'info>,
+    /// CHECK: provided-leg funding (base).
+    #[account(mut, seeds = [PROVIDE_BASE_SEED, strategy.key().as_ref()], bump = strategy.provide_base_bump)]
+    pub provide_base: UncheckedAccount<'info>,
+    /// CHECK: provided-leg funding (quote).
+    #[account(mut, seeds = [PROVIDE_QUOTE_SEED, strategy.key().as_ref()], bump = strategy.provide_quote_bump)]
+    pub provide_quote: UncheckedAccount<'info>,
     /// CHECK: validated against the market reference configuration.
     pub reference_base: UncheckedAccount<'info>,
     /// CHECK: validated against the market reference configuration.
     pub reference_quote: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     /// CHECK: Orca Whirlpool program.
     #[account(address = WHIRLPOOL_PROGRAM_ID)]
     pub whirlpool_program: UncheckedAccount<'info>,
@@ -282,27 +341,17 @@ pub fn execute_open_batch<'info>(
     let now = Clock::get()?.unix_timestamp;
     let a = &ctx.accounts;
     let market = &a.market;
-    let market_key = market.key();
     require!(a.strategy.state == StrategyState::PendingOpen, ForgeError::InvalidState);
     require!(now <= a.strategy.pending_deadline, ForgeError::DeadlinePassed);
     require!(
         !leg_indices.is_empty() && leg_indices.len() <= market.params.max_ops_per_tx as usize,
         ForgeError::TooManyOps
     );
-
     let reference = load_reference(market, &a.reference_base.to_account_info(), Some(&a.reference_quote.to_account_info()), now)?;
     require!(
         deviation_bps(reference.price_x64, a.strategy.open_reference_x64)? <= a.strategy.open_tolerance_bps as u128,
         ForgeError::OpenTolerance
     );
-
-    let vb = [market.vault_bump];
-    let seeds = vault_signer_seeds(&market_key, &vb);
-    let (owner_a, owner_b) = if market.base_is_a {
-        (a.escrow_base.to_account_info(), a.escrow_quote.to_account_info())
-    } else {
-        (a.escrow_quote.to_account_info(), a.escrow_base.to_account_info())
-    };
 
     let mut strategy: Box<Strategy> = Box::new((**a.strategy).clone());
     for (slot, &idx) in leg_indices.iter().enumerate() {
@@ -310,63 +359,163 @@ pub fn execute_open_batch<'info>(
         require!(idx < strategy.leg_count as usize, ForgeError::InvalidLeg);
         require!(!strategy.legs[idx].executed, ForgeError::InvalidLeg);
         require!(!leg_indices[..slot].contains(&(idx as u8)), ForgeError::InvalidLeg);
-        let leg = strategy.legs[idx];
         let infos = leg_infos(ctx.remaining_accounts, slot)?;
-        let mut bucket = load_leg_bucket(&infos, &leg, &market_key)?;
-
         // Re-read the pool before every CPI: an earlier one may have changed it.
         let w = read_whirlpool(&a.whirlpool.to_account_info())?;
         require_keys_eq!(a.whirlpool_vault_a.key(), w.vault_a, ForgeError::InvalidOrcaAccount);
         require_keys_eq!(a.whirlpool_vault_b.key(), w.vault_b, ForgeError::InvalidOrcaAccount);
         check_pool_deviation(w.sqrt_price, market.base_is_a, &reference, market.params.pool_deviation_bps)?;
-        check_borrow_side(leg.kind()?, market.base_is_a, &w, leg.tick_lower, leg.tick_upper)?;
-        let growth = growth_inside(&w, &market.whirlpool, infos.tick_array_lower, infos.tick_array_upper, leg.tick_lower, leg.tick_upper)?;
-
-        let before_base = token_util::amount(&a.escrow_base.to_account_info())?;
-        let before_quote = token_util::amount(&a.escrow_quote.to_account_info())?;
-        let (min_a, min_b) = to_a_b(market.base_is_a, leg.removed_base, leg.removed_quote);
-        orca::decrease_liquidity(
-            &LiquidityAccounts {
-                whirlpool: &a.whirlpool.to_account_info(),
-                token_program: &a.token_program.to_account_info(),
-                position_authority: &a.vault.to_account_info(),
-                position: infos.position,
-                position_token_account: infos.position_token_account,
-                owner_a: &owner_a,
-                owner_b: &owner_b,
-                vault_a: &a.whirlpool_vault_a.to_account_info(),
-                vault_b: &a.whirlpool_vault_b.to_account_info(),
-                tick_array_lower: infos.tick_array_lower,
-                tick_array_upper: infos.tick_array_upper,
-                whirlpool_program: &a.whirlpool_program.to_account_info(),
-            },
-            leg.liquidity,
-            min_a,
-            min_b,
-            &[&seeds],
-        )?;
-        let got_base = token_util::amount(&a.escrow_base.to_account_info())? - before_base;
-        let got_quote = token_util::amount(&a.escrow_quote.to_account_info())? - before_quote;
-        require!(
-            got_base == leg.removed_base && got_quote == leg.removed_quote,
-            ForgeError::UnexpectedCpiAmounts
-        );
-
-        bucket.reserved = bucket.reserved.checked_sub(leg.liquidity).ok_or(error!(ForgeError::MathOverflow))?;
-        bucket.borrowed = bucket.borrowed.checked_add(leg.liquidity).ok_or(error!(ForgeError::MathOverflow))?;
-        bucket.open_legs += 1;
-        let l = &mut strategy.legs[idx];
-        l.executed = true;
-        l.opened_at = now;
-        l.growth_a_x64 = growth.0;
-        l.growth_b_x64 = growth.1;
-        l.escrow_base += got_base;
-        l.escrow_quote += got_quote;
-        l.last_checkpoint_ts = now;
-        bucket.record_leg_checkpoint(now);
-        bucket.exit(&crate::ID)?;
+        if strategy.legs[idx].kind()?.is_borrow() {
+            open_borrowed_leg(a, &mut strategy.legs[idx], &infos, &w, now)?;
+        } else {
+            open_provided_leg(a, &mut strategy.legs[idx], idx, &infos, &w, now)?;
+        }
     }
     write_back(&mut ctx.accounts.strategy, &mut strategy);
+    Ok(())
+}
+
+#[inline(never)]
+fn open_borrowed_leg<'info>(
+    a: &ExecuteOpenBatch<'info>,
+    leg: &mut Leg,
+    infos: &LegInfos<'info>,
+    w: &crate::orca::WhirlpoolView,
+    now: i64,
+) -> Result<()> {
+    let market = &a.market;
+    let market_key = market.key();
+    let mut bucket = load_leg_bucket(infos, leg, &market_key)?;
+    check_borrow_side(leg.kind()?, market.base_is_a, w, leg.tick_lower, leg.tick_upper)?;
+    let growth = growth_inside(w, &market.whirlpool, infos.tick_array_lower, infos.tick_array_upper, leg.tick_lower, leg.tick_upper)?;
+    let vb = [market.vault_bump];
+    let seeds = vault_signer_seeds(&market_key, &vb);
+    let (owner_a, owner_b) = if market.base_is_a {
+        (a.escrow_base.to_account_info(), a.escrow_quote.to_account_info())
+    } else {
+        (a.escrow_quote.to_account_info(), a.escrow_base.to_account_info())
+    };
+    let before_base = token_util::amount(&a.escrow_base.to_account_info())?;
+    let before_quote = token_util::amount(&a.escrow_quote.to_account_info())?;
+    let (min_a, min_b) = to_a_b(market.base_is_a, leg.removed_base, leg.removed_quote);
+    orca::decrease_liquidity(
+        &LiquidityAccounts {
+            whirlpool: &a.whirlpool.to_account_info(),
+            token_program: &a.token_program.to_account_info(),
+            position_authority: &a.vault.to_account_info(),
+            position: infos.position,
+            position_token_account: infos.position_token_account,
+            owner_a: &owner_a,
+            owner_b: &owner_b,
+            vault_a: &a.whirlpool_vault_a.to_account_info(),
+            vault_b: &a.whirlpool_vault_b.to_account_info(),
+            tick_array_lower: infos.tick_array_lower,
+            tick_array_upper: infos.tick_array_upper,
+            whirlpool_program: &a.whirlpool_program.to_account_info(),
+        },
+        leg.liquidity,
+        min_a,
+        min_b,
+        &[&seeds],
+    )?;
+    let got_base = token_util::amount(&a.escrow_base.to_account_info())? - before_base;
+    let got_quote = token_util::amount(&a.escrow_quote.to_account_info())? - before_quote;
+    require!(got_base == leg.removed_base && got_quote == leg.removed_quote, ForgeError::UnexpectedCpiAmounts);
+    bucket.reserved = bucket.reserved.checked_sub(leg.liquidity).ok_or(error!(ForgeError::MathOverflow))?;
+    bucket.borrowed = bucket.borrowed.checked_add(leg.liquidity).ok_or(error!(ForgeError::MathOverflow))?;
+    bucket.open_legs += 1;
+    leg.executed = true;
+    leg.opened_at = now;
+    leg.growth_a_x64 = growth.0;
+    leg.growth_b_x64 = growth.1;
+    leg.escrow_base += got_base;
+    leg.escrow_quote += got_quote;
+    leg.last_checkpoint_ts = now;
+    bucket.record_leg_checkpoint(now);
+    bucket.exit(&crate::ID)?;
+    Ok(())
+}
+
+/// Open the user's own single-sided range under the strategy authority and fund it exactly.
+#[inline(never)]
+fn open_provided_leg<'info>(
+    a: &ExecuteOpenBatch<'info>,
+    leg: &mut Leg,
+    idx: usize,
+    infos: &LegInfos<'info>,
+    w: &crate::orca::WhirlpoolView,
+    now: i64,
+) -> Result<()> {
+    let market = &a.market;
+    check_provide_side(leg.kind()?, market.base_is_a, w, leg.tick_lower, leg.tick_upper)?;
+    let strategy_key = a.strategy.key();
+    require_keys_eq!(*infos.bucket.key, leg.bucket, ForgeError::LegAccountMismatch); // position mint PDA
+    let (_, mint_bump) = Pubkey::find_program_address(&[LEG_MINT_SEED, strategy_key.as_ref(), &[idx as u8]], &crate::ID);
+    let (position, position_bump) = orca::position_address(infos.bucket.key);
+    require_keys_eq!(*infos.position.key, position, ForgeError::LegAccountMismatch);
+    require_keys_eq!(
+        *infos.position_token_account.key,
+        get_associated_token_address(&a.strategy_authority.key(), infos.bucket.key),
+        ForgeError::LegAccountMismatch
+    );
+    let idx_b = [idx as u8];
+    let mb = [mint_bump];
+    let mint_seeds: &[&[u8]] = &[LEG_MINT_SEED, strategy_key.as_ref(), &idx_b, &mb];
+    orca::open_position(
+        &OpenPositionAccounts {
+            funder: &a.owner.to_account_info(),
+            owner: &a.strategy_authority.to_account_info(),
+            position: infos.position,
+            position_mint: infos.bucket,
+            position_token_account: infos.position_token_account,
+            whirlpool: &a.whirlpool.to_account_info(),
+            token_program: &a.token_program.to_account_info(),
+            system_program: &a.system_program.to_account_info(),
+            rent: &a.rent.to_account_info(),
+            associated_token_program: &a.associated_token_program.to_account_info(),
+            whirlpool_program: &a.whirlpool_program.to_account_info(),
+        },
+        position_bump,
+        leg.tick_lower,
+        leg.tick_upper,
+        &[mint_seeds],
+    )?;
+    let ab = [a.strategy.authority_bump];
+    let auth_seeds: &[&[u8]] = &[STRATEGY_AUTHORITY_SEED, strategy_key.as_ref(), &ab];
+    let (owner_a, owner_b) = if market.base_is_a {
+        (a.provide_base.to_account_info(), a.provide_quote.to_account_info())
+    } else {
+        (a.provide_quote.to_account_info(), a.provide_base.to_account_info())
+    };
+    let b0 = token_util::amount(&a.provide_base.to_account_info())?;
+    let q0 = token_util::amount(&a.provide_quote.to_account_info())?;
+    let (max_a, max_b) = to_a_b(market.base_is_a, leg.provided_base, leg.provided_quote);
+    orca::increase_liquidity(
+        &LiquidityAccounts {
+            whirlpool: &a.whirlpool.to_account_info(),
+            token_program: &a.token_program.to_account_info(),
+            position_authority: &a.strategy_authority.to_account_info(),
+            position: infos.position,
+            position_token_account: infos.position_token_account,
+            owner_a: &owner_a,
+            owner_b: &owner_b,
+            vault_a: &a.whirlpool_vault_a.to_account_info(),
+            vault_b: &a.whirlpool_vault_b.to_account_info(),
+            tick_array_lower: infos.tick_array_lower,
+            tick_array_upper: infos.tick_array_upper,
+            whirlpool_program: &a.whirlpool_program.to_account_info(),
+        },
+        leg.liquidity,
+        max_a,
+        max_b,
+        &[auth_seeds],
+    )?;
+    let spent_base = b0 - token_util::amount(&a.provide_base.to_account_info())?;
+    let spent_quote = q0 - token_util::amount(&a.provide_quote.to_account_info())?;
+    require!(spent_base == leg.provided_base && spent_quote == leg.provided_quote, ForgeError::UnexpectedCpiAmounts);
+    require!(read_position(infos.position)?.liquidity == leg.liquidity, ForgeError::UnexpectedCpiAmounts);
+    leg.executed = true;
+    leg.opened_at = now;
     Ok(())
 }
 
