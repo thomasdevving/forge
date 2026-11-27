@@ -4,7 +4,7 @@
     uv run python benchmarks/run_all.py --fork     # also Benchmark 2 (needs a bootstrapped fork)
     uv run python benchmarks/run_all.py --market JUP/USDC   # another market from benchmarks/markets.py
 
-Benchmark 1 (replication) and 3 (LP guarantee) are offline and deterministic. Benchmark 2
+Benchmark 1 (replication), 3 (LP guarantee) and 4 (LP profitability) are offline and deterministic. Benchmark 2
 (theoretical vs realized) executes real positions on the Surfpool fork.
 
 Results go to benchmarks/results/<run_id> for SOL/USDC and benchmarks/results/<run_id>-<base> for
@@ -43,6 +43,7 @@ def main() -> int:
     m = ["--market", mk.name]
     steps.append(py + [str(HERE / "replication.py"), "--out", str(out)] + q + m)
     steps.append(py + [str(HERE / "lp_guarantee.py"), "--out", str(out)] + q + m)
+    steps.append(py + [str(HERE / "lp_profitability.py"), "--out", str(out)] + q + m)
     if args.fork:
         steps.append(["pnpm", "--dir", str(HERE.parent / "tests"), "exec", "vitest", "run", "--dir", "bench"])
     failed = 0
