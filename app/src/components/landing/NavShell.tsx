@@ -3,8 +3,9 @@
 import { type ReactNode, useEffect, useState } from "react";
 
 /** Landing header: fully transparent over the hero, frosted once the hero has scrolled away. */
-export function NavShell({ children }: { children: ReactNode }) {
-  const [solid, setSolid] = useState(false);
+export function NavShell({ children, solid: always = false }: { children: ReactNode; solid?: boolean }) {
+  const [scrolled, setSolid] = useState(false);
+  const solid = always || scrolled;
   useEffect(() => {
     const on = () => setSolid(window.scrollY > window.innerHeight * 0.9);
     on();
