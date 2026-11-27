@@ -121,7 +121,9 @@ export default function Studio() {
   const seq = useRef(0);
   const requestRef = useRef(request);
   requestRef.current = request;
-  const ready = Boolean(market);
+  const ready = Boolean(market) && buckets.length > 0;
+  // re-check when the ladder changes (it arrives after the market, and borrowable liquidity moves)
+  const ladderKey = buckets.map((b) => b.borrowable).join(",");
   useEffect(() => {
     if (!points || !ready) return;
     const id = ++seq.current;
@@ -134,7 +136,7 @@ export default function Studio() {
       }
     }, 350);
     return () => clearTimeout(t);
-  }, [points, ready, baseHoldings, quoteHoldings, budget]);
+  }, [points, ready, ladderKey, baseHoldings, quoteHoldings, budget]);
 
   const compile = async () => {
     if (!points) return;
