@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from forge_math.lpsim import SimParams, gbm_path, ohlc_path, simulate_path
 
 

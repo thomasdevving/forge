@@ -2,9 +2,10 @@ import math
 
 import numpy as np
 import pytest
-from forge_math import clmm
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
+
+from forge_math import clmm
 
 prices = st.floats(min_value=1e-3, max_value=1e5, allow_nan=False, allow_infinity=False)
 liq = st.floats(min_value=1e-3, max_value=1e9, allow_nan=False, allow_infinity=False)
