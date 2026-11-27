@@ -5,8 +5,10 @@ import { resolve } from "node:path";
 export const DOCS = [
   { slug: "overview", title: "What FORGE is", group: "Guide" },
   { slug: "trading", title: "Trading in the Studio", group: "Guide" },
+  { slug: "architect", title: "The Architect", group: "Guide" },
   { slug: "liquidity", title: "Providing liquidity", group: "Guide" },
   { slug: "markets", title: "Adding a token", group: "Guide" },
+  { slug: "agents", title: "FORGE for agents (x402)", group: "Reference" },
   { slug: "certificates", title: "Certificates", group: "Reference" },
   { slug: "math", title: "The math", group: "Reference" },
   { slug: "orca-integration", title: "Orca integration", group: "Reference" },

@@ -5,6 +5,7 @@ packages:
   - fork
   - app
   - tests
+  - agents/treasury
 allowBuilds:
   esbuild: true
 minimumReleaseAgeExclude:

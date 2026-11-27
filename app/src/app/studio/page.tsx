@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell, Bar } from "@/components/AppShell";
+import { Architect, type Design } from "@/components/studio/Architect";
 import { type Horizon, type Moves, PayoffChart } from "@/components/studio/PayoffChart";
 import { api, type BucketInfo, type BuiltTx, type CompileResponse, type Feasibility, type MarketInfo } from "@/lib/api";
 import { ago, fmtNum, fmtPrice, fmtUsd, short } from "@/lib/format";
@@ -38,6 +39,15 @@ export default function Studio() {
   const [markets, setMarkets] = useState<MarketInfo[]>([]);
   const [marketName, chooseMarket] = useMarketChoice();
   const [moves, setMoves] = useState<Moves | null>(null);
+  const [architectOpen, setArchitectOpen] = useState(false);
+  // a design handed over by the Architect, applied once its market has loaded
+  const pendingDesign = useRef<Design | null>(null);
+  const applyDesign = (d: Design) => {
+    setBaseHoldings(d.limits.base);
+    setQuoteHoldings(d.limits.quote);
+    setBudget(d.limits.budget);
+    setPoints(d.payoff);
+  };
 
   // market + buckets
   useEffect(() => {
@@ -70,8 +80,14 @@ export default function Studio() {
     if (!market) return;
     const units = defaultUnits(market);
     setFeas(null);
-    setBaseHoldings(units);
-    setPoints(PRESETS[preset]!.make(units, market.poolPrice));
+    const d = pendingDesign.current;
+    if (d && d.market === market.name) {
+      pendingDesign.current = null;
+      applyDesign(d);
+    } else {
+      setBaseHoldings(units);
+      setPoints(PRESETS[preset]!.make(units, market.poolPrice));
+    }
     setScenario(market.poolPrice * 0.92);
     const sym = baseSymbol(market).toLowerCase();
     fetch(`/moves/${sym}.json`).then((r) => (r.ok ? r.json() : null)).then(setMoves).catch(() => setMoves(null));
@@ -256,6 +272,9 @@ export default function Studio() {
           </>
         }
       >
+        <button className="btn btn-ghost !py-1 text-[12px]" aria-pressed={architectOpen} onClick={() => setArchitectOpen((x) => !x)} title="Describe what you want; the Architect compiles alternatives">
+          Architect
+        </button>
         <div className="seg">
           {Object.entries(PRESETS).map(([k, v]) => (
             <button
@@ -456,6 +475,18 @@ export default function Studio() {
           </section>
         </div>
       </div>
+      <Architect
+        open={architectOpen}
+        onClose={() => setArchitectOpen(false)}
+        owner={wallet.address ?? null}
+        onLoad={(d) => {
+          if (market && d.market === market.name) applyDesign(d);
+          else {
+            pendingDesign.current = d;
+            chooseMarket(d.market);
+          }
+        }}
+      />
     </AppShell>
   );
 }

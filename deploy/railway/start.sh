@@ -26,7 +26,8 @@ log "fork is up"
 
 # 3. program (cheatcode install) and markets: the built-in ones, then any extra mints
 pnpm --filter @forge/fork bootstrap
-for mint in ${FORGE_EXTRA_MINTS:-DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263}; do
+# BONK, KMNO and JLP by default (KMNO and JLP make up the treasury-agent demo portfolio with JUP)
+for mint in ${FORGE_EXTRA_MINTS:-DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS 27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4}; do
   FORGE_SKIP_DEPLOY=1 pnpm --filter @forge/fork bootstrap -- --mint "$mint" || log "could not add $mint (skipped)"
 done
 
@@ -38,6 +39,8 @@ start txbuilder env PORT=8788 FORGE_LOOKUP_TABLES="$ALT" FORGE_DEPLOYMENT_FILE="
 start rpc-proxy env PORT=8890 pnpm --dir fork proxy
 start control env PORT=8791 pnpm --dir fork control
 start keeper pnpm --dir fork keeper
+# the Architect (turns are refused, and the Studio works as before, when ANTHROPIC_API_KEY is unset)
+start agent env PORT=8792 pnpm --dir services/agent start
 start gateway env PORT="${PORT:-8080}" pnpm --dir fork exec tsx src/gateway.ts
 
 # any process exiting stops the container, so Railway restarts it cleanly

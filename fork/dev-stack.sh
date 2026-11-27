@@ -19,4 +19,5 @@ start txbuilder env PORT=8788 FORGE_LOOKUP_TABLES="$ALT" FORGE_DEPLOYMENT_FILE="
 start rpc-proxy env PORT=8890 pnpm --dir fork proxy
 start control env PORT=8791 pnpm --dir fork control
 start keeper pnpm --dir fork keeper
+start agent env PORT=8792 pnpm --dir services/agent start
 wait

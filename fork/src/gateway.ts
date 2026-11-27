@@ -7,20 +7,32 @@
  *   /tx/*        -> transaction builder :8788
  *   /compiler/*  -> compiler API :8000
  *   /control/*   -> demo control :8791 (faucet, market onboarding; scenario routes need a token)
+ *   /agent/*     -> the Architect :8792 (conversations for the Studio; /agent/hedge is only reachable
+ *                   paid, through /x402/hedge)
+ *   /x402/*      -> x402 payment layer, in process (x402.ts): paid compile/hedge, settled on the fork;
+ *                   disabled (503) unless the settlement RPC is a Surfpool fork
  *   /health      -> gateway + upstream health
  */
 import http from "node:http";
 import net from "node:net";
+import { createX402App } from "./x402.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
-const ROUTES: Record<string, number> = { rpc: 8890, indexer: 8787, tx: 8788, compiler: 8000, control: 8791 };
+const ROUTES: Record<string, number> = { rpc: 8890, indexer: 8787, tx: 8788, compiler: 8000, control: 8791, agent: 8792 };
+const x402 = await createX402App().catch((e: Error) => {
+  console.log(`[x402] DISABLED (fail closed): ${e.message}`);
+  return null;
+});
 
 function route(url = "/"): { port: number; path: string } | null {
   const m = /^\/([a-z]+)(\/.*)?$/.exec(url.split("?")[0]!);
   const port = m ? ROUTES[m[1]!] : undefined;
   if (!port) return null;
   const rest = url.slice(m![1]!.length + 1);
-  return { port, path: rest.startsWith("/") ? rest : `/${rest}` };
+  const path = rest.startsWith("/") ? rest : `/${rest}`;
+  // the machine endpoint is sold through x402; never expose it unpaid
+  if (m![1] === "agent" && /^\/hedge(\/|\?|$)/.test(path)) return null;
+  return { port, path };
 }
 
 async function upstreamHealth() {
@@ -50,6 +62,11 @@ const server = http.createServer(async (req, res) => {
     const ok = Object.values(up).every(Boolean);
     res.writeHead(ok ? 200 : 503, { "content-type": "application/json" });
     return res.end(JSON.stringify({ ok, services: up }));
+  }
+  if (/^\/x402(\/|\?|$)/.test(req.url ?? "")) {
+    if (x402) return x402.handle(req, res);
+    res.writeHead(503, { "content-type": "application/json" });
+    return res.end(JSON.stringify({ error: "x402 disabled" }));
   }
   const r = route(req.url);
   if (!r) {

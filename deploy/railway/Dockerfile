@@ -19,7 +19,7 @@ WORKDIR /forge
 COPY . .
 
 # Node services (no web app) and the Python compiler API
-RUN pnpm install --frozen-lockfile --filter @forge/fork... --filter @forge/indexer... --filter @forge/txbuilder...
+RUN pnpm install --frozen-lockfile --filter @forge/fork... --filter @forge/indexer... --filter @forge/txbuilder... --filter @forge/agent...
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_INSTALL_DIR=/opt/uv-python
 RUN uv sync --frozen --no-dev --extra api
 
