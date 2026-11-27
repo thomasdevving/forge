@@ -4,7 +4,7 @@ use super::common::*;
 use crate::constants::*;
 use crate::error::ForgeError;
 use crate::math::orca::liquidity_token_deltas;
-use crate::math::premium::{base_to_quote, crank_allowed, quote_to_base};
+use crate::math::premium::{base_to_quote, crank_allowed, protocol_cut, quote_to_base};
 use crate::math::{ceil_div_u128, mul_div, to_u64, U256, BPS, Q64};
 use crate::orca::{self, read_position, read_whirlpool, ClosePositionAccounts, CollectFeesAccounts, LiquidityAccounts, SwapAccounts};
 use crate::reference::{check_pool_deviation, load_reference, ReferencePrice};
@@ -163,7 +163,8 @@ pub fn checkpoint_leg<'info>(ctx: Context<'info, CheckpointLeg<'info>>, leg_inde
     let growth = growth_inside(&w, &market.whirlpool, &rem[1], &rem[2], leg.tick_lower, leg.tick_upper)?;
     let lp_cap = s.lp_cap();
     let floor_rate = s.floor_rate_bps;
-    let (mut paid, mut binding) = (s.premium_paid, s.cap_binding);
+    let (mut paid, mut binding, mut protocol) = (s.premium_paid, s.cap_binding, s.protocol_fee_paid);
+    let fee_bps = s.protocol_fee_bps;
     {
         let l = &mut s.legs[idx];
         accrue_leg(l, growth, market.base_is_a, &reference, floor_rate, now)?;
@@ -171,6 +172,8 @@ pub fn checkpoint_leg<'info>(ctx: Context<'info, CheckpointLeg<'info>>, leg_inde
         let seeds = vault_signer_seeds(&market_key, &vb);
         pay_leg_increment(
             &mut paid,
+            &mut protocol,
+            fee_bps,
             &mut binding,
             lp_cap,
             l,
@@ -186,6 +189,7 @@ pub fn checkpoint_leg<'info>(ctx: Context<'info, CheckpointLeg<'info>>, leg_inde
         )?;
     }
     s.premium_paid = paid;
+    s.protocol_fee_paid = protocol;
     s.cap_binding = binding;
     s.premium_accrued = s.legs().iter().map(|l| l.premium).sum();
     bucket.exit(&crate::ID)?;
@@ -321,10 +325,13 @@ pub fn execute_close_batch<'info>(
         let growth = growth_inside(&w, &market.whirlpool, infos.tick_array_lower, infos.tick_array_upper, leg.tick_lower, leg.tick_upper)?;
         let lp_cap = s.lp_cap();
         let floor_rate = s.floor_rate_bps;
-        let (mut paid, mut binding) = (s.premium_paid, s.cap_binding);
+        let (mut paid, mut binding, mut protocol) = (s.premium_paid, s.cap_binding, s.protocol_fee_paid);
+        let fee_bps = s.protocol_fee_bps;
         accrue_leg(&mut s.legs[idx], growth, market.base_is_a, &reference, floor_rate, now)?;
         pay_leg_increment(
             &mut paid,
+            &mut protocol,
+            fee_bps,
             &mut binding,
             lp_cap,
             &mut s.legs[idx],
@@ -339,6 +346,7 @@ pub fn execute_close_batch<'info>(
             now,
         )?;
         s.premium_paid = paid;
+        s.protocol_fee_paid = protocol;
         s.cap_binding = binding;
 
         // 2-3. Guarded restoration from this leg's escrow + buffer only.
@@ -833,11 +841,16 @@ pub fn finalize_close<'info>(ctx: Context<'info, FinalizeClose<'info>>) -> Resul
                 .find(|x| *x.key == s.legs[i].bucket)
                 .ok_or(error!(ForgeError::LegAccountMismatch))?;
             let mut b: Account<Bucket> = Account::try_from(info)?;
+            let short = unpaid[i] - alloc[i];
             if alloc[i] > 0 {
                 token_util::transfer_signed(&tp, &a.budget.to_account_info(), &a.premium_vault.to_account_info(), &vault, alloc[i], signer)?;
-                credit_bucket(&mut b, alloc[i])?;
+                // the protocol takes its share only when the LPs are paid in full
+                let l = &s.legs[i];
+                let cut = if short == 0 { protocol_cut(l.premium, l.cum_forgone_quote, l.protocol_fee, s.protocol_fee_bps, alloc[i]) } else { 0 };
+                credit_bucket(&mut b, alloc[i] - cut)?;
+                s.legs[i].protocol_fee += cut;
+                s.protocol_fee_paid += cut;
             }
-            let short = unpaid[i] - alloc[i];
             b.lp_shortfall_quote += short;
             b.exit(&crate::ID)?;
             s.legs[i].premium_distributed += alloc[i];
@@ -912,7 +925,9 @@ pub fn finalize_close<'info>(ctx: Context<'info, FinalizeClose<'info>>) -> Resul
     s.recovery_recorded = false;
     s.state = if s.aborting { StrategyState::Cancelled } else { StrategyState::Closed };
     write_back(&mut ctx.accounts.strategy, &mut s);
+    let protocol_fee_paid = ctx.accounts.strategy.protocol_fee_paid;
     let m = &mut ctx.accounts.market;
+    m.protocol_fees = m.protocol_fees.checked_add(protocol_fee_paid).ok_or(error!(ForgeError::MathOverflow))?;
     if shortfall_total > 0 {
         m.outstanding_lp_shortfall += shortfall_total;
         m.borrow_paused = true;

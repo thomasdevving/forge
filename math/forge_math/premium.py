@@ -46,11 +46,12 @@ def wrapping_sub_u128(a: int, b: int) -> int:
 class UtilizationCurve:
     """Kinked multiplier m(u) >= 1, as in a lending-rate curve.
 
-    Default (section 8.6): m(u) = 1 + u on [0, 0.6]; 1.6 + 6 (u - 0.6) on (0.6, 0.8].
+    Default (hybrid, benchmarks/research/2026-11-recent): a flat 1.1 on [0, 0.6], then
+    1.1 + 6 (u - 0.6) on (0.6, 0.8]. Mirrors programs/forge/src/math/premium.rs.
     """
 
-    base_ppm: int = 1_000_000
-    slope1_ppm: int = 1_000_000
+    base_ppm: int = 1_100_000
+    slope1_ppm: int = 0
     kink_ppm: int = 600_000
     slope2_ppm: int = 6_000_000
     cap_ppm: int = 800_000
@@ -273,3 +274,12 @@ class Bucket:
     def available(self, curve: UtilizationCurve) -> int:
         cap = self.total_liquidity * curve.cap_ppm // PPM
         return max(0, cap - self.borrowed - self.reserved)
+
+
+def protocol_cut(premium: int, cum_forgone: int, already: int, fee_bps: int, inc: int) -> int:
+    """Protocol share still due on a leg: ``fee_bps`` of the premium above the forgone fees, rounded
+    down (LPs keep at least their forgone fees), less what was already taken, at most ``inc``.
+    Mirrors programs/forge/src/math/premium.rs ``protocol_cut``."""
+    excess = max(0, premium - cum_forgone)
+    due = excess * fee_bps // BPS
+    return min(max(0, due - already), inc)

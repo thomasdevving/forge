@@ -8,13 +8,13 @@ u64 = st.integers(min_value=0, max_value=pm.U64_MAX)
 u128 = st.integers(min_value=0, max_value=pm.U128 - 1)
 
 
-def test_default_curve_matches_brief():
+def test_default_curve_is_hybrid():
     c = pm.UtilizationCurve()
-    assert c.multiplier_ppm(0) == 1_000_000
-    assert c.multiplier_ppm(300_000) == 1_300_000
-    assert c.multiplier_ppm(600_000) == 1_600_000
-    assert c.multiplier_ppm(700_000) == 2_200_000
-    assert c.multiplier_ppm(800_000) == 2_800_000
+    assert c.multiplier_ppm(0) == 1_100_000
+    assert c.multiplier_ppm(300_000) == 1_100_000
+    assert c.multiplier_ppm(600_000) == 1_100_000
+    assert c.multiplier_ppm(700_000) == 1_700_000
+    assert c.multiplier_ppm(800_000) == 2_300_000
     with pytest.raises(ValueError):
         c.multiplier_ppm(800_001)
 
@@ -164,3 +164,12 @@ def test_late_joiner_cannot_claim_history():
     late.sync(idx)
     assert early.owed == 1_500
     assert late.owed == 500
+
+
+@given(st.integers(0, 10**12), st.integers(0, 10**12), st.integers(0, 5_000))
+def test_protocol_cut_leaves_lps_their_forgone_fees(premium, forgone, bps):
+    cut = pm.protocol_cut(premium, forgone, 0, bps, premium)
+    assert 0 <= cut <= premium
+    assert premium - cut >= min(premium, forgone)
+    assert pm.protocol_cut(1_100, 1_000, 0, 1_000, 1_100) == 10
+    assert pm.protocol_cut(1_100, 1_000, 10, 1_000, 50) == 0

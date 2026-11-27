@@ -15,12 +15,16 @@ the quote token, above it the base token, and the bucket at the price holds both
 ```
 premium = max(time floor, m(u) × forgone fees)
 time floor = 5% a year on the borrowed notional
-m(u) = 1 + u               up to 60% utilization
-m(u) = 1.6 + 6 (u − 0.6)   from 60% to the 80% cap
+m(u) = 1.1                 up to 60% utilization
+m(u) = 1.1 + 6 (u − 0.6)   from 60% to the 80% cap
 ```
 
 Forgone fees are measured from Orca's own fee growth for the range while it is borrowed, so the
-premium tracks what your liquidity would actually have earned, times a multiplier of at least one.
+premium tracks what your liquidity would actually have earned, times a multiplier of at least 1.1.
+
+The protocol keeps 10% of the part of the premium **above** your forgone fees (never of the
+forgone fees themselves), so you always receive at least the fees you missed. In the example of a
+1.1× premium, you receive 1.09× your forgone fees.
 
 ## The guarantee, and its limits
 

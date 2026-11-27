@@ -100,7 +100,11 @@ describe("long put on SOL/USDC (fork)", () => {
       expect(pos.data.liquidity).toBe(posLiquidityBefore.get(b.address)! - L);
       // post-reservation utilization including other borrowers on this bucket
       const u = Number(((borrowedBefore.get(b.address)! + L) * 1_000_000n + bk.total_liquidity - 1n) / bk.total_liquidity);
-      expect(st.legs[i]!.multiplier_ppm).toBe(u <= 600_000 ? 1_000_000 + u : 1_600_000 + 6 * (u - 600_000));
+      // the market's curve, rounded up per segment as in the program (premium.rs multiplier_ppm)
+      const c = (await fetchMarket(rpc, sol.market)).params.curve;
+      const up = (slope: number, x: number) => Math.ceil((slope * x) / 1_000_000);
+      const mult = u <= c.kink_ppm ? c.base_ppm + up(c.slope1_ppm, u) : c.base_ppm + up(c.slope1_ppm, c.kink_ppm) + up(c.slope2_ppm, u - c.kink_ppm);
+      expect(st.legs[i]!.multiplier_ppm).toBe(mult);
     }
     // the user paid exactly budget + buffers
     const paid = quoteBefore - (await tokenAmount(user.usdc));

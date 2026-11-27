@@ -17,6 +17,7 @@ export type MarketParams = {
   bounty_bps: number;
   max_ops_per_tx: number;
   max_buckets_per_strategy: number;
+  protocol_fee_bps: number;
 };
 export type ReferenceConfig = {
   kind: "PythPair" | "ForkScenario";
@@ -46,6 +47,7 @@ export type Market = {
   strategy_count: bigint;
   unresolved_strategies: number;
   outstanding_lp_shortfall: bigint;
+  protocol_fees: bigint;
   bump: number;
   vault_bump: number;
 };
@@ -90,6 +92,7 @@ export type Leg = {
   cum_forgone_quote: bigint;
   premium: bigint;
   premium_distributed: bigint;
+  protocol_fee: bigint;
   last_checkpoint_ts: bigint;
   executed: boolean;
   restored: boolean;
@@ -119,10 +122,12 @@ export type Strategy = {
   swap_slippage_bps: number;
   floor_rate_bps: number;
   keeper_trigger_bps: number;
+  protocol_fee_bps: number;
   premium_budget: bigint;
   bounty_reserve: bigint;
   premium_accrued: bigint;
   premium_paid: bigint;
+  protocol_fee_paid: bigint;
   keeper_bounty_paid: bigint;
   lp_shortfall: bigint;
   close_by_keeper: boolean;
@@ -182,7 +187,8 @@ export const fetchScenario = (rpc: Rpc<SolanaRpcApi>, a: Address) => fetchTyped<
 export function defaultParams(): MarketParams {
   return {
     floor_rate_bps: 500,
-    curve: { base_ppm: 1_000_000, slope1_ppm: 1_000_000, kink_ppm: 600_000, slope2_ppm: 6_000_000, cap_ppm: 800_000 },
+    // hybrid: flat 1.1x up to 60% utilization, then +6x per unit (programs/forge/src/math/premium.rs)
+    curve: { base_ppm: 1_100_000, slope1_ppm: 0, kink_ppm: 600_000, slope2_ppm: 6_000_000, cap_ppm: 800_000 },
     notice_period_s: 86_400,
     restoration_buffer_bps: 200,
     swap_slippage_bps: 50,
@@ -195,5 +201,6 @@ export function defaultParams(): MarketParams {
     bounty_bps: 100,
     max_ops_per_tx: 2,
     max_buckets_per_strategy: 8,
+    protocol_fee_bps: 1_000,
   };
 }

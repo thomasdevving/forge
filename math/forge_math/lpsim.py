@@ -89,6 +89,7 @@ class SimParams:
     keeper: bool = False                 # keepers close positions at the budget trigger
     keeper_trigger_bps: int = 8_000      # program: keeper_trigger_bps (accrued >= 80% of the LP cap)
     keeper_delay_s: float = 300.0        # trigger -> close executed
+    protocol_fee_bps: int = 1_000        # program: protocol_fee_bps, share of premium above forgone fees
     curve: UtilizationCurve = field(default_factory=UtilizationCurve)
 
     def __post_init__(self) -> None:
@@ -104,6 +105,10 @@ class SimParams:
     def keeper_trigger(self) -> float:
         return self.keeper_trigger_bps / 10_000
 
+    @property
+    def protocol_take(self) -> float:
+        return self.protocol_fee_bps / 10_000
+
     @classmethod
     def from_program(cls, **overrides) -> SimParams:
         """Defaults read from programs/forge (state.rs MarketParams, premium.rs UtilizationCurve)."""
@@ -111,12 +116,13 @@ class SimParams:
         program_parity(cls())   # the literal defaults must equal the program's
         p = cls(floor_rate=d["floor_rate_bps"] / 10_000, restoration_buffer=d["restoration_buffer_bps"] / 10_000,
                 swap_slippage_bps=float(d["swap_slippage_bps"]), bounty_bps=d["bounty_bps"],
-                keeper_trigger_bps=d["keeper_trigger_bps"], curve=UtilizationCurve(**d["curve"]))
+                keeper_trigger_bps=d["keeper_trigger_bps"], protocol_fee_bps=d["protocol_fee_bps"],
+                curve=UtilizationCurve(**d["curve"]))
         return replace(p, **overrides)
 
 
 _PROGRAM_FIELDS = ("floor_rate_bps", "restoration_buffer_bps", "swap_slippage_bps", "keeper_trigger_bps",
-                   "bounty_bps")
+                   "bounty_bps", "protocol_fee_bps")
 _CURVE_FIELDS = ("base_ppm", "slope1_ppm", "kink_ppm", "slope2_ppm", "cap_ppm")
 
 
@@ -143,7 +149,7 @@ def program_parity(p: SimParams) -> dict:
     used = {"floor_rate_bps": round(p.floor_rate * 10_000),
             "restoration_buffer_bps": round(p.restoration_buffer * 10_000),
             "swap_slippage_bps": round(p.swap_slippage_bps), "keeper_trigger_bps": p.keeper_trigger_bps,
-            "bounty_bps": p.bounty_bps, "curve": asdict(p.curve)}
+            "bounty_bps": p.bounty_bps, "protocol_fee_bps": p.protocol_fee_bps, "curve": asdict(p.curve)}
     mismatch = {k: (used[k], onchain[k]) for k in onchain if used[k] != onchain[k]}
     if mismatch:
         raise ValueError(f"simulation parameters differ from the programs/forge defaults (used, on-chain): {mismatch}")
@@ -263,7 +269,8 @@ class PathResult:
     lp_fees_world_a: float = 0.0        # quote value at accrual time
     lp_idle_fees_world_b: float = 0.0   # quote value at accrual time
     premium_accrued: float = 0.0
-    premium_paid: float = 0.0
+    premium_paid: float = 0.0           # paid to LPs (after the protocol's share)
+    protocol_paid: float = 0.0          # protocol share: protocol_fee_bps of premium above forgone fees
     shortfall: float = 0.0
     restoration_failures: int = 0       # refused restoration attempts (each retried later)
     borrows_with_refusals: int = 0
@@ -376,14 +383,17 @@ def simulate_path(prices: np.ndarray, params: SimParams, seed: int, path_id: str
         floor = b.notional * p.floor_rate * held_s / YEAR_S
         premium = max(floor, b.multiplier * b.forgone_quote)
         paid = min(premium, b.budget * p.lp_cap_frac)
+        # the protocol takes its share of the excess over forgone fees only when the LP is paid in full
+        cut = min(paid, p.protocol_take * max(0.0, premium - b.forgone_quote)) if premium - paid <= 1e-15 else 0.0
         res.premium_accrued += premium
-        res.premium_paid += paid
+        res.premium_paid += paid - cut
+        res.protocol_paid += cut
         res.shortfall += premium - paid
         res.measured_forgone += b.forgone_quote
         res.restored_exact += 1
         res.borrows_with_refusals += b.refusals > 0
         b.closed = t
-        _evaluate_borrow(res, b, premium, paid)
+        _evaluate_borrow(res, b, premium, paid, paid - cut)
         borrowed[k] = 0.0
         active[k] = None
 
@@ -502,7 +512,7 @@ def simulate_path(prices: np.ndarray, params: SimParams, seed: int, path_id: str
     return res
 
 
-def _evaluate_borrow(res: PathResult, b: Borrow, premium: float, paid: float) -> None:
+def _evaluate_borrow(res: PathResult, b: Borrow, premium: float, paid: float, lp_paid: float) -> None:
     """Conditional guarantee for one borrow: if the premium was fully funded, the premium paid must
     cover the LP's actual fee loss on that bucket over the whole time the liquidity was out
     (including any refused-restoration delay)."""
@@ -511,10 +521,10 @@ def _evaluate_borrow(res: PathResult, b: Borrow, premium: float, paid: float) ->
         return
     res.borrows_eligible += 1
     loss = b.fees_a - b.idle_b
-    if paid + 1e-12 * max(1.0, abs(loss)) >= loss:
+    if lp_paid + 1e-12 * max(1.0, abs(loss)) >= loss:
         res.borrows_holding += 1
     else:
-        res.borrow_violations.append({"bucket": b.bucket, "kind": b.kind, "loss": loss, "paid": paid})
+        res.borrow_violations.append({"bucket": b.bucket, "kind": b.kind, "loss": loss, "paid": lp_paid})
 
 
 # ---------------------------------------------------------------------------------------------
@@ -612,10 +622,14 @@ def settle_borrows(fg: FeeGrowth, p: SimParams, k, to, tc, u, m, put, budget, nz
     short = premium - paid
     loss = fa_v - fb_v
     funded = short <= 1e-15
+    # protocol share of the premium above forgone fees, only when the LP is paid in full
+    cut = np.where(funded, np.minimum(paid, p.protocol_take * np.maximum(0.0, premium - forgone)), 0.0)
+    paid = paid - cut
     viol = int(np.sum(funded & (paid + 1e-12 * np.maximum(1.0, np.abs(loss)) < loss)))
     return {"lost_b": float(np.sum(fa_b - fb_b)), "lost_q": float(np.sum(fa_q - fb_q)),
             "lost_v": float(np.sum(loss)), "fees_a_int": float(np.sum(fa_v)), "idle_b_int": float(np.sum(fb_v)),
-            "premium": float(np.sum(premium)), "paid": float(np.sum(paid)), "short": float(np.sum(short)),
+            "premium": float(np.sum(premium)), "paid": float(np.sum(paid)), "protocol": float(np.sum(cut)),
+            "short": float(np.sum(short)),
             "forgone": float(np.sum(forgone)), "short_borrows": int(np.sum(~funded)), "violations": viol,
             "floor_bound": int(np.sum(floor >= m * forgone)), "util_steps": float(np.sum(u * (tc - to)))}
 
@@ -684,7 +698,7 @@ def simulate_demand(fg: FeeGrowth, p: SimParams, u: float, hold_s: float, budget
     if n:
         r = settle_borrows(fg, p, ev["k"], ev["to"], ev["tc"], [u] * n, [m] * n, ev["put"], ev["budget"], nzf)
     else:
-        r = {key: 0.0 for key in ("lost_b", "lost_q", "lost_v", "premium", "paid", "short", "forgone",
+        r = {key: 0.0 for key in ("lost_b", "lost_q", "lost_v", "premium", "paid", "protocol", "short", "forgone",
                                   "util_steps")}
         r.update(short_borrows=0, violations=0, floor_bound=0)
     r.update(borrows=n, refusals=refusals, keeper_closes=keeper_closes, util=r["util_steps"] / (nbk * T))
@@ -702,7 +716,7 @@ def replay_check(prices: np.ndarray, params: SimParams, seed: int) -> dict:
                            [b.closed for b in events], [b.util for b in events], [b.multiplier for b in events],
                            [b.kind == "put" for b in events], [b.budget for b in events])
     else:
-        r = {"lost_v": 0.0, "lost_b": 0.0, "lost_q": 0.0, "paid": 0.0, "short": 0.0, "forgone": 0.0}
+        r = {"lost_v": 0.0, "lost_b": 0.0, "lost_q": 0.0, "paid": 0.0, "protocol": 0.0, "short": 0.0, "forgone": 0.0}
     a_b, a_q, a_v = world_a_fees(fg, params)
     pT = float(fg.prices[-1])
     engine = {"lp_fees_world_a": a_v, "lp_idle_fees_world_b": a_v - r["lost_v"], "premium_paid": r["paid"],

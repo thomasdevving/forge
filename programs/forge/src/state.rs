@@ -21,6 +21,9 @@ pub struct MarketParams {
     pub bounty_bps: u16,
     pub max_ops_per_tx: u8,
     pub max_buckets_per_strategy: u8,
+    /// Protocol share of the premium a leg earns above the Orca fees its LPs forgo. Taken only
+    /// from that excess, so LPs always keep at least their forgone fees.
+    pub protocol_fee_bps: u16,
 }
 
 impl Default for MarketParams {
@@ -40,6 +43,7 @@ impl Default for MarketParams {
             bounty_bps: 100,
             max_ops_per_tx: 2,
             max_buckets_per_strategy: 8,
+            protocol_fee_bps: 1_000,
         }
     }
 }
@@ -76,6 +80,7 @@ impl MarketParams {
             ForgeError::InvalidParameters
         );
         require!(p.bounty_bps < 10_000, ForgeError::InvalidParameters);
+        require!(p.protocol_fee_bps <= 5_000, ForgeError::InvalidParameters);
         require!(
             (1..=crate::constants::MAX_OPS_PER_TX_CEILING).contains(&p.max_ops_per_tx),
             ForgeError::InvalidParameters
@@ -142,6 +147,8 @@ pub struct Market {
     pub strategy_count: u64,
     pub unresolved_strategies: u32,
     pub outstanding_lp_shortfall: u64,
+    /// Protocol fees settled into the premium vault and not yet withdrawn (quote atoms).
+    pub protocol_fees: u64,
     pub bump: u8,
     pub vault_bump: u8,
 }
@@ -343,8 +350,10 @@ pub struct Leg {
     pub growth_b_x64: u128,
     pub cum_forgone_quote: u64,
     pub premium: u64,
-    /// Premium already transferred to the bucket's LP index.
+    /// Premium already transferred from the budget (LP share plus protocol share).
     pub premium_distributed: u64,
+    /// Part of premium_distributed that went to the protocol (never below the LPs' forgone fees).
+    pub protocol_fee: u64,
     pub last_checkpoint_ts: i64,
     pub executed: bool,
     pub restored: bool,
@@ -384,10 +393,13 @@ pub struct Strategy {
     pub swap_slippage_bps: u16,
     pub floor_rate_bps: u16,
     pub keeper_trigger_bps: u16,
+    pub protocol_fee_bps: u16,
     pub premium_budget: u64,
     pub bounty_reserve: u64,
     pub premium_accrued: u64,
     pub premium_paid: u64,
+    /// Part of premium_paid that went to the protocol.
+    pub protocol_fee_paid: u64,
     pub keeper_bounty_paid: u64,
     pub lp_shortfall: u64,
     pub close_by_keeper: bool,

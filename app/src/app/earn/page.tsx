@@ -94,11 +94,13 @@ export default function Earn() {
   const claimBase = mine.reduce((a, l) => a + atoms(l.feesOwedBaseNow, bd), 0);
   const claimQuote = mine.reduce((a, l) => a + atoms(l.feesOwedQuoteNow, qd), 0);
 
-  // what borrowers pay on top of the fees you forgo, at a bucket's current utilization (program's curve)
+  // what you receive per unit of fees you forgo when lent at a bucket's current utilization: the
+  // program's m(u), less the protocol's share of the part above 1x (programs/forge premium.rs)
   const multiplier = (u: number) => {
     if (!m) return 1;
-    const c = m.params.curve, k = c.kink_ppm / 1e6;
-    return u <= k ? 1 + (c.slope1_ppm / 1e6) * u : 1 + (c.slope1_ppm / 1e6) * k + (c.slope2_ppm / 1e6) * (u - k);
+    const c = m.params.curve, k = c.kink_ppm / 1e6, base = c.base_ppm / 1e6;
+    const mu = u <= k ? base + (c.slope1_ppm / 1e6) * u : base + (c.slope1_ppm / 1e6) * k + (c.slope2_ppm / 1e6) * (u - k);
+    return mu - ((m.params.protocol_fee_bps ?? 0) / 1e4) * Math.max(0, mu - 1);
   };
   const floorPct = m ? m.params.floor_rate_bps / 100 : 5;
   const B = baseSymbol(m), Q = quoteSymbol(m);
@@ -157,7 +159,7 @@ export default function Earn() {
           <div className="min-h-0 flex-1 overflow-auto border-t border-line">
             <table className="tbl tbl-dense min-w-[860px]">
               <thead className="sticky top-0 z-10 bg-panel">
-                <tr>{["Price range", "In the pool", "Lent out", "Borrowers pay", "Paid to LPs", "Yours", ""].map((h) => <th key={h}>{h}</th>)}</tr>
+                <tr>{["Price range", "In the pool", "Lent out", "You receive when lent", "Paid to LPs", "Yours", ""].map((h) => <th key={h}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {buckets.map((b) => {
@@ -226,7 +228,7 @@ export default function Earn() {
                   {dep.side === "below" && <li>Below today&apos;s price: you add <span className="text-ink">{Q}</span>. If {B} falls into this range your {Q} gradually turns into {B}, like any Orca position.</li>}
                   {dep.side === "above" && <li>Above today&apos;s price: you add <span className="text-ink">{B}</span>. If {B} rises into this range your {B} gradually turns into {Q}, like any Orca position.</li>}
                   {dep.side === "spot" && <li>Contains today&apos;s price: you add both tokens and earn fees right away. This range cannot be lent out.</li>}
-                  {dep.side !== "spot" && <li>When lent out, borrowers pay you <span className="text-ink">{multiplier(dep.utilization).toFixed(2)}×</span> the fees you would have earned (at least {floorPct}% a year). The multiplier rises as more is lent.</li>}
+                  {dep.side !== "spot" && <li>When lent out, you receive <span className="text-ink">{multiplier(dep.utilization).toFixed(2)}×</span> the fees you would have earned (at least {floorPct}% a year), after the protocol&apos;s share of the extra. It rises once more than 60% is lent.</li>}
                   <li>Withdraw any time while it&apos;s not lent out; lent-out liquidity needs {notice}h notice.</li>
                 </ul>
                 <label className="mt-3 block">

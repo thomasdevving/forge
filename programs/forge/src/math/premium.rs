@@ -16,11 +16,14 @@ pub struct UtilizationCurve {
     pub cap_ppm: u32,
 }
 
+/// Hybrid curve: a flat 1.1x on forgone fees while liquidity is plentiful (near fair value for
+/// borrowers, a margin for LPs), then a steep rise above 60% utilization to ration scarce
+/// liquidity. See benchmarks/research/2026-11-recent.
 impl Default for UtilizationCurve {
     fn default() -> Self {
         Self {
-            base_ppm: 1_000_000,
-            slope1_ppm: 1_000_000,
+            base_ppm: 1_100_000,
+            slope1_ppm: 0,
             kink_ppm: 600_000,
             slope2_ppm: 6_000_000,
             cap_ppm: 800_000,
@@ -104,6 +107,14 @@ pub fn leg_premium(
     Ok(floor.max(scaled))
 }
 
+/// Protocol share still due on a leg: `fee_bps` of the premium above the forgone fees (rounded
+/// down, so LPs keep at least their forgone fees), less what was already taken, at most `inc`.
+pub fn protocol_cut(premium: u64, cum_forgone: u64, already: u64, fee_bps: u16, inc: u64) -> u64 {
+    let excess = premium.saturating_sub(cum_forgone) as u128;
+    let due = (excess * fee_bps as u128 / BPS) as u64;
+    due.saturating_sub(already).min(inc)
+}
+
 pub fn bounty_reserve(budget: u64, bounty_bps: u16) -> u64 {
     ((budget as u128 * bounty_bps as u128) / BPS) as u64
 }
@@ -140,13 +151,44 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default_curve_matches_brief() {
+    fn default_curve_is_hybrid() {
         let c = UtilizationCurve::default();
-        assert_eq!(c.multiplier_ppm(0).unwrap(), 1_000_000);
-        assert_eq!(c.multiplier_ppm(600_000).unwrap(), 1_600_000);
-        assert_eq!(c.multiplier_ppm(700_000).unwrap(), 2_200_000);
-        assert_eq!(c.multiplier_ppm(800_000).unwrap(), 2_800_000);
+        c.validate().unwrap();
+        // flat 1.1x up to the kink
+        assert_eq!(c.multiplier_ppm(0).unwrap(), 1_100_000);
+        assert_eq!(c.multiplier_ppm(300_000).unwrap(), 1_100_000);
+        assert_eq!(c.multiplier_ppm(600_000).unwrap(), 1_100_000);
+        // then +6x per unit of utilization
+        assert_eq!(c.multiplier_ppm(700_000).unwrap(), 1_700_000);
+        assert_eq!(c.multiplier_ppm(800_000).unwrap(), 2_300_000);
         assert!(c.multiplier_ppm(800_001).is_err());
+    }
+
+    #[test]
+    fn protocol_cut_only_from_excess() {
+        // premium 1_100 on 1_000 forgone: excess 100, 10% = 10
+        assert_eq!(protocol_cut(1_100, 1_000, 0, 1_000, 1_100), 10);
+        // already taken: nothing more due
+        assert_eq!(protocol_cut(1_100, 1_000, 10, 1_000, 50), 0);
+        // never more than the increment
+        assert_eq!(protocol_cut(1_100, 1_000, 0, 1_000, 4), 4);
+        // floor-bound leg with no forgone fees: the excess is the whole premium
+        assert_eq!(protocol_cut(500, 0, 0, 1_000, 500), 50);
+        // premium at or below forgone fees: nothing
+        assert_eq!(protocol_cut(900, 1_000, 0, 1_000, 900), 0);
+        // rounds down (LP-friendly)
+        assert_eq!(protocol_cut(1_009, 1_000, 0, 1_000, 1_009), 0);
+    }
+
+    #[test]
+    fn lps_keep_their_forgone_fees() {
+        // for any premium >= forgone, LP share = premium - cut >= forgone
+        for (premium, forgone) in [(1_100u64, 1_000u64), (5_000, 0), (2_300, 1_000), (1_000, 1_000), (7, 3)] {
+            for bps in [0u16, 1_000, 5_000] {
+                let cut = protocol_cut(premium, forgone, 0, bps, premium);
+                assert!(premium - cut >= forgone.min(premium), "premium {premium} forgone {forgone} bps {bps}");
+            }
+        }
     }
 
     #[test]

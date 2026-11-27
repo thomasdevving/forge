@@ -39,6 +39,10 @@ pub mod forge {
         instructions::admin::update_market(ctx, params, opens_paused, borrow_paused)
     }
 
+    pub fn withdraw_protocol_fees(ctx: Context<WithdrawProtocolFees>, amount: u64) -> Result<()> {
+        instructions::admin::withdraw_protocol_fees(ctx, amount)
+    }
+
     pub fn init_scenario_reference(ctx: Context<InitScenarioReference>, signer: Pubkey) -> Result<()> {
         instructions::admin::init_scenario_reference(ctx, signer)
     }

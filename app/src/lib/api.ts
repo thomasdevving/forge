@@ -34,6 +34,8 @@ export type MarketParams = {
   bounty_bps: number;
   max_ops_per_tx: number;
   max_buckets_per_strategy: number;
+  /** Protocol share of premium above the LPs' forgone fees. */
+  protocol_fee_bps: number;
 };
 
 export type MarketInfo = {

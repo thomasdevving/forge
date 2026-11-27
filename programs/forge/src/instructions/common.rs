@@ -3,7 +3,7 @@
 use crate::constants::*;
 use crate::error::ForgeError;
 use crate::math::orca::{fee_growths_inside, sqrt_price_from_tick_index};
-use crate::math::premium::{base_to_quote, forgone_from_growth, index_distribute, leg_premium};
+use crate::math::premium::{base_to_quote, forgone_from_growth, index_distribute, leg_premium, protocol_cut};
 use crate::math::{u256_to_u128, U256, Q64};
 use crate::orca::{read_tick, WhirlpoolView};
 use crate::reference::ReferencePrice;
@@ -175,13 +175,16 @@ pub struct PayAccounts<'a, 'info> {
     pub vault: &'a AccountInfo<'info>,
 }
 
-/// Transfer the leg's newly accrued premium from the budget to the LP premium vault and credit
-/// the bucket's per-share index. Funded tokens only; once the cap binds, the remainder is
+/// Transfer the leg's newly accrued premium from the budget to the premium vault and credit the
+/// bucket's per-share index with the LP share (the protocol share stays in the vault, booked on
+/// the strategy and moved to the market's protocol_fees at finalize). Funded tokens only; once the cap binds, the remainder is
 /// allocated pro rata at final settlement and any excess is recorded as LP shortfall.
 #[inline(never)]
 #[allow(clippy::too_many_arguments)]
 pub fn pay_leg_increment(
     strategy_premium_paid: &mut u64,
+    strategy_protocol_paid: &mut u64,
+    protocol_fee_bps: u16,
     cap_binding: &mut bool,
     lp_cap: u64,
     leg: &mut Leg,
@@ -204,9 +207,12 @@ pub fn pay_leg_increment(
         return Ok(());
     }
     token_util::transfer_signed(pay.token_program, pay.budget, pay.premium_vault, pay.vault, inc, signer)?;
-    credit_bucket(bucket, inc)?;
+    let cut = protocol_cut(leg.premium, leg.cum_forgone_quote, leg.protocol_fee, protocol_fee_bps, inc);
+    credit_bucket(bucket, inc - cut)?;
     leg.premium_distributed += inc;
+    leg.protocol_fee += cut;
     *strategy_premium_paid += inc;
+    *strategy_protocol_paid += cut;
     Ok(())
 }
 

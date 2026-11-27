@@ -75,16 +75,19 @@ never revalued at later prices. Test: `test_checkpoint_never_revalues_past_accru
 ### 3.3 Utilization multiplier
 
 Utilization is post-reservation, `u = ⌈(borrowed + reserved) · 10^6 / total⌉` ppm. The
-default curve is
+default curve is the hybrid one
 
 ```
-m(u) = 1 + u                 0   ≤ u ≤ 0.6
-m(u) = 1.6 + 6 (u − 0.6)     0.6 < u ≤ 0.8
+m(u) = 1.1                   0   ≤ u ≤ 0.6
+m(u) = 1.1 + 6 (u − 0.6)     0.6 < u ≤ 0.8
 reject                       u > 0.8 (cap)
 ```
 
 evaluated in ppm with each linear term rounded up. The multiplier is locked per bucket when
-the bucket is borrowed. Tests: `test_default_curve_matches_brief`,
+the bucket is borrowed. A flat 1.1 keeps borrowers near the fair value of the protection while
+liquidity is plentiful; the steep part rations it when scarce. It replaced `1 + u` after the
+study in `benchmarks/research/2026-11-recent`, which found `1 + u` priced borrowers above fair
+value at every floor tested. Tests: `test_default_curve_is_hybrid`,
 `test_curve_monotone_and_at_least_one`.
 
 ### 3.4 Leg premium
@@ -97,6 +100,23 @@ total  = Σ legs
 
 The floor and the multiplied forgone amount are alternatives (max), never added.
 Test: `test_leg_premium_is_max_not_sum`, `test_time_floor_examples`.
+
+### 3.4a Protocol fee
+
+The protocol takes `protocol_fee_bps` (default 10%) of the premium a leg earns **above** the
+forgone fees, never of the forgone fees themselves:
+
+```
+cut_due = ⌊ (premium − cumulative_forgone_quote)⁺ · protocol_fee_bps / 10^4 ⌋
+LP share = premium − cut    ≥ cumulative_forgone_quote
+```
+
+It is taken as each increment is paid (only from the increment, rounding down) and, at final
+settlement, only when the leg's LPs are paid in full; when a budget falls short the protocol takes
+nothing more. It stays in the premium vault, is booked on the market at finalize
+(`Market.protocol_fees`) and leaves only through the admin's `withdraw_protocol_fees`.
+Tests: `protocol_cut_only_from_excess`, `lps_keep_their_forgone_fees` (Rust),
+`test_protocol_cut_leaves_lps_their_forgone_fees` (property test), `tests/fork/protocol-fee.test.ts`.
 
 ### 3.5 Budget, bounty and shortfall
 

@@ -161,6 +161,43 @@ pub fn update_market(
 }
 
 // ---------------------------------------------------------------------------------------------
+// Protocol fees: the protocol's share of premium above forgone fees, booked at finalize_close.
+// ---------------------------------------------------------------------------------------------
+
+#[derive(Accounts)]
+pub struct WithdrawProtocolFees<'info> {
+    pub admin: Signer<'info>,
+    #[account(mut, has_one = admin @ ForgeError::Unauthorized)]
+    pub market: Box<Account<'info, Market>>,
+    /// CHECK: vault PDA, signs for the premium vault.
+    #[account(seeds = [VAULT_SEED, market.key().as_ref()], bump = market.vault_bump)]
+    pub vault: UncheckedAccount<'info>,
+    #[account(mut, address = market.premium_vault)]
+    pub premium_vault: Box<Account<'info, TokenAccount>>,
+    #[account(mut, token::mint = market.quote_mint)]
+    pub destination: Box<Account<'info, TokenAccount>>,
+    pub token_program: Program<'info, Token>,
+}
+
+pub fn withdraw_protocol_fees(ctx: Context<WithdrawProtocolFees>, amount: u64) -> Result<()> {
+    let a = &ctx.accounts;
+    require!(amount > 0 && amount <= a.market.protocol_fees, ForgeError::InvalidParameters);
+    let market_key = a.market.key();
+    let vb = [a.market.vault_bump];
+    let seeds = a.market.vault_seeds(&market_key, &vb);
+    crate::token_util::transfer_signed(
+        &a.token_program.to_account_info(),
+        &a.premium_vault.to_account_info(),
+        &a.destination.to_account_info(),
+        &a.vault.to_account_info(),
+        amount,
+        &[&seeds],
+    )?;
+    ctx.accounts.market.protocol_fees -= amount;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------------------------
 // Fork-only scenario reference (section 8.4). Trusted demo assumption, explicitly labelled.
 // ---------------------------------------------------------------------------------------------
 

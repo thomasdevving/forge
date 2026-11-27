@@ -3178,6 +3178,71 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "withdraw_protocol_fees",
+      "discriminator": [
+        11,
+        68,
+        165,
+        98,
+        18,
+        208,
+        134,
+        73
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "premium_vault",
+          "writable": true
+        },
+        {
+          "name": "destination",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -3819,7 +3884,14 @@
           {
             "name": "premium_distributed",
             "docs": [
-              "Premium already transferred to the bucket's LP index."
+              "Premium already transferred from the budget (LP share plus protocol share)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "protocol_fee",
+            "docs": [
+              "Part of premium_distributed that went to the protocol (never below the LPs' forgone fees)."
             ],
             "type": "u64"
           },
@@ -4153,6 +4225,13 @@
             "type": "u64"
           },
           {
+            "name": "protocol_fees",
+            "docs": [
+              "Protocol fees settled into the premium vault and not yet withdrawn (quote atoms)."
+            ],
+            "type": "u64"
+          },
+          {
             "name": "bump",
             "type": "u8"
           },
@@ -4231,6 +4310,14 @@
           {
             "name": "max_buckets_per_strategy",
             "type": "u8"
+          },
+          {
+            "name": "protocol_fee_bps",
+            "docs": [
+              "Protocol share of the premium a leg earns above the Orca fees its LPs forgo. Taken only",
+              "from that excess, so LPs always keep at least their forgone fees."
+            ],
+            "type": "u16"
           }
         ]
       }
@@ -4403,6 +4490,10 @@
             "type": "u16"
           },
           {
+            "name": "protocol_fee_bps",
+            "type": "u16"
+          },
+          {
             "name": "premium_budget",
             "type": "u64"
           },
@@ -4416,6 +4507,13 @@
           },
           {
             "name": "premium_paid",
+            "type": "u64"
+          },
+          {
+            "name": "protocol_fee_paid",
+            "docs": [
+              "Part of premium_paid that went to the protocol."
+            ],
             "type": "u64"
           },
           {

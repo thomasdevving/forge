@@ -197,6 +197,7 @@ pub fn begin_open<'info>(ctx: Context<'info, BeginOpen<'info>>, args: BeginOpenA
     s.open_tolerance_bps = args.open_tolerance_bps;
     s.swap_slippage_bps = args.swap_slippage_bps;
     s.floor_rate_bps = p.floor_rate_bps;
+    s.protocol_fee_bps = p.protocol_fee_bps;
     s.keeper_trigger_bps = p.keeper_trigger_bps;
     s.premium_budget = args.premium_budget;
     s.bounty_reserve = bounty_reserve(args.premium_budget, p.bounty_bps);

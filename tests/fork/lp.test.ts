@@ -194,7 +194,11 @@ describe("LP economics (fork)", () => {
     const after = await fetchBucket(rpc, bucketAt(tl));
     expect(after.borrowed * 1_000_000n).toBeLessThanOrEqual(after.total_liquidity * 800_000n);
     const st = await fetchStrategy(rpc, s);
-    expect(st.legs[0]!.multiplier_ppm).toBeGreaterThan(2_700_000); // near the cap: m -> 2.8
+    // near the cap the multiplier approaches its maximum: base + slope1·kink + slope2·(cap − kink)
+    const c = (await fetchMarket(rpc, sol.market)).params.curve;
+    const top = c.base_ppm + (c.slope1_ppm * c.kink_ppm + c.slope2_ppm * (c.cap_ppm - c.kink_ppm)) / 1_000_000;
+    expect(st.legs[0]!.multiplier_ppm).toBeGreaterThan(top - 100_000);
+    expect(st.legs[0]!.multiplier_ppm).toBeLessThanOrEqual(top);
     await expectError(openPut(trader, [bucketBelow(4), bucketBelow(4)], nonce++), "LegAccountMismatch");
     const plan = await buildClose(rpc, { caller: trader.user, market: sol.market, strategy: s, userBase: trader.wsol, userQuote: trader.usdc });
     await send(trader.user, plan[0]!);
