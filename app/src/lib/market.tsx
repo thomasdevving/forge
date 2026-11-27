@@ -50,6 +50,24 @@ export function defaultUnits(m: MarketInfo): number {
   return Math.round(raw / mag) * mag;
 }
 
+type TokenHit = { address: string; symbol: string; name: string; image?: string; volume: number };
+const SPL_TOKEN = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+const looksLikeMint = (s: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s.trim());
+
+/** Search tokens by name or symbol (Orca's public token API). Copycats share symbols, so volume decides order. */
+async function searchTokens(q: string): Promise<TokenHit[]> {
+  const r = await fetch(`https://api.orca.so/v2/solana/tokens/search?q=${encodeURIComponent(q)}`);
+  if (!r.ok) return [];
+  const { data } = (await r.json()) as {
+    data: { address: string; tokenProgram: string; metadata?: { symbol?: string; name?: string; image?: string }; stats?: { "24h"?: { volume?: number | null } } }[];
+  };
+  return data
+    .filter((x) => x.tokenProgram === SPL_TOKEN && x.metadata?.symbol)
+    .map((x) => ({ address: x.address, symbol: x.metadata!.symbol!, name: x.metadata!.name ?? "", image: x.metadata!.image, volume: x.stats?.["24h"]?.volume ?? 0 }))
+    .sort((a, b) => b.volume - a.volume)
+    .slice(0, 6);
+}
+
 type Job = { id: string | null; state: "queued" | "running" | "done" | "failed"; log: string[]; market?: string; error?: string };
 
 /** Onboard any token: the fork service finds its Orca pools and Pyth feeds and sets up a market. */
@@ -78,10 +96,26 @@ function AddMarket({ onAdded }: { onAdded: (name: string) => void }) {
     return () => clearInterval(t);
   }, [job, onAdded]);
 
-  const start = async () => {
+  const [hits, setHits] = useState<TokenHit[]>([]);
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    const q = mint.trim();
+    if (q.length < 2 || looksLikeMint(q)) return setHits([]);
+    setSearching(true);
+    const id = setTimeout(() => {
+      searchTokens(q)
+        .then(setHits)
+        .catch(() => setHits([]))
+        .finally(() => setSearching(false));
+    }, 300);
+    return () => clearTimeout(id);
+  }, [mint]);
+
+  const start = async (address = mint.trim()) => {
     setErr(null);
+    setHits([]);
     try {
-      const j = await api<Job>("control/markets", { mint: mint.trim() });
+      const j = await api<Job>("control/markets", { mint: address });
       setJob(j);
       if (j.state === "done" && j.market) onAdded(j.market);
     } catch (e) {
@@ -94,11 +128,35 @@ function AddMarket({ onAdded }: { onAdded: (name: string) => void }) {
       <button className="btn btn-ghost !px-2 !py-0.5 !text-[12px]" onClick={() => setOpen((o) => !o)} title="Add any token as a market">+ Add</button>
       {open && (
         <div className="absolute left-0 top-full z-50 mt-2 w-80 border border-line-strong bg-bg p-3 text-[12px]">
-          <div className="cap">Token mint</div>
+          <div className="cap">Token name, symbol or mint</div>
           <div className="mt-1 flex gap-2">
-            <input className="input" placeholder="e.g. DezXAZ8z…B263" value={mint} onChange={(e) => setMint(e.target.value)} disabled={busy} />
-            <button className="btn btn-primary !py-1" disabled={busy || mint.trim().length < 32} onClick={start}>{busy ? "…" : "Add"}</button>
+            <input className="input" placeholder="e.g. Bonk or DezXAZ8z…" value={mint} onChange={(e) => setMint(e.target.value)} disabled={busy} autoFocus />
+            <button className="btn btn-primary !py-1" disabled={busy || !looksLikeMint(mint)} onClick={() => void start()}>{busy ? "…" : "Add"}</button>
           </div>
+          {(hits.length > 0 || searching) && (
+            <ul className="mt-2 max-h-64 overflow-y-auto border border-line">
+              {searching && !hits.length && <li className="cap px-2 py-2">Searching…</li>}
+              {hits.map((h) => (
+                <li key={h.address}>
+                  <button
+                    className="flex w-full items-center gap-2 border-b border-line px-2 py-1.5 text-left last:border-b-0 hover:bg-accent-soft"
+                    onClick={() => {
+                      setMint(h.address);
+                      void start(h.address);
+                    }}
+                    disabled={busy}
+                  >
+                    {h.image ? <img src={h.image} alt="" referrerPolicy="no-referrer" className="size-5 shrink-0 rounded-full bg-line" /> : <span className="size-5 shrink-0 rounded-full bg-line" />}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-ink">{h.symbol} <span className="text-ink-3">{h.name}</span></span>
+                      <span className="num block truncate text-[10px] text-ink-3">{h.address.slice(0, 6)}…{h.address.slice(-4)}</span>
+                    </span>
+                    <span className="num shrink-0 text-[10px] text-ink-3">{h.volume >= 1 ? `$${Math.round(h.volume).toLocaleString("en-US")} 24h` : "no volume"}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           <p className="cap mt-2">Needs two Orca Whirlpools against USDC and a Pyth price feed. Pools and feeds are found automatically.</p>
           {job && (
             <div className="mt-2 border-t border-line pt-2">
