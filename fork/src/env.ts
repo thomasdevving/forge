@@ -21,7 +21,7 @@ export const DEPLOYMENT_FILE = resolve(STATE_DIR, "deployment.json");
 const KEY_DIR = process.env.FORGE_KEY_DIR ?? resolve(homedir(), ".config/solana");
 
 export async function loadKey(name: string): Promise<KeyPairSigner> {
-  const path = process.env[`FORGE_${name.toUpperCase()}_KEYPAIR`] ?? resolve(KEY_DIR, `forge-${name}.json`);
+  const path = process.env[`FORGE_${name.toUpperCase().replace(/-/g, "_")}_KEYPAIR`] ?? resolve(KEY_DIR, `forge-${name}.json`);
   if (!existsSync(path)) throw new Error(`missing keypair ${path} (see .env.example)`);
   return createKeyPairSignerFromBytes(new Uint8Array(JSON.parse(readFileSync(path, "utf8"))));
 }
