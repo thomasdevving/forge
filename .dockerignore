@@ -1,0 +1,15 @@
+**/node_modules
+**/.venv
+**/__pycache__
+**/.next
+target
+.anchor
+.git
+benchmarks/data
+benchmarks/results
+fork/.state
+solana-resources
+.env
+.env.*
+!.env.example
+.vercel

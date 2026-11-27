@@ -17,6 +17,7 @@ import { resolve } from "node:path";
 import { address } from "@solana/kit";
 import { FORGE_PROGRAM_ID, initializeConfigIx, pdas } from "@forge/txbuilder";
 import { type Deployment, DEPLOYMENT_FILE, loadKey, readDeployment, ROOT, writeDeployment } from "../src/env.js";
+import { installProgram } from "../src/install-program.js";
 import { discoverMarket, setupMarket } from "../src/onboard.js";
 import { MARKETS, type MarketSpec, specFromChain } from "../src/markets.js";
 import { airdrop, assertFork, FORK_RPC_URL, forkRpc, rawAccount, sendInstructions } from "../src/surfnet.js";
@@ -49,9 +50,13 @@ async function main() {
   for (const k of [deployer, admin, refSigner, keeper]) await airdrop(rpc, k.address, 100);
 
   const deployerPath = process.env.FORGE_DEPLOYER_KEYPAIR ?? resolve(process.env.HOME!, ".config/solana/forge-deployer.json");
-  // FORGE_SKIP_DEPLOY=1 adds markets to an already deployed program without upgrading it
+  // FORGE_SKIP_DEPLOY=1 adds markets to an already deployed program without upgrading it.
+  // FORGE_INSTALL_MODE=cheatcode writes the program accounts directly (hosted forks: no program keypair needed).
   if (process.env.FORGE_SKIP_DEPLOY === "1" && (await rawAccount(rpc, FORGE_PROGRAM_ID))) console.log("program present; skipping deploy");
-  else await deployProgram(deployerPath);
+  else if (process.env.FORGE_INSTALL_MODE === "cheatcode") {
+    await installProgram(FORGE_PROGRAM_ID, process.env.FORGE_PROGRAM_SO ?? resolve(ROOT, "target/deploy/forge.so"), deployer.address);
+    console.log(`installed program ${FORGE_PROGRAM_ID} by cheatcode`);
+  } else await deployProgram(deployerPath);
 
   if (!(await rawAccount(rpc, await pdas.config()))) {
     await sendInstructions(rpc, deployer, [await initializeConfigIx(deployer, admin.address)]);
