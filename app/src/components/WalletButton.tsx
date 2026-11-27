@@ -17,10 +17,10 @@ export function WalletButton() {
 
   return (
     <div className="relative" ref={ref}>
-      <button className={w.address ? "btn btn-ghost" : "btn btn-primary"} onClick={() => setOpen((o) => !o)}>
+      <button className={`btn !py-1.5 ${w.address ? "btn-ghost" : "btn-primary"}`} onClick={() => setOpen((o) => !o)}>
         {w.address ? (
           <>
-            <span className="size-2 rounded-full bg-good" aria-hidden />
+            <span className="size-1.5 bg-good" aria-hidden />
             <span className="num">{short(w.address)}</span>
           </>
         ) : (
@@ -28,11 +28,11 @@ export function WalletButton() {
         )}
       </button>
       {open && (
-        <div className="card absolute right-0 z-50 mt-2 w-72 p-3">
+        <div className="absolute right-0 z-50 mt-2 w-72 border border-line-strong bg-bg p-3">
           {w.address ? (
             <div className="space-y-3">
               <div>
-                <div className="label">{w.label}</div>
+                <div className="cap">{w.label}</div>
                 <div className="num mt-1 break-all text-sm">{w.address}</div>
               </div>
               {w.kind === "demo" && (
@@ -58,15 +58,15 @@ export function WalletButton() {
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="label mb-1">Wallet</div>
+              <div className="cap mb-1">Wallet</div>
               {w.wallets.map((x) => (
                 <button key={x.name} className="btn btn-ghost w-full !justify-start" onClick={() => { void w.connectWallet(x); setOpen(false); }}>
-                  {x.icon && <img src={x.icon} alt="" className="size-5 rounded" />}
+                  {x.icon && <img src={x.icon} alt="" className="size-5" />}
                   {x.name}
                 </button>
               ))}
               <button className="btn btn-ghost w-full !justify-start" onClick={() => { void w.connectDemo(); setOpen(false); }}>
-                <span className="grid size-5 place-items-center rounded bg-ember-soft text-[10px] font-bold text-ember">D</span>
+                <span className="grid size-5 place-items-center border border-line-strong text-[10px] font-semibold text-ink-2">D</span>
                 Demo wallet
               </button>
               <p className="pt-1 text-xs text-ink-3">Throwaway key in this browser. Fork funds only.</p>

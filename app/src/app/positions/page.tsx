@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
-import { AppShell } from "@/components/AppShell";
+import { AppShell, Bar } from "@/components/AppShell";
 import { api, type BuiltTx, type MarketInfo, type StrategyView } from "@/lib/api";
 import { USDC, WSOL } from "@/lib/config";
 import { atoms, fmtNum, fmtPct, fmtUsd, short } from "@/lib/format";
@@ -12,12 +12,12 @@ import { tokenAccount } from "@/lib/rpc";
 import { useWallet } from "@/lib/wallet";
 
 const STATE_STYLE: Record<string, string> = {
-  PendingOpen: "border-warn/40 bg-warn-soft text-warn",
-  Open: "border-good/40 bg-good-soft text-good",
-  PendingClose: "border-warn/40 bg-warn-soft text-warn",
-  Recovery: "border-bad/40 bg-bad-soft text-bad",
-  Closed: "border-line text-ink-2",
-  Cancelled: "border-line text-ink-3",
+  PendingOpen: "!border-warn/50 !text-warn",
+  Open: "!border-good/50 !text-good",
+  PendingClose: "!border-warn/50 !text-warn",
+  Recovery: "!border-bad/50 !text-bad",
+  Closed: "",
+  Cancelled: "!text-ink-3",
 };
 const STATE_NOTE: Record<string, string> = {
   PendingOpen: "Opening.",
@@ -48,14 +48,14 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
   const premiumPaid = atoms(s.premium_paid, qd) + atoms(s.keeper_bounty_paid, qd);
 
   return (
-    <article id={s.address} className="card overflow-hidden">
-      <header className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3.5">
-        <span className={`pill ${STATE_STYLE[s.state]}`}>{s.state.replace(/([a-z])([A-Z])/g, "$1 $2")}</span>
-        <span className="font-display font-semibold">{s.legs.map((l) => KIND_LABEL[l.kind_tag]).join(" + ")}</span>
+    <article id={s.address} className="scroll-mt-4 border-b border-line last:border-b-0">
+      <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3 sm:px-5">
+        <span className={`tag ${STATE_STYLE[s.state]}`}>{s.state.replace(/([a-z])([A-Z])/g, "$1 $2")}</span>
+        <span className="text-[13px] font-medium">{s.legs.map((l) => KIND_LABEL[l.kind_tag]).join(" + ")}</span>
         <span className="num text-xs text-ink-3">{short(s.address, 6)}</span>
         <div className="ml-auto flex items-center gap-2">
           {s.certificate_hash && !/^0+$/.test(s.certificate_hash) && (
-            <a className="num text-xs text-ember hover:underline" href={`/api/compiler/certificates/${s.certificate_hash}`} target="_blank" rel="noreferrer">certificate {s.certificate_hash.slice(0, 10)}…</a>
+            <a className="num text-[12px] text-ink-2 underline decoration-line-strong underline-offset-4 hover:text-ink" href={`/api/compiler/certificates/${s.certificate_hash}`} target="_blank" rel="noreferrer">certificate {s.certificate_hash.slice(0, 10)}…</a>
           )}
           {(s.state === "Open" || s.state === "PendingClose" || s.state === "Recovery") && (
             <button className="btn btn-primary !py-1.5" disabled={busy} onClick={() => onAction("close", s)}>
@@ -67,28 +67,26 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
           )}
         </div>
       </header>
-      {STATE_NOTE[s.state] && <p className="border-b border-line bg-sunk px-5 py-2 text-xs text-ink-2">{STATE_NOTE[s.state]} {s.state === "PendingOpen" ? `${executed}/${s.legs.length} legs done.` : s.state !== "Recovery" ? `${pendingClose} left.` : ""}</p>}
+      {STATE_NOTE[s.state] && <p className="border-b border-line bg-sunk px-4 py-2 text-[12px] text-ink-2 sm:px-5">{STATE_NOTE[s.state]} {s.state === "PendingOpen" ? `${executed}/${s.legs.length} legs done.` : s.state !== "Recovery" ? `${pendingClose} left.` : ""}</p>}
 
-      <div className="grid gap-0 lg:grid-cols-[1fr_300px]">
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[620px] text-sm">
-            <thead className="text-left text-xs text-ink-3">
-              <tr className="border-b border-line">
-                {["Leg", "Range", "Escrow", "Buffer", "Premium", "Status"].map((h) => <th key={h} className="px-5 py-2 font-medium">{h}</th>)}
-              </tr>
+          <table className="tbl min-w-[620px]">
+            <thead>
+              <tr>{["Leg", "Range", "Escrow", "Buffer", "Premium", "Status"].map((h) => <th key={h}>{h}</th>)}</tr>
             </thead>
             <tbody className="num">
               {s.legs.map((l, i) => {
                 const pa = 1.0001 ** l.tick_lower * 10 ** (bd - qd), pb = 1.0001 ** l.tick_upper * 10 ** (bd - qd);
                 const esc = l.kind_tag <= 1 ? `${fmtNum(atoms(l.escrow_quote, qd), 2)} USDC${BigInt(l.escrow_base) > 0n ? ` · ${fmtNum(atoms(l.escrow_base, bd), 4)} SOL` : ""}` : l.kind_tag === 2 ? `${fmtNum(atoms(l.provided_quote, qd), 2)} USDC` : `${fmtNum(atoms(l.provided_base, bd), 4)} SOL`;
                 return (
-                  <tr key={i} className="border-b border-line/60 last:border-0">
-                    <td className="px-5 py-2.5 font-sans">{KIND_LABEL[l.kind_tag]}</td>
-                    <td className="px-5 py-2.5">{fmtUsd(pa)}–{fmtUsd(pb)}</td>
-                    <td className="px-5 py-2.5 text-ink-2">{esc}</td>
-                    <td className="px-5 py-2.5 text-ink-2">{l.kind_tag <= 1 ? fmtNum(atoms(l.buffer, l.kind_tag === 0 ? qd : bd), l.kind_tag === 0 ? 2 : 4) : "—"}</td>
-                    <td className="px-5 py-2.5">{l.kind_tag <= 1 ? fmtUsd(atoms(l.restored ? l.premium : l.estimate.premium, qd), 4) : "—"}</td>
-                    <td className="px-5 py-2.5 font-sans text-xs text-ink-2">{l.restored ? (l.kind_tag <= 1 ? "restored" : "unwound") : l.executed ? (l.kind_tag <= 1 ? "borrowed" : "in pool") : "pending"}</td>
+                  <tr key={i}>
+                    <td className="font-sans"><span className="flex items-center gap-2"><span className={`h-2.5 w-[3px] ${l.kind_tag <= 1 ? "bg-accent" : "bg-steel"}`} />{KIND_LABEL[l.kind_tag]}</span></td>
+                    <td>{fmtUsd(pa)}–{fmtUsd(pb)}</td>
+                    <td className="text-ink-2">{esc}</td>
+                    <td className="text-ink-2">{l.kind_tag <= 1 ? fmtNum(atoms(l.buffer, l.kind_tag === 0 ? qd : bd), l.kind_tag === 0 ? 2 : 4) : "—"}</td>
+                    <td>{l.kind_tag <= 1 ? fmtUsd(atoms(l.restored ? l.premium : l.estimate.premium, qd), 4) : "—"}</td>
+                    <td className="font-sans text-ink-2">{l.restored ? (l.kind_tag <= 1 ? "restored" : "unwound") : l.executed ? (l.kind_tag <= 1 ? "borrowed" : "in pool") : "pending"}</td>
                   </tr>
                 );
               })}
@@ -96,37 +94,39 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
           </table>
         </div>
 
-        <aside className="space-y-4 border-t border-line p-5 lg:border-l lg:border-t-0">
+        <aside className="space-y-4 border-t border-line p-4 sm:p-5 lg:border-l lg:border-t-0">
           {!closed ? (
             <>
               <div>
-                <div className="flex justify-between text-xs"><span className="text-ink-3">Premium / cap</span><span className="num">{fmtUsd(accrued, 4)} / {fmtUsd(cap, 2)}</span></div>
-                <div className="relative mt-1.5 h-2 overflow-hidden rounded-full bg-sunk">
-                  <div className="h-full rounded-full bg-ember" style={{ width: `${Math.min(100, (accrued / Math.max(cap, 1e-9)) * 100)}%` }} />
-                  <div className="absolute inset-y-0 w-px bg-ink-3" style={{ left: `${trigger * 100}%` }} title="keeper close trigger" />
+                <div className="kv"><span>Premium / cap</span><span>{fmtUsd(accrued, 4)} / {fmtUsd(cap, 2)}</span></div>
+                <div className="relative mt-1.5 h-1.5 overflow-hidden bg-line">
+                  <div className="h-full bg-accent" style={{ width: `${Math.min(100, (accrued / Math.max(cap, 1e-9)) * 100)}%` }} />
+                  <div className="absolute inset-y-0 w-px bg-ink" style={{ left: `${trigger * 100}%` }} title="keeper close trigger" />
                 </div>
-                <div className="mt-1 text-[11px] text-ink-3">Keeper close at {fmtPct(trigger, 0)}{s.cap_binding ? " · cap reached" : ""}</div>
+                <div className="cap mt-1.5">Keeper close at {fmtPct(trigger, 0)}{s.cap_binding ? " · cap reached" : ""}</div>
               </div>
-              <dl className="grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-lg bg-sunk p-2"><dt className="text-[11px] text-ink-3">Delta</dt><dd className="num text-sm font-semibold">{fmtNum(g.delta, 3)}</dd></div>
-                <div className="rounded-lg bg-sunk p-2"><dt className="text-[11px] text-ink-3">Gamma</dt><dd className="num text-sm font-semibold">{fmtNum(g.gamma, 4)}</dd></div>
-                <div className="rounded-lg bg-sunk p-2"><dt className="text-[11px] text-ink-3">P&amp;L</dt><dd className={`num text-sm font-semibold ${pnl >= 0 ? "text-good" : "text-bad"}`}>{fmtUsd(pnl)}</dd></div>
-              </dl>
-              <p className="text-[11px] text-ink-3">At {fmtUsd(P)}</p>
+              <div className="border-t border-line pt-3">
+                <div className="kv"><span>At</span><span>{fmtUsd(P)}</span></div>
+                <div className="kv"><span>Delta</span><span>{fmtNum(g.delta, 3)} SOL</span></div>
+                <div className="kv"><span>Gamma</span><span>{fmtNum(g.gamma, 4)}</span></div>
+                <div className="kv"><span>P&amp;L</span><span className={pnl >= 0 ? "!text-good" : "!text-bad"}>{fmtUsd(pnl)}</span></div>
+              </div>
             </>
           ) : (
             <div>
-              <div className="label">Designed vs realized</div>
-              <div className="mt-1 text-[11px] text-ink-3">at {fmtUsd(settleP)}</div>
-              <dl className="mt-3 space-y-1.5 text-sm">
-                <div className="flex justify-between"><dt className="text-ink-2">Designed</dt><dd className="num">{fmtUsd(designed)}</dd></div>
-                <div className="flex justify-between"><dt className="text-ink-2">Realized gross</dt><dd className="num font-semibold text-ember">{fmtUsd(realized)}</dd></div>
-                <div className="flex justify-between text-xs"><dt className="text-ink-3">Execution cost</dt><dd className="num">{fmtUsd(designed - realized, 4)}</dd></div>
-                <div className="flex justify-between text-xs"><dt className="text-ink-3">Premium paid</dt><dd className="num">−{fmtUsd(premiumPaid, 4)}</dd></div>
-                {feeCredits > 0 && <div className="flex justify-between text-xs"><dt className="text-ink-3">Fee credits</dt><dd className="num text-good">+{fmtUsd(feeCredits, 4)}</dd></div>}
-                <div className="flex justify-between border-t border-line pt-1.5"><dt className="text-ink-2">Realized net</dt><dd className="num font-semibold">{fmtUsd(realized - premiumPaid + feeCredits)}</dd></div>
-              </dl>
-              {atoms(s.lp_shortfall, qd) > 0 && <p className="mt-2 text-xs text-warn">LP shortfall {fmtUsd(atoms(s.lp_shortfall, qd), 4)}</p>}
+              <div className="flex items-baseline justify-between">
+                <div className="label">Designed vs realized</div>
+                <span className="cap num">at {fmtUsd(settleP)}</span>
+              </div>
+              <div className="mt-2">
+                <div className="kv"><span>Designed</span><span>{fmtUsd(designed)}</span></div>
+                <div className="kv"><span>Realized gross</span><span className="font-medium">{fmtUsd(realized)}</span></div>
+                <div className="kv"><span>Execution cost</span><span>{fmtUsd(designed - realized, 4)}</span></div>
+                <div className="kv"><span>Premium paid</span><span>−{fmtUsd(premiumPaid, 4)}</span></div>
+                {feeCredits > 0 && <div className="kv"><span>Fee credits</span><span className="!text-good">+{fmtUsd(feeCredits, 4)}</span></div>}
+                <div className="kv mt-1 border-t border-line pt-2"><span className="!text-ink">Realized net</span><span className="text-base font-medium">{fmtUsd(realized - premiumPaid + feeCredits)}</span></div>
+              </div>
+              {atoms(s.lp_shortfall, qd) > 0 && <p className="mt-2 text-[12px] text-warn">LP shortfall {fmtUsd(atoms(s.lp_shortfall, qd), 4)}</p>}
             </div>
           )}
         </aside>
@@ -186,25 +186,25 @@ function PositionsInner() {
 
   return (
     <AppShell>
-      <div className="mb-5 flex flex-wrap items-end gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-semibold">Positions</h1>
-        </div>
-        <Link href="/studio" className="btn btn-ghost ml-auto">New</Link>
-      </div>
+      <Bar
+        title="Positions"
+        meta={list && <><span>{list.length} total</span><span>{list.filter((s) => s.state === "Open").length} open</span>{m && <span>Pool <span className="num text-ink">{fmtUsd(m.poolPrice)}</span></span>}</>}
+      >
+        <Link href="/studio" className="btn btn-ghost !py-1.5">New</Link>
+      </Bar>
       {msg && (
-        <div className={`card mb-4 px-4 py-3 text-sm ${msg.ok ? "text-good" : "text-bad"}`}>
-          {msg.text} {msg.sig && <Link className="num ml-2 text-ember hover:underline" href={`/inspect?sig=${msg.sig}`}>inspect</Link>}
+        <div className={`border-b border-line px-5 py-2.5 text-[13px] ${msg.ok ? "text-good" : "text-bad"}`}>
+          {msg.text} {msg.sig && <Link className="num ml-2 text-ink-2 underline underline-offset-2 hover:text-ink" href={`/inspect?sig=${msg.sig}`}>inspect</Link>}
         </div>
       )}
       {!wallet.address ? (
-        <div className="card p-8 text-center text-ink-2">Connect a wallet.</div>
+        <div className="px-5 py-16 text-center text-sm text-ink-3">Connect a wallet.</div>
       ) : !list || !m ? (
-        <div className="card p-8 text-center text-ink-3">Loading…</div>
+        <div className="px-5 py-16 text-center text-sm text-ink-3">Loading…</div>
       ) : list.length === 0 ? (
-        <div className="card p-8 text-center text-ink-2">No positions. <Link href="/studio" className="text-ember hover:underline">Open one</Link></div>
+        <div className="px-5 py-16 text-center text-sm text-ink-3">No positions. <Link href="/studio" className="text-ink underline underline-offset-4">Open one</Link></div>
       ) : (
-        <div className="space-y-4">{list.map((s) => <PositionCard key={s.address} s={s} m={m} onAction={act} busy={busy} />)}</div>
+        <div>{list.map((s) => <PositionCard key={s.address} s={s} m={m} onAction={act} busy={busy} />)}</div>
       )}
     </AppShell>
   );

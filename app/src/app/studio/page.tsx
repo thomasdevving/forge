@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppShell } from "@/components/AppShell";
+import { AppShell, Bar } from "@/components/AppShell";
 import { PayoffChart } from "@/components/studio/PayoffChart";
 import { api, type BucketInfo, type BuiltTx, type CompileResponse, type Feasibility, type MarketInfo } from "@/lib/api";
 import { USDC, WSOL } from "@/lib/config";
@@ -219,249 +219,225 @@ export default function Studio() {
   };
 
   const status = feas?.status;
+  const certOk = cert ? (cert.liquidity_check.length ? cert.liquidity_check.every((l) => l.ok) : null) : null;
   return (
     <AppShell>
-      {loadErr && !market && (
-        <div className="card mb-4 border-bad/40 p-4 text-sm text-bad">Could not reach the fork indexer: {loadErr}</div>
-      )}
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
-        {/* left: editor */}
-        <div className="space-y-5">
-          <div className="card p-4 sm:p-5">
-            <div className="flex flex-wrap items-center gap-3">
-              <div>
-                <h1 className="font-display text-xl font-semibold">Payoff at close</h1>
-              </div>
-              <div className="ml-auto flex flex-wrap gap-1.5">
-                {Object.entries(PRESETS).map(([k, v]) => (
-                  <button
-                    key={k}
-                    title={v.hint}
-                    className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${preset === k ? "border-ember bg-ember-soft text-ember" : "border-line text-ink-2 hover:border-line-strong hover:text-ink"}`}
-                    onClick={() => {
-                      setPreset(k);
-                      if (spot) setPoints(v.make(baseHoldings, spot));
-                    }}
-                  >
-                    {v.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="mt-4">
-              {points && market ? (
-                <PayoffChart
-                  points={points}
-                  onChange={setPoints}
-                  compiled={curve}
-                  closest={status === "infeasible" && feas?.closest_feasible ? (feas.closest_feasible as Point[]) : null}
-                  unhedgedUnits={baseHoldings}
-                  spot={spot}
-                  buckets={buckets}
-                  chosen={legs.map((l) => ({ kind: l.kind, priceLower: l.price_lower, priceUpper: l.price_upper }))}
-                  scenario={scenario}
-                  onScenario={setScenario}
-                  liquidityScale={scale}
-                />
-              ) : (
-                <div className="grid h-80 place-items-center text-sm text-ink-3">Loading the market…</div>
-              )}
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink-3">
-              <span className="flex items-center gap-1.5"><span className="h-[3px] w-5 rounded bg-ember" /> target</span>
-              <span className="flex items-center gap-1.5"><span className="h-[2px] w-5 rounded bg-ink" /> compiled</span>
-              <span className="flex items-center gap-1.5"><span className="h-0 w-5 border-t border-dashed border-ink-3" /> just holding {fmtNum(baseHoldings, 1)} SOL</span>
-              {status === "infeasible" && <span className="flex items-center gap-1.5"><span className="h-0 w-5 border-t-2 border-dashed border-warn" /> closest feasible</span>}
-              <span className="ml-auto">Drag · double-click to add · Delete to remove</span>
-            </div>
-          </div>
-
-          {/* legs */}
-          <div className="card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-line px-5 py-3">
-              <div className="label">Ranges</div>
-              {compiled && <span className="num text-xs text-ink-3">{(compiled.result.solve_seconds * 1000).toFixed(0)} ms</span>}
-            </div>
-            {legRows.length ? (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[620px] text-sm">
-                  <thead className="text-left text-xs text-ink-3">
-                    <tr className="border-b border-line">
-                      {["Leg", "Range", "Liquidity", "Notional", "Funding", "m(u)"].map((h) => <th key={h} className="px-5 py-2.5 font-medium">{h}</th>)}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {legRows.map((l, i) => (
-                      <tr key={i} className="border-b border-line/60 last:border-0">
-                        <td className="px-5 py-2.5">
-                          <span className={`pill ${l.kind.startsWith("borrow") ? "border-ember/40 bg-ember-soft text-ember" : "border-steel/40 bg-steel-soft text-steel"}`}>{KIND_LABEL[kindTag(l.kind)]}</span>
-                        </td>
-                        <td className="num px-5 py-2.5">{fmtUsd(l.price_lower)} – {fmtUsd(l.price_upper)}</td>
-                        <td className="num px-5 py-2.5 text-ink-2">{l.liquidity_onchain.toExponential(3)}</td>
-                        <td className="num px-5 py-2.5">{fmtUsd(l.notional)}</td>
-                        <td className="px-5 py-2.5 text-ink-2">{l.kind.startsWith("borrow") ? "LP escrow" : l.kind === "provide_call" ? "your SOL" : "your USDC"}</td>
-                        <td className="num px-5 py-2.5">{l.mult ? `${l.mult.toFixed(2)}×` : "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="px-5 py-6 text-sm text-ink-3">Compile to see the ranges.</p>
-            )}
-          </div>
+      <Bar
+        title="Studio"
+        meta={
+          <>
+            <span>{market?.name ?? "…"}</span>
+            <span>Pool <span className="num text-ink">{fmtUsd(market?.poolPrice)}</span></span>
+            <span>
+              Ref <span className="num text-ink">{fmtUsd(market?.reference?.price)}</span>
+              {market?.reference && <span className="ml-1.5">{market.reference.kind === "PythPair" ? "Pyth" : "scenario"} · {ago(market.reference.ageSeconds)}</span>}
+            </span>
+            {(market?.borrowPaused || market?.opensPaused) && <span className="text-warn">{market.opensPaused ? "Opens paused" : "Borrowing paused"}</span>}
+          </>
+        }
+      >
+        <div className="seg">
+          {Object.entries(PRESETS).map(([k, v]) => (
+            <button
+              key={k}
+              title={v.hint}
+              aria-pressed={preset === k}
+              onClick={() => {
+                setPreset(k);
+                if (spot) setPoints(v.make(baseHoldings, spot));
+              }}
+            >
+              {v.label}
+            </button>
+          ))}
         </div>
+      </Bar>
+      {loadErr && !market && <div className="border-b border-line px-5 py-3 text-sm text-bad">Indexer unreachable: {loadErr}</div>}
 
-        {/* right: market, inputs, results */}
-        <div className="space-y-5">
-          <div className="card p-5">
-            <div className="flex items-center justify-between">
-              <div className="label">Market</div>
-              <span className="pill border-line text-ink-2">{market?.name ?? "…"}</span>
+      <div className="grid xl:grid-cols-[minmax(0,1fr)_340px]">
+        {/* chart */}
+        <section className="min-w-0 border-line xl:border-r">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 pt-4 sm:px-5">
+            <div>
+              <div className="label">Payoff at close</div>
+              <div className="cap">Drag · double-click to add · Delete to remove</div>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div>
-                <div className="text-xs text-ink-3">Pool price</div>
-                <div className="num text-lg font-semibold">{fmtUsd(market?.poolPrice)}</div>
-              </div>
-              <div>
-                <div className="text-xs text-ink-3">Reference</div>
-                <div className="num text-lg font-semibold">{fmtUsd(market?.reference?.price)}</div>
-                <div className="text-[11px] text-ink-3">{market?.reference ? `${market.reference.kind === "PythPair" ? "Pyth" : "scenario"} · ${ago(market.reference.ageSeconds)}` : ""}</div>
-              </div>
+            <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-3">
+              <span className="flex items-center gap-1.5"><span className="h-[2px] w-4 bg-accent" /> Target</span>
+              <span className="flex items-center gap-1.5"><span className="h-px w-4 bg-ink" /> Compiled</span>
+              <span className="flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-ink-3" /> Hold {fmtNum(baseHoldings, 1)} SOL</span>
+              {status === "infeasible" && <span className="flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-warn" /> Closest</span>}
             </div>
-            {(market?.borrowPaused || market?.opensPaused) && (
-              <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn">{market.opensPaused ? "Opens paused." : "Borrowing paused (shortfall review)."}</p>
+          </div>
+          <div className="px-2 pb-3 pt-2 sm:px-3">
+            {points && market ? (
+              <PayoffChart
+                points={points}
+                onChange={setPoints}
+                compiled={curve}
+                closest={status === "infeasible" && feas?.closest_feasible ? (feas.closest_feasible as Point[]) : null}
+                unhedgedUnits={baseHoldings}
+                spot={spot}
+                buckets={buckets}
+                chosen={legs.map((l) => ({ kind: l.kind, priceLower: l.price_lower, priceUpper: l.price_upper }))}
+                scenario={scenario}
+                onScenario={setScenario}
+                liquidityScale={scale}
+              />
+            ) : (
+              <div className="grid h-80 place-items-center text-sm text-ink-3">Loading market…</div>
             )}
           </div>
+        </section>
 
-          <div className="card p-5">
+        {/* statistics column */}
+        <aside className="divide-y divide-line border-t border-line text-sm xl:border-t-0">
+          <div className="p-5">
             <div className="label">Limits</div>
-            <div className="mt-3 grid grid-cols-3 gap-3">
-              <label className="block">
-                <span className="text-xs text-ink-3">SOL held</span>
-                <input className="input mt-1" type="number" min={0} step={0.5} value={baseHoldings} onChange={(e) => setBaseHoldings(Math.max(0, Number(e.target.value)))} />
-              </label>
-              <label className="block">
-                <span className="text-xs text-ink-3">USDC held</span>
-                <input className="input mt-1" type="number" min={0} step={50} value={quoteHoldings} onChange={(e) => setQuoteHoldings(Math.max(0, Number(e.target.value)))} />
-              </label>
-              <label className="block">
-                <span className="text-xs text-ink-3">Max premium</span>
-                <input className="input mt-1" type="number" min={1} step={1} value={budget} onChange={(e) => setBudget(Math.max(0, Number(e.target.value)))} />
-              </label>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {[
+                ["SOL held", baseHoldings, 0.5, setBaseHoldings],
+                ["USDC held", quoteHoldings, 50, setQuoteHoldings],
+                ["Max premium", budget, 1, setBudget],
+              ].map(([k, v, step, set]) => (
+                <label key={k as string} className="block">
+                  <span className="cap">{k as string}</span>
+                  <input className="input mt-1" type="number" min={0} step={step as number} value={v as number} onChange={(e) => (set as (n: number) => void)(Math.max(0, Number(e.target.value)))} />
+                </label>
+              ))}
             </div>
             {walletBal && (
-              <p className="mt-2 text-[11px] text-ink-3">
-                Wallet <span className="num">{fmtNum(walletBal.sol, 3)}</span> SOL · <span className="num">{fmtNum(walletBal.usdc, 2)}</span> USDC
-              </p>
+              <div className="kv mt-2"><span>Wallet</span><span>{fmtNum(walletBal.sol, 3)} SOL · {fmtNum(walletBal.usdc, 2)} USDC</span></div>
             )}
-
-            <div className={`mt-4 rounded-lg border px-3 py-2.5 text-sm ${status === "ok" ? "border-good/40 bg-good-soft" : status === "infeasible" ? "border-warn/40 bg-warn-soft" : "border-line bg-sunk"}`}>
-              <div className="flex items-center gap-2 font-medium">
-                <span className={`size-2 rounded-full ${status === "ok" ? "bg-good" : status === "infeasible" ? "bg-warn" : "bg-ink-3"}`} />
-                {status === "ok" ? "Feasible" : status === "infeasible" ? "Not feasible" : feas ? "Checking…" : "—"}
-                {feas && Number.isFinite(feas.sampled_max_error) && (
-                  <span className="num ml-auto text-xs text-ink-2">err {fmtUsd(feas.sampled_max_error)} / tol {fmtUsd(feas.tolerance)}</span>
-                )}
+            <div className="mt-3 border-t border-line pt-3">
+              <div className="kv">
+                <span className="flex items-center gap-2">
+                  <span className={`size-1.5 ${status === "ok" ? "bg-good" : status === "infeasible" ? "bg-warn" : "bg-ink-3"}`} />
+                  <span className={status === "ok" ? "text-good" : status === "infeasible" ? "text-warn" : ""}>{status === "ok" ? "Feasible" : status === "infeasible" ? "Not feasible" : feas ? "Checking" : "—"}</span>
+                </span>
+                <span>{feas && Number.isFinite(feas.sampled_max_error) ? `${fmtUsd(feas.sampled_max_error)} / ${fmtUsd(feas.tolerance)}` : ""}</span>
               </div>
-              {status !== "ok" && feas?.reasons?.length ? (
-                <ul className="mt-1.5 space-y-1 text-xs text-ink-2">{feas.reasons.map((r) => <li key={r}>· {r}</li>)}</ul>
-              ) : null}
+              {status !== "ok" && feas?.reasons?.length ? <ul className="mt-1 space-y-0.5 text-[12px] text-ink-2">{feas.reasons.map((r) => <li key={r}>{r}</li>)}</ul> : null}
             </div>
-            <button className="btn btn-primary mt-4 w-full" disabled={!points || busy || !market} onClick={compile}>
+            <button className="btn btn-primary mt-3 w-full" disabled={!points || busy || !market} onClick={compile}>
               {busy ? "Compiling…" : "Compile"}
             </button>
-            {err && <p className="mt-2 text-xs text-bad">{err}</p>}
+            {err && <p className="mt-2 text-[12px] text-bad">{err}</p>}
           </div>
 
-          {c && (
-            <div className="card p-5">
-              <div className="label">Cost</div>
-              <dl className="mt-3 space-y-2 text-sm">
-                {[
-                  ["Capital locked", fmtUsd(c.capital_locked), ""],
-                  ["Buffers", fmtUsd(c.buffer_quote + c.buffer_base * c.spot), "returned unless used"],
-                  ["LP escrow", fmtUsd(c.escrow_quote + c.escrow_base * c.spot), ""],
-                  ["Max premium", fmtUsd(budget), "incl. 1% keeper bounty"],
-                  ["Min premium", borrowedLegs.length ? `${fmtUsd(floorPerDay)}/day` : "—", "time floor"],
-                ].map(([k, v, s]) => (
-                  <div key={k} className="flex items-start justify-between gap-3">
-                    <dt>
-                      <div className="text-ink-2">{k}</div>
-                      {s && <div className="text-[11px] text-ink-3">{s}</div>}
-                    </dt>
-                    <dd className="num shrink-0 font-medium">{v}</dd>
-                  </div>
-                ))}
-              </dl>
-              {isCollar && (
-                <div className="mt-4 rounded-lg border border-steel/30 bg-steel-soft px-3 py-2.5 text-xs leading-relaxed text-ink">
-                  <span className="font-semibold">Your upside cap pays for your downside.</span> Fees your covered call collects are netted against the put premium at close.
-                </div>
-              )}
-            </div>
-          )}
+          <div className="p-5">
+            <div className="label">Cost</div>
+            {c ? (
+              <div className="mt-2">
+                <div className="kv"><span>Capital locked</span><span>{fmtUsd(c.capital_locked)}</span></div>
+                <div className="kv"><span>Buffers</span><span>{fmtUsd(c.buffer_quote + c.buffer_base * c.spot)}</span></div>
+                <div className="kv"><span>LP escrow</span><span>{fmtUsd(c.escrow_quote + c.escrow_base * c.spot)}</span></div>
+                <div className="kv"><span>Max premium</span><span>{fmtUsd(budget)}</span></div>
+                <div className="kv"><span>Min premium</span><span>{borrowedLegs.length ? `${fmtUsd(floorPerDay)}/day` : "—"}</span></div>
+                {isCollar && <p className="mt-2 text-[12px] text-ink-2">Covered-call fees are netted against the put premium at close.</p>}
+              </div>
+            ) : (
+              <p className="cap mt-2">Compile to price it.</p>
+            )}
+          </div>
 
-          {cert && (
-            <div className="card p-5">
-              <div className="flex items-center justify-between">
-                <div className="label">Certificate</div>
+          <div className="p-5">
+            <div className="flex items-center justify-between">
+              <div className="label">Certificate</div>
+              {cert && (
                 <a
-                  className="text-xs font-medium text-ember hover:underline"
+                  className="text-[12px] text-ink-2 underline decoration-line-strong underline-offset-4 hover:text-ink"
                   href={`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(cert, null, 2))}`}
                   download={`forge-certificate-${cert.hash.slice(0, 12)}.json`}
                 >
                   JSON
                 </a>
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="num text-3xl font-semibold">±{fmtUsd(cert.error.certified_bound)}</span>
-                <span className="text-xs text-ink-3">max error</span>
-              </div>
-              <p className="num mt-1 text-xs text-ink-3">at {fmtUsd(cert.error.at_price)}, exact</p>
-              <div className="mt-3 space-y-1.5 text-xs">
-                <div className="flex justify-between"><span className="text-ink-3">Domain</span><span className="num">{fmtUsd(cert.target.domain[0], 0)} – {fmtUsd(cert.target.domain[1], 0)}</span></div>
-                <div className="flex justify-between"><span className="text-ink-3">Liquidity</span><span className={cert.liquidity_check.every((l) => l.ok) ? "text-good" : "text-bad"}>{cert.liquidity_check.length ? (cert.liquidity_check.every((l) => l.ok) ? "available" : "insufficient") : "—"}</span></div>
-                <div className="flex justify-between"><span className="text-ink-3">Simulation</span><span className="num">{cert.simulation ? `ok · ${(cert.simulation.compute_units as number[]).map((x) => x.toLocaleString()).join(" + ")} CU` : "at open"}</span></div>
-                <div className="flex justify-between gap-3"><span className="text-ink-3">Hash</span><span className="num truncate">{cert.hash}</span></div>
-              </div>
-              <p className="mt-3 border-t border-line pt-3 text-[11px] text-ink-3" title={cert.disclaimer}>Excludes premium, fees and settlement swap costs.</p>
+              )}
             </div>
-          )}
+            {cert ? (
+              <div className="mt-2">
+                <div className="flex items-baseline justify-between">
+                  <span className="cap">Max error</span>
+                  <span className="num text-2xl font-medium">±{fmtUsd(cert.error.certified_bound)}</span>
+                </div>
+                <div className="kv"><span>At</span><span>{fmtUsd(cert.error.at_price)}</span></div>
+                <div className="kv"><span>Domain</span><span>{fmtUsd(cert.target.domain[0], 0)} – {fmtUsd(cert.target.domain[1], 0)}</span></div>
+                <div className="kv"><span>Liquidity</span><span className={certOk === false ? "!text-bad" : ""}>{certOk == null ? "—" : certOk ? "available" : "insufficient"}</span></div>
+                <div className="kv"><span>Simulation</span><span>{cert.simulation ? `${(cert.simulation.compute_units as number[]).map((x) => x.toLocaleString()).join(" + ")} CU` : "at open"}</span></div>
+                <div className="kv"><span>Hash</span><span className="truncate pl-6">{cert.hash.slice(0, 20)}…</span></div>
+                <p className="cap mt-2" title={cert.disclaimer}>Excludes premium, fees and settlement swap costs.</p>
+              </div>
+            ) : (
+              <p className="cap mt-2">Issued on compile.</p>
+            )}
+          </div>
 
           {c && (
-            <div className="card p-5">
+            <div className="p-5">
               <div className="label">Execute</div>
               {!wallet.address ? (
-                <p className="mt-2 text-sm text-ink-2">Connect a wallet to open.</p>
+                <p className="cap mt-2">Connect a wallet to open.</p>
               ) : (
                 <button className="btn btn-primary mt-3 w-full" disabled={compiled?.result.status !== "ok" || steps.some((s) => s.state === "doing")} onClick={open}>
                   Open position
                 </button>
               )}
-              {compiled?.result.status !== "ok" && <p className="mt-2 text-xs text-warn">Outside tolerance. Adjust the payoff or limits.</p>}
+              {compiled?.result.status !== "ok" && <p className="mt-2 text-[12px] text-warn">Outside tolerance. Adjust the payoff or limits.</p>}
               {steps.length > 0 && (
-                <ol className="mt-4 space-y-2.5">
+                <ol className="mt-3">
                   {steps.map((s, i) => (
-                    <li key={i} className="flex gap-2.5 text-sm">
-                      <span className={`mt-1 grid size-4 shrink-0 place-items-center rounded-full text-[10px] font-bold ${s.state === "done" ? "bg-good text-bg" : s.state === "error" ? "bg-bad text-bg" : s.state === "doing" ? "animate-pulse bg-ember" : "bg-line"}`}>{s.state === "done" ? "✓" : s.state === "error" ? "!" : ""}</span>
-                      <div className="min-w-0">
-                        <div className={s.state === "todo" ? "text-ink-3" : ""}>{s.label}</div>
+                    <li key={i} className="flex gap-3 border-t border-line py-2 first:border-t-0">
+                      <span className={`num w-5 shrink-0 text-[12px] ${s.state === "done" ? "text-good" : s.state === "error" ? "text-bad" : s.state === "doing" ? "animate-pulse text-ink" : "text-ink-3"}`}>{String(i + 1).padStart(2, "0")}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className={`text-[13px] ${s.state === "todo" ? "text-ink-3" : ""}`}>{s.label}</div>
                         {s.detail && <div className={`num truncate text-[11px] ${s.state === "error" ? "text-bad" : "text-ink-3"}`}>{s.detail}</div>}
-                        {s.sig && <Link className="num text-[11px] text-ember hover:underline" href={`/inspect?sig=${s.sig}`}>inspect {short(s.sig, 6)}</Link>}
+                        {s.sig && <Link className="num text-[11px] text-ink-2 underline underline-offset-2 hover:text-ink" href={`/inspect?sig=${s.sig}`}>{short(s.sig, 6)}</Link>}
                       </div>
                     </li>
                   ))}
                 </ol>
               )}
-              {opened && (
-                <Link href={`/positions?focus=${opened}`} className="btn btn-ghost mt-4 w-full">View position →</Link>
-              )}
+              {opened && <Link href={`/positions?focus=${opened}`} className="btn btn-ghost mt-3 w-full">View position</Link>}
             </div>
           )}
-        </div>
+        </aside>
       </div>
+
+      {/* ranges */}
+      <section className="border-t border-line">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-5">
+          <div className="label">Ranges</div>
+          {compiled && <span className="num text-[12px] text-ink-3">solved {(compiled.result.solve_seconds * 1000).toFixed(0)} ms</span>}
+        </div>
+        {legRows.length ? (
+          <div className="overflow-x-auto border-t border-line">
+            <table className="tbl min-w-[640px]">
+              <thead>
+                <tr>{["Leg", "Range", "Liquidity", "Notional", "Funding", "m(u)"].map((h) => <th key={h}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {legRows.map((l, i) => (
+                  <tr key={i}>
+                    <td>
+                      <span className="flex items-center gap-2">
+                        <span className={`h-2.5 w-[3px] ${l.kind.startsWith("borrow") ? "bg-accent" : "bg-steel"}`} />
+                        {KIND_LABEL[kindTag(l.kind)]}
+                      </span>
+                    </td>
+                    <td className="num">{fmtUsd(l.price_lower)} – {fmtUsd(l.price_upper)}</td>
+                    <td className="num text-ink-2">{l.liquidity_onchain.toExponential(3)}</td>
+                    <td className="num">{fmtUsd(l.notional)}</td>
+                    <td className="text-ink-2">{l.kind.startsWith("borrow") ? "LP escrow" : l.kind === "provide_call" ? "Your SOL" : "Your USDC"}</td>
+                    <td className="num">{l.mult ? `${l.mult.toFixed(2)}×` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="cap px-5 pb-4">Compile to see the ranges.</p>
+        )}
+      </section>
     </AppShell>
   );
 }

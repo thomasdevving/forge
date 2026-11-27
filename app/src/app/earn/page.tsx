@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AppShell } from "@/components/AppShell";
+import { AppShell, Bar } from "@/components/AppShell";
 import { api, type BucketInfo, type BuiltTx, type LpView, type MarketInfo } from "@/lib/api";
 import { USDC, WSOL } from "@/lib/config";
 import { atoms, fmtCompact, fmtNum, fmtPct, fmtUsd } from "@/lib/format";
@@ -35,12 +35,9 @@ export default function Earn() {
     const mk = ms[0];
     if (!mk) return;
     setM(mk);
-    const [b, st] = await Promise.all([
-      api<BucketInfo[]>(`indexer/markets/${mk.address}/buckets`),
-      api<Stats>(`indexer/markets/${mk.address}/stats`).catch(() => null),
-    ]);
-    setBuckets(b);
-    if (st) setStats(st);
+    // the out-of-range scan is slow; never let it hold up the ladder
+    void api<Stats>(`indexer/markets/${mk.address}/stats`).then(setStats).catch(() => {});
+    setBuckets(await api<BucketInfo[]>(`indexer/markets/${mk.address}/buckets`));
     if (wallet.address) setMine(await api<LpView[]>(`indexer/lp?owner=${wallet.address}`));
   }, [wallet.address]);
 
@@ -89,141 +86,164 @@ export default function Earn() {
   const depLiquidity = m && dep ? BigInt(Math.floor(depValue / valuePerUnit(m, dep, P))) : 0n;
   const notice = m ? m.params.notice_period_s / 3600 : 24;
 
+  const claimPremium = mine.reduce((a, l) => a + atoms(l.premiumOwedNow, qd), 0);
+  const claimBase = mine.reduce((a, l) => a + atoms(l.feesOwedBaseNow, bd), 0);
+  const claimQuote = mine.reduce((a, l) => a + atoms(l.feesOwedQuoteNow, qd), 0);
+
   return (
     <AppShell>
-      <div className="mb-5">
-        <h1 className="font-display text-2xl font-semibold">Earn</h1>
-        <p className="mt-1 text-sm text-ink-2">Idle liquidity keeps its Orca fees. Borrowed liquidity earns premium. {notice}h notice to withdraw borrowed liquidity.</p>
-      </div>
+      <Bar
+        title="Earn"
+        meta={
+          <>
+            <span>{m?.name ?? "…"}</span>
+            <span>Pool <span className="num text-ink">{fmtUsd(m?.poolPrice)}</span></span>
+            <span>{notice}h notice on borrowed liquidity</span>
+          </>
+        }
+      />
       {msg && (
-        <div className={`card mb-4 px-4 py-3 text-sm ${msg.ok ? "text-good" : "text-bad"}`}>
-          {msg.text} {msg.sig && <Link className="num ml-2 text-ember hover:underline" href={`/inspect?sig=${msg.sig}`}>inspect</Link>}
+        <div className={`border-b border-line px-5 py-2.5 text-[13px] ${msg.ok ? "text-good" : "text-bad"}`}>
+          {msg.text} {msg.sig && <Link className="num ml-2 text-ink-2 underline underline-offset-2 hover:text-ink" href={`/inspect?sig=${msg.sig}`}>inspect</Link>}
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <div className="card p-5 lg:col-span-1">
-          <div className="label">Orca liquidity out of range</div>
-          <div className="num mt-2 text-3xl font-semibold">{stats ? `$${fmtCompact(stats.outOfRange.outOfRangeQuoteValue)}` : "…"}</div>
-          <p className="mt-1 text-xs text-ink-3">
-            {stats ? <>earning nothing · {fmtUsd(stats.outOfRange.belowPriceQuote, 0)} below, {fmtUsd(stats.outOfRange.abovePriceBaseValued, 0)} above</> : "live"}
-          </p>
-        </div>
-
-        <div className="card p-5 lg:col-span-2">
-          <div className="label">FORGE vs Orca</div>
-          {wallet.address ? (
-            mine.length ? (
-              <div className="mt-3 grid grid-cols-3 gap-3">
-                <div className="rounded-lg bg-sunk p-3"><div className="text-xs text-ink-3">Idle fees</div><div className="num mt-1 text-lg font-semibold">{fmtUsd(compare.fees, 4)}</div></div>
-                <div className="rounded-lg bg-sunk p-3"><div className="text-xs text-ink-3">Fees forgone</div><div className="num mt-1 text-lg font-semibold">{fmtUsd(compare.forgone, 4)}</div></div>
-                <div className="rounded-lg bg-sunk p-3"><div className="text-xs text-ink-3">Premium earned</div><div className="num mt-1 text-lg font-semibold text-good">{fmtUsd(compare.premium, 4)}</div></div>
-                <p className="col-span-3 text-xs text-ink-3">
-                  Difference <span className="num">{fmtUsd(compare.premium - compare.forgone, 4)}</span> · measured fees, same-trading assumption
-                </p>
+      <div className="grid xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 xl:border-r xl:border-line">
+          {/* headline numbers */}
+          <div className="grid grid-cols-2 border-b border-line lg:grid-cols-4">
+            {[
+              ["Out of range on Orca", stats ? `$${fmtCompact(stats.outOfRange.outOfRangeQuoteValue)}` : "…", "earning nothing"],
+              ["Below price", stats ? fmtUsd(stats.outOfRange.belowPriceQuote, 0) : "…", "USDC"],
+              ["Above price", stats ? fmtUsd(stats.outOfRange.abovePriceBaseValued, 0) : "…", "SOL, valued"],
+              ["Buckets", String(buckets.length), `${buckets.reduce((a, b) => a + b.openLegs, 0)} open legs`],
+            ].map(([k, v, s], i) => (
+              <div key={k} className={`px-4 py-4 sm:px-5 ${i % 2 ? "border-l" : ""} border-line ${i >= 2 ? "border-t lg:border-t-0" : ""} ${i === 2 ? "lg:border-l" : ""}`}>
+                <div className="cap">{k}</div>
+                <div className="num mt-1 text-xl font-medium">{v}</div>
+                <div className="cap mt-0.5">{s}</div>
               </div>
-            ) : (
-              <p className="mt-3 text-sm text-ink-2">No positions yet.</p>
-            )
-          ) : (
-            <p className="mt-3 text-sm text-ink-2">Connect a wallet.</p>
-          )}
-        </div>
-      </div>
+            ))}
+          </div>
 
-      {/* deposit */}
-      <div className="card mt-5 p-5">
-        <div className="label">Deposit</div>
-        <div className="mt-3 flex flex-wrap items-end gap-3">
-          <label className="block min-w-56 flex-1">
-            <span className="text-xs text-ink-3">Bucket</span>
-            <select className="input mt-1" value={dep?.address ?? ""} onChange={(e) => setDepBucket(e.target.value)}>
-              {buckets.map((b) => (
-                <option key={b.address} value={b.address}>
-                  {fmtUsd(b.priceLower)} – {fmtUsd(b.priceUpper)} · {fmtPct(b.utilization, 0)} used
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block w-40">
-            <span className="text-xs text-ink-3">Value (USD)</span>
-            <input className="input mt-1" type="number" min={1} value={depValue} onChange={(e) => setDepValue(Math.max(0, Number(e.target.value)))} />
-          </label>
-          <button
-            className="btn btn-primary"
-            disabled={!wallet.address || busy || depLiquidity <= 0n}
-            onClick={() => run("tx/build/deposit", { bucket: dep!.address, liquidity: depLiquidity.toString() }, "Deposited.")}
-          >
-            Deposit
-          </button>
-        </div>
-        <p className="mt-2 text-xs text-ink-3">
-          {dep ? (dep.side === "below" ? "Pays in USDC." : dep.side === "above" ? "Pays in SOL." : "Pays in SOL and USDC.") : ""}
-        </p>
-      </div>
-
-      {/* ladder */}
-      <div className="card mt-5 overflow-hidden">
-        <div className="border-b border-line px-5 py-3"><div className="label">Buckets · {m?.name}</div></div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[880px] text-sm">
-            <thead className="text-left text-xs text-ink-3">
-              <tr className="border-b border-line">
-                {["Range", "Liquidity", "Used", "Borrowable", "Premium", "Fees", "Forgone", "Yours", ""].map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {buckets.map((b) => {
-                const lp = mine.find((x) => x.bucket === b.address);
-                const totalV = m ? Number(BigInt(b.totalLiquidity)) * valuePerUnit(m, b, P) : 0;
-                const borrowV = m ? Number(BigInt(b.borrowable)) * valuePerUnit(m, b, P) : 0;
-                const fees = atoms(b.feesCollectedQuote, qd) + atoms(b.feesCollectedBase, bd) * P;
-                const noticeSince = Number(b.withdrawalNoticeStart);
-                return (
-                  <tr key={b.address} className={`border-b border-line/60 last:border-0 ${b.side === "spot" ? "bg-sunk/60" : ""}`}>
-                    <td className="num px-4 py-2.5">
-                      <span className={`mr-2 inline-block size-2 rounded-full ${b.side === "below" ? "bg-ember" : b.side === "above" ? "bg-steel" : "bg-ink-3"}`} />
-                      {fmtUsd(b.priceLower)}–{fmtUsd(b.priceUpper)}
-                    </td>
-                    <td className="num px-4 py-2.5">{fmtUsd(totalV, 0)}</td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-20 overflow-hidden rounded-full bg-sunk"><div className="h-full rounded-full bg-ember" style={{ width: `${Math.min(100, b.utilization * 125)}%` }} /></div>
-                        <span className="num text-xs">{fmtPct(b.utilization, 0)}</span>
-                      </div>
-                    </td>
-                    <td className="num px-4 py-2.5 text-ink-2">{b.side === "spot" ? "—" : fmtUsd(borrowV, 0)}</td>
-                    <td className="num px-4 py-2.5">{fmtUsd(atoms(b.premiumDistributed, qd), 4)}</td>
-                    <td className="num px-4 py-2.5">{fmtUsd(fees, 4)}</td>
-                    <td className="num px-4 py-2.5 text-ink-2">{fmtUsd(atoms(b.forgoneMeasured, qd), 4)}</td>
-                    <td className="num px-4 py-2.5">{lp ? fmtPct(lp.shareOfBucket, 1) : "—"}{noticeSince > 0 && <div className="font-sans text-[11px] text-warn">notice</div>}</td>
-                    <td className="px-4 py-2.5">
-                      {lp && (
-                        <div className="flex gap-1.5">
-                          <button className="btn btn-ghost !px-2 !py-1 text-xs" disabled={busy} onClick={() => run("tx/build/claim", { bucket: b.address }, "Claimed.")}>Claim</button>
-                          {BigInt(b.borrowed) + BigInt(b.reserved) === 0n ? (
-                            <button className="btn btn-ghost !px-2 !py-1 text-xs" disabled={busy} onClick={() => run("tx/build/withdraw", { bucket: b.address, liquidity: lp.liquidity }, "Withdrawn.")}>Withdraw</button>
-                          ) : (
-                            <button className="btn btn-ghost !px-2 !py-1 text-xs" disabled={busy || BigInt(lp.withdrawal_liquidity) > 0n} onClick={() => run("tx/build/request-withdrawal", { bucket: b.address, liquidity: lp.liquidity }, `Requested. Withdrawable after ${notice}h.`)}>
-                              {BigInt(lp.withdrawal_liquidity) > 0n ? "Requested" : "Request"}
-                            </button>
-                          )}
+          {/* ladder */}
+          <div className="flex items-center justify-between px-4 py-3 sm:px-5">
+            <div className="label">Buckets</div>
+            <div className="flex items-center gap-4 text-[12px] text-ink-3">
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-[3px] bg-accent" /> USDC, below</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-[3px] bg-steel" /> SOL, above</span>
+            </div>
+          </div>
+          <div className="overflow-x-auto border-t border-line">
+            <table className="tbl min-w-[880px]">
+              <thead>
+                <tr>{["Range", "Liquidity", "Used", "Borrowable", "Premium", "Fees", "Forgone", "Yours", ""].map((h) => <th key={h}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {buckets.map((b) => {
+                  const lp = mine.find((x) => x.bucket === b.address);
+                  const totalV = m ? Number(BigInt(b.totalLiquidity)) * valuePerUnit(m, b, P) : 0;
+                  const borrowV = m ? Number(BigInt(b.borrowable)) * valuePerUnit(m, b, P) : 0;
+                  const fees = atoms(b.feesCollectedQuote, qd) + atoms(b.feesCollectedBase, bd) * P;
+                  const noticeSince = Number(b.withdrawalNoticeStart);
+                  return (
+                    <tr key={b.address} className={b.side === "spot" ? "bg-sunk" : ""}>
+                      <td className="num">
+                        <span className="flex items-center gap-2">
+                          <span className={`h-2.5 w-[3px] ${b.side === "below" ? "bg-accent" : b.side === "above" ? "bg-steel" : "bg-line-strong"}`} />
+                          {fmtUsd(b.priceLower)}–{fmtUsd(b.priceUpper)}
+                        </span>
+                      </td>
+                      <td className="num">{fmtUsd(totalV, 0)}</td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <div className="h-1 w-16 bg-line"><div className="h-full bg-accent" style={{ width: `${Math.min(100, b.utilization * 125)}%` }} /></div>
+                          <span className="num text-[12px]">{fmtPct(b.utilization, 0)}</span>
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td className="num text-ink-2">{b.side === "spot" ? "—" : fmtUsd(borrowV, 0)}</td>
+                      <td className="num">{fmtUsd(atoms(b.premiumDistributed, qd), 4)}</td>
+                      <td className="num">{fmtUsd(fees, 4)}</td>
+                      <td className="num text-ink-2">{fmtUsd(atoms(b.forgoneMeasured, qd), 4)}</td>
+                      <td className="num">{lp ? fmtPct(lp.shareOfBucket, 1) : "—"}{noticeSince > 0 && <div className="font-sans text-[11px] text-warn">notice</div>}</td>
+                      <td>
+                        {lp && (
+                          <div className="flex gap-1.5">
+                            <button className="btn btn-ghost !px-2 !py-1 !text-[12px]" disabled={busy} onClick={() => run("tx/build/claim", { bucket: b.address }, "Claimed.")}>Claim</button>
+                            {BigInt(b.borrowed) + BigInt(b.reserved) === 0n ? (
+                              <button className="btn btn-ghost !px-2 !py-1 !text-[12px]" disabled={busy} onClick={() => run("tx/build/withdraw", { bucket: b.address, liquidity: lp.liquidity }, "Withdrawn.")}>Withdraw</button>
+                            ) : (
+                              <button className="btn btn-ghost !px-2 !py-1 !text-[12px]" disabled={busy || BigInt(lp.withdrawal_liquidity) > 0n} onClick={() => run("tx/build/request-withdrawal", { bucket: b.address, liquidity: lp.liquidity }, `Requested. Withdrawable after ${notice}h.`)}>
+                                {BigInt(lp.withdrawal_liquidity) > 0n ? "Requested" : "Request"}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-        {mine.length > 0 && (
-          <p className="border-t border-line px-5 py-3 text-xs text-ink-3">
-            Claimable: <span className="num">{fmtUsd(mine.reduce((a, l) => a + atoms(l.premiumOwedNow, qd), 0), 4)}</span> premium ·{" "}
-            <span className="num">{fmtNum(mine.reduce((a, l) => a + atoms(l.feesOwedBaseNow, bd), 0), 6)}</span> SOL +{" "}
-            <span className="num">{fmtUsd(mine.reduce((a, l) => a + atoms(l.feesOwedQuoteNow, qd), 0), 4)}</span> fees
-          </p>
-        )}
+
+        {/* side column */}
+        <aside className="divide-y divide-line border-t border-line text-sm xl:border-t-0">
+          <div className="p-5">
+            <div className="label">Deposit</div>
+            <label className="mt-3 block">
+              <span className="cap">Bucket</span>
+              <select className="input mt-1" value={dep?.address ?? ""} onChange={(e) => setDepBucket(e.target.value)}>
+                {buckets.map((b) => (
+                  <option key={b.address} value={b.address}>
+                    {fmtUsd(b.priceLower)} – {fmtUsd(b.priceUpper)} · {fmtPct(b.utilization, 0)} used
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="mt-2 block">
+              <span className="cap">Value (USD)</span>
+              <input className="input mt-1" type="number" min={1} value={depValue} onChange={(e) => setDepValue(Math.max(0, Number(e.target.value)))} />
+            </label>
+            <div className="kv mt-2"><span>Pays in</span><span>{dep ? (dep.side === "below" ? "USDC" : dep.side === "above" ? "SOL" : "SOL + USDC") : "—"}</span></div>
+            <button
+              className="btn btn-primary mt-3 w-full"
+              disabled={!wallet.address || busy || depLiquidity <= 0n}
+              onClick={() => run("tx/build/deposit", { bucket: dep!.address, liquidity: depLiquidity.toString() }, "Deposited.")}
+            >
+              Deposit
+            </button>
+          </div>
+
+          <div className="p-5">
+            <div className="label">FORGE vs Orca</div>
+            {!wallet.address ? (
+              <p className="cap mt-2">Connect a wallet.</p>
+            ) : !mine.length ? (
+              <p className="cap mt-2">No positions yet.</p>
+            ) : (
+              <div className="mt-2">
+                <div className="kv"><span>Idle fees</span><span>{fmtUsd(compare.fees, 4)}</span></div>
+                <div className="kv"><span>Fees forgone</span><span>{fmtUsd(compare.forgone, 4)}</span></div>
+                <div className="kv"><span>Premium earned</span><span className="!text-good">{fmtUsd(compare.premium, 4)}</span></div>
+                <div className="kv mt-1 border-t border-line pt-2"><span className="!text-ink">Difference</span><span className="font-medium">{fmtUsd(compare.premium - compare.forgone, 4)}</span></div>
+                <p className="cap mt-2">Measured fees, same-trading assumption.</p>
+              </div>
+            )}
+          </div>
+
+          {mine.length > 0 && (
+            <div className="p-5">
+              <div className="label">Claimable</div>
+              <div className="mt-2">
+                <div className="kv"><span>Premium</span><span>{fmtUsd(claimPremium, 4)}</span></div>
+                <div className="kv"><span>Fees, SOL</span><span>{fmtNum(claimBase, 6)}</span></div>
+                <div className="kv"><span>Fees, USDC</span><span>{fmtUsd(claimQuote, 4)}</span></div>
+              </div>
+            </div>
+          )}
+        </aside>
       </div>
     </AppShell>
   );

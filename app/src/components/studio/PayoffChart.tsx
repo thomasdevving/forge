@@ -130,7 +130,7 @@ export function PayoffChart(p: Props) {
         {ticksX.map((v) => (
           <text key={`x${v}`} x={x(v)} y={H - M.b + 18} textAnchor="middle" fontSize="11" fill="var(--ink-3)" fontFamily="var(--font-mono)">{fmtUsd(v, 0)}</text>
         ))}
-        <text x={14} y={M.t + 8} fontSize="11" fill="var(--ink-3)" transform={`rotate(-90 14 ${M.t + 8})`} textAnchor="end" fontFamily="var(--font-mono)">value (USD)</text>
+        <text x={14} y={M.t + 8} fontSize="11" fill="var(--ink-3)" transform={`rotate(-90 14 ${M.t + 8})`} textAnchor="end" fontFamily="var(--font-mono)">USD</text>
 
         {/* bucket ladder: borrowable liquidity per range, chosen ranges highlighted */}
         <g>
@@ -138,13 +138,13 @@ export function PayoffChart(p: Props) {
             const x0 = Math.max(x(b.priceLower), M.l) + 1, x1 = Math.min(x(b.priceUpper), W - M.r) - 1;
             const h = Math.max(3, (Number(BigInt(b.borrowable)) / maxBorrow) * BAR_H);
             const ch = isChosen(b);
-            const color = b.side === "below" ? "var(--ember)" : b.side === "above" ? "var(--steel)" : "var(--ink-3)";
+            const color = b.side === "below" ? "var(--accent)" : b.side === "above" ? "var(--steel)" : "var(--line-strong)";
             return (
               <g key={b.address}>
-                <rect x={x0} width={Math.max(1, x1 - x0)} y={H - 34 - h} height={h} rx="2" fill={color} opacity={ch ? 0.95 : b.side === "spot" ? 0.25 : 0.32}>
+                <rect x={x0} width={Math.max(1, x1 - x0)} y={H - 34 - h} height={h} fill={color} opacity={ch ? 0.9 : b.side === "spot" ? 0.5 : 0.22}>
                   <title>{`${fmtUsd(b.priceLower)}–${fmtUsd(b.priceUpper)} · ${b.side === "spot" ? "contains spot: not usable" : `${(b.utilization * 100).toFixed(0)}% utilized`}`}</title>
                 </rect>
-                {ch && <rect x={x0} width={Math.max(1, x1 - x0)} y={H - 34 - BAR_H - 6} height={3} rx="1.5" fill={color} />}
+                {ch && <rect x={x0} width={Math.max(1, x1 - x0)} y={H - 34 - BAR_H - 6} height={2} fill="var(--ink)" />}
               </g>
             );
           })}
@@ -162,23 +162,24 @@ export function PayoffChart(p: Props) {
 
         {/* scenario track (click anywhere in the plot to move the scenario line) */}
         <rect data-track="1" x={M.l} y={M.t} width={W - M.l - M.r} height={H - M.t - M.b} fill="transparent" />
-        <line x1={x(S)} x2={x(S)} y1={M.t} y2={H - M.b} stroke="var(--ember-2)" strokeWidth="1.5" opacity="0.8" pointerEvents="none" />
+        <line x1={x(S)} x2={x(S)} y1={M.t} y2={H - M.b} stroke="var(--ink-2)" strokeWidth="1" strokeDasharray="2 3" pointerEvents="none" />
 
         {/* curves */}
         <path d={path([[lo, p.unhedgedUnits * lo], [hi, p.unhedgedUnits * hi]])} fill="none" stroke="var(--ink-3)" strokeWidth="1.5" strokeDasharray="2 6" pointerEvents="none" />
         {p.closest && <path d={path(p.closest)} fill="none" stroke="var(--warn)" strokeWidth="1.5" strokeDasharray="6 4" pointerEvents="none" />}
-        {p.compiled && <path d={path(p.compiled)} fill="none" stroke="var(--ink)" strokeWidth="2" pointerEvents="none" />}
-        <path d={path(p.points)} fill="none" stroke="var(--ember)" strokeWidth="3" strokeLinejoin="round" pointerEvents="none" />
+        {p.compiled && <path d={path(p.compiled)} fill="none" stroke="var(--ink)" strokeWidth="1.5" pointerEvents="none" />}
+        <path d={path(p.points)} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="miter" pointerEvents="none" />
         {p.points.map((q, i) => (
           <g key={i}>
-            <circle
+            <rect
               data-handle="1"
-              cx={x(q[0])}
-              cy={y(q[1])}
-              r={selected === i ? 9 : 7}
-              fill="var(--bg-elev)"
-              stroke="var(--ember)"
-              strokeWidth={selected === i ? 3 : 2.5}
+              x={x(q[0]) - (selected === i ? 6 : 5)}
+              y={y(q[1]) - (selected === i ? 6 : 5)}
+              width={selected === i ? 12 : 10}
+              height={selected === i ? 12 : 10}
+              fill={selected === i ? "var(--accent)" : "var(--bg)"}
+              stroke="var(--accent)"
+              strokeWidth={1.5}
               className="cursor-grab"
               tabIndex={0}
               aria-label={`Breakpoint at ${fmtUsd(q[0])}, value ${fmtNum(q[1], 0)}`}
@@ -194,17 +195,17 @@ export function PayoffChart(p: Props) {
       </svg>
 
       {/* scenario readout */}
-      <div className="pointer-events-none absolute left-[8%] top-3 rounded-lg border border-line bg-elev/90 px-3 py-2 text-xs shadow-sm backdrop-blur">
-        <div className="num text-ink-2">close at <span className="text-ember-2">{fmtUsd(S)}</span></div>
+      <div className="pointer-events-none absolute left-[8%] top-3 rounded-[3px] border border-line bg-bg/90 px-3 py-2 text-[11px] backdrop-blur">
+        <div className="num text-ink-2">Close at <span className="text-ink">{fmtUsd(S)}</span></div>
         <div className="num mt-1 grid grid-cols-[auto_auto] gap-x-3">
-          <span className="text-ink-3">target</span><span className="text-right">{fmtUsd(tS)}</span>
-          <span className="text-ink-3">compiled</span><span className="text-right">{cS == null ? "—" : fmtUsd(cS)}</span>
-          <span className="text-ink-3">just holding</span><span className="text-right">{fmtUsd(p.unhedgedUnits * S)}</span>
+          <span className="text-ink-3">Target</span><span className="text-right">{fmtUsd(tS)}</span>
+          <span className="text-ink-3">Compiled</span><span className="text-right">{cS == null ? "—" : fmtUsd(cS)}</span>
+          <span className="text-ink-3">Hold</span><span className="text-right">{fmtUsd(p.unhedgedUnits * S)}</span>
         </div>
       </div>
       <input
         type="range"
-        className="mt-1 w-full accent-[var(--ember)]"
+        className="mt-1 w-full"
         min={lo}
         max={hi}
         step={(hi - lo) / 400}

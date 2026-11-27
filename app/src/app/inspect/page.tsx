@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { AppShell } from "@/components/AppShell";
+import { AppShell, Bar } from "@/components/AppShell";
 import { rpc } from "@/lib/rpc";
 
 type Tx = {
@@ -26,13 +26,11 @@ function Inner() {
   }, [sig]);
   return (
     <AppShell>
-      <div className="label">Fork transaction</div>
-      <h1 className="num mt-1 break-all text-lg font-semibold">{sig || "—"}</h1>
-      <p className="mt-1 text-xs text-warn">Fork only. Not on mainnet explorers.</p>
-      {err && <div className="card mt-4 p-4 text-sm text-bad">{err}</div>}
+      <Bar title="Transaction" meta={<><span className="num break-all text-ink-2">{sig || "—"}</span><span className="text-warn">Fork only</span></>} />
+      {err && <div className="border-b border-line px-5 py-3 text-sm text-bad">{err}</div>}
       {tx && (
-        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_1.4fr]">
-          <div className="card space-y-2 p-5 text-sm">
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+          <div className="space-y-2 p-5 text-sm lg:border-r lg:border-line">
             <div className="flex justify-between"><span className="text-ink-3">Status</span><span className={tx.meta?.err ? "text-bad" : "text-good"}>{tx.meta?.err ? "failed" : "success"}</span></div>
             <div className="flex justify-between"><span className="text-ink-3">Slot</span><span className="num">{tx.slot.toString()}</span></div>
             <div className="flex justify-between"><span className="text-ink-3">Fee</span><span className="num">{tx.meta ? `${Number(tx.meta.fee) / 1e9} SOL` : "—"}</span></div>
@@ -44,9 +42,9 @@ function Inner() {
               ))}
             </ul>
           </div>
-          <div className="card p-5">
+          <div className="border-t border-line p-5 lg:border-t-0">
             <div className="label">Logs</div>
-            <pre className="num mt-3 max-h-[560px] overflow-auto whitespace-pre-wrap rounded-lg bg-sunk p-3 text-[11px] leading-relaxed text-ink-2">{(tx.meta?.logMessages ?? []).join("\n")}</pre>
+            <pre className="num mt-3 max-h-[560px] overflow-auto whitespace-pre-wrap border border-line bg-sunk p-3 text-[11px] leading-relaxed text-ink-2">{(tx.meta?.logMessages ?? []).join("\n")}</pre>
           </div>
         </div>
       )}

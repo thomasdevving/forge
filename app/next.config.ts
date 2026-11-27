@@ -8,6 +8,7 @@ const svc = (name: string, local: string) =>
 
 const config: NextConfig = {
   reactStrictMode: true,
+  devIndicators: false,
   poweredByHeader: false,
   async rewrites() {
     return [
