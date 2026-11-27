@@ -171,19 +171,6 @@ export function Hero() {
                 </Link>
                 <Link href="/earn" className="btn btn-ghost !px-6 !py-3 !text-[15px]">Earn as an LP</Link>
               </div>
-              <Link
-                href="/studio?architect=1"
-                className="hero-in group mt-5 inline-flex max-w-xl items-center gap-3 border border-line-strong bg-panel/60 px-4 py-3 backdrop-blur-sm transition-colors hover:border-ink-3"
-                style={{ animationDelay: "440ms" }}
-              >
-                <svg viewBox="0 0 16 16" className="size-4 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
-                  <path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M3.4 12.6l2.1-2.1M10.5 5.5l2.1-2.1" strokeLinecap="round" />
-                </svg>
-                <span className="text-[13.5px] leading-snug text-ink-2">
-                  <span className="font-medium text-ink">Rather say it in words?</span> Tell the AI Architect what you hold and what you want; it builds the options for you.
-                </span>
-                <span className="text-ink-3 transition-transform group-hover:translate-x-0.5" aria-hidden>→</span>
-              </Link>
             </Layer>
             <Layer on={agentsOn} ready={ready}>
               <Eyebrow right="x402 · USDC per request" />
