@@ -5,10 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { AppShell, Bar } from "@/components/AppShell";
 import { api, type BuiltTx, type MarketInfo, type StrategyView } from "@/lib/api";
-import { USDC, WSOL } from "@/lib/config";
-import { atoms, fmtNum, fmtPct, fmtUsd, short } from "@/lib/format";
+import { atoms, fmtNum, fmtPct, fmtPrice, fmtUsd, short } from "@/lib/format";
 import { greeks, KIND_LABEL, legPayoff } from "@/lib/payoff";
 import { tokenAccount } from "@/lib/rpc";
+import { baseSymbol, quoteSymbol } from "@/lib/market";
 import { useWallet } from "@/lib/wallet";
 
 const STATE_STYLE: Record<string, string> = {
@@ -29,7 +29,7 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
   const bd = m.baseDecimals, qd = m.quoteDecimals;
   const P = m.poolPrice;
   const legs = s.legs.map((l) => ({ kind: l.kind_tag, tickLower: l.tick_lower, tickUpper: l.tick_upper, liquidity: Number(BigInt(l.liquidity)) }));
-  const g = greeks(legs, P);
+  const g = greeks(legs, P, bd, qd);
   const accrued = atoms(s.state === "Closed" ? s.premium_paid : s.accruedEstimate, qd);
   const cap = atoms(s.lpCap, qd);
   const trigger = s.keeper_trigger_bps / 1e4;
@@ -51,6 +51,7 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
     <article id={s.address} className="scroll-mt-4 border-b border-line last:border-b-0">
       <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3 sm:px-5">
         <span className={`tag ${STATE_STYLE[s.state]}`}>{s.state.replace(/([a-z])([A-Z])/g, "$1 $2")}</span>
+        <span className="num text-[12px] text-ink-2">{m.name}</span>
         <span className="text-[13px] font-medium">{s.legs.map((l) => KIND_LABEL[l.kind_tag]).join(" + ")}</span>
         <span className="num text-xs text-ink-3">{short(s.address, 6)}</span>
         <div className="ml-auto flex items-center gap-2">
@@ -78,11 +79,11 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
             <tbody className="num">
               {s.legs.map((l, i) => {
                 const pa = 1.0001 ** l.tick_lower * 10 ** (bd - qd), pb = 1.0001 ** l.tick_upper * 10 ** (bd - qd);
-                const esc = l.kind_tag <= 1 ? `${fmtNum(atoms(l.escrow_quote, qd), 2)} USDC${BigInt(l.escrow_base) > 0n ? ` · ${fmtNum(atoms(l.escrow_base, bd), 4)} SOL` : ""}` : l.kind_tag === 2 ? `${fmtNum(atoms(l.provided_quote, qd), 2)} USDC` : `${fmtNum(atoms(l.provided_base, bd), 4)} SOL`;
+                const esc = l.kind_tag <= 1 ? `${fmtNum(atoms(l.escrow_quote, qd), 2)} ${quoteSymbol(m)}${BigInt(l.escrow_base) > 0n ? ` · ${fmtNum(atoms(l.escrow_base, bd), 4)} ${baseSymbol(m)}` : ""}` : l.kind_tag === 2 ? `${fmtNum(atoms(l.provided_quote, qd), 2)} ${quoteSymbol(m)}` : `${fmtNum(atoms(l.provided_base, bd), 4)} ${baseSymbol(m)}`;
                 return (
                   <tr key={i}>
                     <td className="font-sans"><span className="flex items-center gap-2"><span className={`h-2.5 w-[3px] ${l.kind_tag <= 1 ? "bg-accent" : "bg-steel"}`} />{KIND_LABEL[l.kind_tag]}</span></td>
-                    <td>{fmtUsd(pa)}–{fmtUsd(pb)}</td>
+                    <td>{fmtPrice(pa)}–{fmtPrice(pb)}</td>
                     <td className="text-ink-2">{esc}</td>
                     <td className="text-ink-2">{l.kind_tag <= 1 ? fmtNum(atoms(l.buffer, l.kind_tag === 0 ? qd : bd), l.kind_tag === 0 ? 2 : 4) : "—"}</td>
                     <td>{l.kind_tag <= 1 ? fmtUsd(atoms(l.restored ? l.premium : l.estimate.premium, qd), 4) : "—"}</td>
@@ -106,8 +107,8 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
                 <div className="cap mt-1.5">Keeper close at {fmtPct(trigger, 0)}{s.cap_binding ? " · cap reached" : ""}</div>
               </div>
               <div className="border-t border-line pt-3">
-                <div className="kv"><span>At</span><span>{fmtUsd(P)}</span></div>
-                <div className="kv"><span>Delta</span><span>{fmtNum(g.delta, 3)} SOL</span></div>
+                <div className="kv"><span>At</span><span>{fmtPrice(P)}</span></div>
+                <div className="kv"><span>Delta</span><span>{fmtNum(g.delta, 3)} {baseSymbol(m)}</span></div>
                 <div className="kv"><span>Gamma</span><span>{fmtNum(g.gamma, 4)}</span></div>
                 <div className="kv"><span>P&amp;L</span><span className={pnl >= 0 ? "!text-good" : "!text-bad"}>{fmtUsd(pnl)}</span></div>
               </div>
@@ -116,7 +117,7 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
             <div>
               <div className="flex items-baseline justify-between">
                 <div className="label">Designed vs realized</div>
-                <span className="cap num">at {fmtUsd(settleP)}</span>
+                <span className="cap num">at {fmtPrice(settleP)}</span>
               </div>
               <div className="mt-2">
                 <div className="kv"><span>Designed</span><span>{fmtUsd(designed)}</span></div>
@@ -138,14 +139,14 @@ function PositionCard({ s, m, onAction, busy }: { s: StrategyView; m: MarketInfo
 function PositionsInner() {
   const wallet = useWallet();
   const focus = useSearchParams().get("focus");
-  const [m, setM] = useState<MarketInfo | null>(null);
+  const [markets, setMarkets] = useState<MarketInfo[] | null>(null);
   const [list, setList] = useState<StrategyView[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string; sig?: string } | null>(null);
 
   const load = useCallback(async () => {
     const ms = await api<MarketInfo[]>("indexer/markets");
-    setM(ms[0] ?? null);
+    setMarkets(ms);
     if (wallet.address) setList(await api<StrategyView[]>(`indexer/strategies?owner=${wallet.address}`));
     else setList(null);
   }, [wallet.address]);
@@ -165,8 +166,10 @@ function PositionsInner() {
     setBusy(true);
     setMsg(null);
     try {
-      const userBase = await tokenAccount(wallet.address, WSOL);
-      const userQuote = await tokenAccount(wallet.address, USDC);
+      const mk = markets?.find((x) => x.address === s.market);
+      if (!mk) throw new Error("Unknown market for this position.");
+      const userBase = await tokenAccount(wallet.address, mk.baseMint);
+      const userQuote = await tokenAccount(wallet.address, mk.quoteMint);
       const body = { owner: wallet.address, market: s.market, strategy: s.address, userBase, userQuote };
       let sigs: string[];
       if (kind === "close") {
@@ -188,7 +191,7 @@ function PositionsInner() {
     <AppShell>
       <Bar
         title="Positions"
-        meta={list && <><span>{list.length} total</span><span>{list.filter((s) => s.state === "Open").length} open</span>{m && <span>Pool <span className="num text-ink">{fmtUsd(m.poolPrice)}</span></span>}</>}
+        meta={list && <><span>{list.length} total</span><span>{list.filter((s) => s.state === "Open").length} open</span>{markets && markets.length > 1 && <span>{new Set(list.map((s) => s.market)).size} markets</span>}</>}
       >
         <Link href="/studio" className="btn btn-ghost !py-1.5">New</Link>
       </Bar>
@@ -199,12 +202,15 @@ function PositionsInner() {
       )}
       {!wallet.address ? (
         <div className="px-5 py-16 text-center text-sm text-ink-3">Connect a wallet.</div>
-      ) : !list || !m ? (
+      ) : !list || !markets ? (
         <div className="px-5 py-16 text-center text-sm text-ink-3">Loading…</div>
       ) : list.length === 0 ? (
         <div className="px-5 py-16 text-center text-sm text-ink-3">No positions. <Link href="/studio" className="text-ink underline underline-offset-4">Open one</Link></div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">{list.map((s) => <PositionCard key={s.address} s={s} m={m} onAction={act} busy={busy} />)}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto">{list.map((s) => {
+          const mk = markets.find((x) => x.address === s.market);
+          return mk ? <PositionCard key={s.address} s={s} m={mk} onAction={act} busy={busy} /> : null;
+        })}</div>
       )}
     </AppShell>
   );

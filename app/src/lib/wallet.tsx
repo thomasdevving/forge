@@ -123,8 +123,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const fundDemo = useCallback(async () => {
     if (!address) throw new Error("Connect a wallet first.");
-    const r = await api<{ funded: string }>("control/faucet", { address });
-    return r.funded;
+    const r = await api<Record<string, unknown>>("control/faucet", { address });
+    // e.g. "20 SOL, 5,000 USDC, 6,097 JUP": wrapped SOL, quote, then each other market's base token
+    const parts: string[] = [];
+    for (const [k, v] of Object.entries(r)) {
+      if (typeof v !== "number" || k === "sol") continue;
+      parts.push(`${v.toLocaleString("en-US")} ${k === "wrappedSol" ? "SOL" : k.toUpperCase()}`);
+    }
+    return parts.join(", ");
   }, [address]);
 
   const execute = useCallback(

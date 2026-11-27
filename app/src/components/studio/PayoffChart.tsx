@@ -2,11 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BucketInfo } from "@/lib/api";
-import { fmtNum, fmtUsd } from "@/lib/format";
-import moves from "@/data/moves.json";
+import { fmtNum, fmtPrice, fmtUsd } from "@/lib/format";
 import { interp, type Point } from "@/lib/payoff";
 
-type Moves = { edges: number[]; horizons: Record<string, { counts: number[]; quantiles: Record<string, number> }> };
+export type Moves = { edges: number[]; horizons: Record<string, { counts: number[]; quantiles: Record<string, number> }> };
 export type Horizon = "off" | "1d" | "7d" | "30d";
 
 export type ChosenLeg = { kind: string; priceLower: number; priceUpper: number };
@@ -21,18 +20,32 @@ type Props = {
   buckets: BucketInfo[];
   chosen: ChosenLeg[];
   scenario: number;
-  /** overlay: historical SOL moves over this horizon, centred on spot */
+  /** overlay: historical moves of the base token over this horizon, centred on spot */
   horizon?: Horizon;
+  /** historical move distribution for this market's base token, if there is one */
+  moves?: Moves | null;
   onScenario: (s: number) => void;
   liquidityScale: number;
 };
 
-const W = 920, H = 440;
+const W = 920;
 const M = { l: 64, r: 18, t: 18, b: 92 };
 const BAR_H = 46;
 
 export function PayoffChart(p: Props) {
   const svg = useRef<SVGSVGElement>(null);
+  // the drawing takes the shape of its box: height in view units follows the box's aspect ratio
+  const [H, setH] = useState(440);
+  useEffect(() => {
+    const el = svg.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => {
+      const r = e!.contentRect;
+      if (r.width > 0 && r.height > 0) setH(Math.round(Math.min(760, Math.max(300, (W * r.height) / r.width))));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [drag, setDrag] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
 
@@ -45,7 +58,7 @@ export function PayoffChart(p: Props) {
   }, [p.points, p.compiled, p.unhedgedUnits, lo, hi]);
 
   const x = useCallback((v: number) => M.l + ((v - lo) / (hi - lo)) * (W - M.l - M.r), [lo, hi]);
-  const y = useCallback((v: number) => M.t + (1 - (v - yRange[0]) / (yRange[1] - yRange[0])) * (H - M.t - M.b), [yRange]);
+  const y = useCallback((v: number) => M.t + (1 - (v - yRange[0]) / (yRange[1] - yRange[0])) * (H - M.t - M.b), [yRange, H]);
   const toData = (clientX: number, clientY: number) => {
     const el = svg.current!;
     const pt = el.createSVGPoint();
@@ -104,8 +117,8 @@ export function PayoffChart(p: Props) {
   const tS = interp(p.points, S);
   const cS = p.compiled ? interp(p.compiled, S) : null;
   const density = useMemo(() => {
-    if (!p.spot || !p.horizon || p.horizon === "off") return null;
-    const mv = moves as Moves;
+    if (!p.spot || !p.horizon || p.horizon === "off" || !p.moves) return null;
+    const mv = p.moves;
     const h = mv.horizons[p.horizon];
     if (!h) return null;
     const max = Math.max(...h.counts, 1);
@@ -113,7 +126,7 @@ export function PayoffChart(p: Props) {
       .map((c, i) => [((mv.edges[i]! + mv.edges[i + 1]!) / 2) * p.spot!, c / max] as const)
       .filter(([px]) => px >= lo && px <= hi);
     return { pts, p5: h.quantiles.p5! * p.spot, p95: h.quantiles.p95! * p.spot };
-  }, [p.spot, p.horizon, lo, hi]);
+  }, [p.spot, p.horizon, p.moves, lo, hi]);
   const base = H - M.b, DH = (H - M.t - M.b) * 0.34;
   const densityPath = density?.pts.length
     ? `M${x(density.pts[0]![0]).toFixed(1)},${base}` + density.pts.map(([px, v]) => `L${x(px).toFixed(1)},${(base - v * DH).toFixed(1)}`).join("") + `L${x(density.pts[density.pts.length - 1]![0]).toFixed(1)},${base}Z`
@@ -155,7 +168,7 @@ export function PayoffChart(p: Props) {
           </g>
         ))}
         {ticksX.map((v) => (
-          <text key={`x${v}`} x={x(v)} y={H - M.b + 18} textAnchor="middle" fontSize="11" fill="var(--ink-3)" fontFamily="var(--font-mono)">{fmtUsd(v, 0)}</text>
+          <text key={`x${v}`} x={x(v)} y={H - M.b + 18} textAnchor="middle" fontSize="11" fill="var(--ink-3)" fontFamily="var(--font-mono)">{(hi - lo) / 6 < 1 ? fmtPrice(v) : fmtUsd(v, 0)}</text>
         ))}
         <text x={14} y={M.t + 8} fontSize="11" fill="var(--ink-3)" transform={`rotate(-90 14 ${M.t + 8})`} textAnchor="end" fontFamily="var(--font-mono)">USD</text>
 
@@ -169,7 +182,7 @@ export function PayoffChart(p: Props) {
             return (
               <g key={b.address}>
                 <rect x={x0} width={Math.max(1, x1 - x0)} y={H - 34 - h} height={h} fill={color} opacity={ch ? 0.9 : b.side === "spot" ? 0.5 : 0.22}>
-                  <title>{`${fmtUsd(b.priceLower)}–${fmtUsd(b.priceUpper)} · ${b.side === "spot" ? "contains spot: not usable" : `${(b.utilization * 100).toFixed(0)}% utilized`}`}</title>
+                  <title>{`${fmtPrice(b.priceLower)}–${fmtPrice(b.priceUpper)} · ${b.side === "spot" ? "contains spot: not usable" : `${(b.utilization * 100).toFixed(0)}% utilized`}`}</title>
                 </rect>
                 {ch && <rect x={x0} width={Math.max(1, x1 - x0)} y={H - 34 - BAR_H - 6} height={2} fill="var(--ink)" />}
               </g>
@@ -179,7 +192,7 @@ export function PayoffChart(p: Props) {
           <text x={M.l} y={H - 14} fontSize="11" fill="var(--ink-3)" fontFamily="var(--font-sans)">Buckets · height = borrowable · bright = used</text>
         </g>
 
-        {/* historical distribution of SOL moves (Binance 1m history), behind everything */}
+        {/* historical distribution of the base token's moves (Binance 1m history), behind everything */}
         {densityPath && density && (
           <g pointerEvents="none">
             <defs>
@@ -202,7 +215,7 @@ export function PayoffChart(p: Props) {
         {p.spot && p.spot > lo && p.spot < hi && (
           <g>
             <line x1={x(p.spot)} x2={x(p.spot)} y1={M.t} y2={H - 34} stroke="var(--ink-3)" strokeDasharray="3 5" />
-            <text x={x(p.spot) + 5} y={M.t + 12} fontSize="11" fill="var(--ink-2)" fontFamily="var(--font-mono)">spot {fmtUsd(p.spot)}</text>
+            <text x={x(p.spot) + 5} y={M.t + 12} fontSize="11" fill="var(--ink-2)" fontFamily="var(--font-mono)">spot {fmtPrice(p.spot)}</text>
           </g>
         )}
 
@@ -228,7 +241,7 @@ export function PayoffChart(p: Props) {
               strokeWidth={1.5}
               className="cursor-grab"
               tabIndex={0}
-              aria-label={`Breakpoint at ${fmtUsd(q[0])}, value ${fmtNum(q[1], 0)}`}
+              aria-label={`Breakpoint at ${fmtPrice(q[0])}, value ${fmtNum(q[1], 0)}`}
               onPointerDown={(e) => {
                 e.stopPropagation();
                 setDrag(i);
@@ -242,7 +255,7 @@ export function PayoffChart(p: Props) {
 
       {/* scenario readout */}
       <div className="pointer-events-none absolute left-[8%] top-3 rounded-[3px] border border-line bg-bg/90 px-3 py-2 text-[11px] backdrop-blur">
-        <div className="num text-ink-2">Close at <span className="text-ink">{fmtUsd(S)}</span></div>
+        <div className="num text-ink-2">Close at <span className="text-ink">{fmtPrice(S)}</span></div>
         <div className="num mt-1 grid grid-cols-[auto_auto] gap-x-3">
           <span className="text-ink-3">Target</span><span className="text-right">{fmtUsd(tS)}</span>
           <span className="text-ink-3">Compiled</span><span className="text-right">{cS == null ? "—" : fmtUsd(cS)}</span>

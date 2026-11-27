@@ -23,8 +23,8 @@ export function legPayoff(kind: string | number, tickLower: number, tickUpper: n
   }
 }
 
-export function greeks(legs: { kind: string | number; tickLower: number; tickUpper: number; liquidity: number }[], S: number) {
-  const val = (x: number) => legs.reduce((a, l) => a + legPayoff(l.kind, l.tickLower, l.tickUpper, l.liquidity, x), 0);
+export function greeks(legs: { kind: string | number; tickLower: number; tickUpper: number; liquidity: number }[], S: number, bd = 9, qd = 6) {
+  const val = (x: number) => legs.reduce((a, l) => a + legPayoff(l.kind, l.tickLower, l.tickUpper, l.liquidity, x, bd, qd), 0);
   const h = S * 1e-4;
   const up = val(S + h), mid = val(S), dn = val(S - h);
   return { value: mid, delta: (up - dn) / (2 * h), gamma: (up - 2 * mid + dn) / (h * h) };
@@ -45,7 +45,7 @@ export function interp(points: Point[], x: number): number {
 export const PRESETS: Record<string, { label: string; hint: string; make: (units: number, spot: number) => Point[] }> = {
   protective_put: {
     label: "Protective put",
-    hint: "Hold SOL, floor its value",
+    hint: "Hold the token, floor its value",
     make: (u, s) => {
       const f = 0.9 * s;
       return [[0.55 * s, u * f], [f, u * f], [1.6 * s, u * 1.6 * s]];

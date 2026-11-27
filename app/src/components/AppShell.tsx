@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Logo } from "./Logo";
 import { WalletButton } from "./WalletButton";
 
@@ -15,8 +15,23 @@ const NAV = [
 /** App chrome: haze background, one framed window with a top bar, like a desktop terminal. */
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
+  // Designed at 1440x900. Smaller desktop screens get the same layout scaled down (to 80% at most),
+  // so text and controls keep their proportions instead of crowding the chart.
+  const [zoom, setZoom] = useState(1);
+  useEffect(() => {
+    const on = () => {
+      const fit = Math.min(window.innerWidth / 1440, window.innerHeight / 880);
+      setZoom(window.innerWidth >= 1024 ? Number(Math.min(1, Math.max(0.8, fit)).toFixed(3)) : 1);
+    };
+    on();
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
   return (
-    <div className="haze min-h-dvh px-3 py-3 sm:px-6 sm:py-5 lg:h-dvh lg:min-h-0">
+    <div
+      className="haze min-h-dvh px-3 py-3 sm:px-6 sm:py-5 lg:h-dvh lg:min-h-0"
+      style={zoom < 1 ? { zoom, height: `calc(100dvh / ${zoom})` } : undefined}
+    >
       <div className="frame mx-auto flex max-w-[1520px] flex-col overflow-hidden backdrop-blur-sm lg:h-full">
         <header className="flex h-14 shrink-0 items-center gap-6 border-b border-line px-4 sm:px-5">
           <Logo />

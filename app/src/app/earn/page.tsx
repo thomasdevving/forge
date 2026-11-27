@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell, Bar } from "@/components/AppShell";
 import { api, type BucketInfo, type BuiltTx, type LpView, type MarketInfo } from "@/lib/api";
-import { USDC, WSOL } from "@/lib/config";
-import { atoms, fmtCompact, fmtNum, fmtPct, fmtUsd } from "@/lib/format";
+import { atoms, fmtCompact, fmtNum, fmtPct, fmtPrice, fmtUsd } from "@/lib/format";
 import { tokenAccount } from "@/lib/rpc";
+import { baseSymbol, MarketPicker, pickMarket, quoteSymbol, useMarketChoice } from "@/lib/market";
 import { useWallet } from "@/lib/wallet";
 
 type Stats = { price: number; outOfRange: { outOfRangeQuoteValue: number; belowPriceQuote: number; abovePriceBaseValued: number; window: { low: number; high: number } } };
@@ -22,6 +22,8 @@ function valuePerUnit(m: MarketInfo, b: { priceLower: number; priceUpper: number
 export default function Earn() {
   const wallet = useWallet();
   const [m, setM] = useState<MarketInfo | null>(null);
+  const [markets, setMarkets] = useState<MarketInfo[]>([]);
+  const [marketName, chooseMarket] = useMarketChoice();
   const [buckets, setBuckets] = useState<BucketInfo[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [mine, setMine] = useState<LpView[]>([]);
@@ -31,15 +33,17 @@ export default function Earn() {
   const [msg, setMsg] = useState<{ ok: boolean; text: string; sig?: string } | null>(null);
 
   const load = useCallback(async () => {
+    if (!marketName) return;
     const ms = await api<MarketInfo[]>("indexer/markets");
-    const mk = ms[0];
+    const mk = pickMarket(ms, marketName);
     if (!mk) return;
+    setMarkets(ms);
     setM(mk);
     // the out-of-range scan is slow; never let it hold up the ladder
     void api<Stats>(`indexer/markets/${mk.address}/stats`).then(setStats).catch(() => {});
     setBuckets(await api<BucketInfo[]>(`indexer/markets/${mk.address}/buckets`));
-    if (wallet.address) setMine(await api<LpView[]>(`indexer/lp?owner=${wallet.address}`));
-  }, [wallet.address]);
+    if (wallet.address) setMine((await api<LpView[]>(`indexer/lp?owner=${wallet.address}`)).filter((l) => l.market === mk.address));
+  }, [wallet.address, marketName]);
 
   useEffect(() => {
     void load().catch((e) => setMsg({ ok: false, text: (e as Error).message }));
@@ -52,9 +56,9 @@ export default function Earn() {
     setBusy(true);
     setMsg(null);
     try {
-      const userBase = await tokenAccount(wallet.address, WSOL);
-      const userQuote = await tokenAccount(wallet.address, USDC);
-      if (!userBase || !userQuote) throw new Error("No SOL/USDC token accounts. Get test funds from the wallet menu.");
+      const userBase = await tokenAccount(wallet.address, m.baseMint);
+      const userQuote = await tokenAccount(wallet.address, m.quoteMint);
+      if (!userBase || !userQuote) throw new Error(`No ${m.name} token accounts. Get test funds from the wallet menu.`);
       const built = await api<{ transactions: BuiltTx[] }>(path, { owner: wallet.address, market: m.address, userBase, userQuote, ...body });
       const sigs = await wallet.execute(built.transactions);
       setMsg({ ok: true, text: done, sig: sigs.at(-1) });
@@ -96,8 +100,8 @@ export default function Earn() {
         title="Earn"
         meta={
           <>
-            <span>{m?.name ?? "…"}</span>
-            <span>Pool <span className="num text-ink">{fmtUsd(m?.poolPrice)}</span></span>
+            <MarketPicker markets={markets} value={m} onChange={chooseMarket} />
+            <span>Pool <span className="num text-ink">{fmtPrice(m?.poolPrice)}</span></span>
             <span>{notice}h notice on borrowed liquidity</span>
           </>
         }
@@ -114,8 +118,8 @@ export default function Earn() {
           <div className="grid shrink-0 grid-cols-2 border-b border-line lg:grid-cols-4">
             {[
               ["Out of range on Orca", stats ? `$${fmtCompact(stats.outOfRange.outOfRangeQuoteValue)}` : "…", "earning nothing"],
-              ["Below price", stats ? fmtUsd(stats.outOfRange.belowPriceQuote, 0) : "…", "USDC"],
-              ["Above price", stats ? fmtUsd(stats.outOfRange.abovePriceBaseValued, 0) : "…", "SOL, valued"],
+              ["Below price", stats ? fmtUsd(stats.outOfRange.belowPriceQuote, 0) : "…", quoteSymbol(m)],
+              ["Above price", stats ? fmtUsd(stats.outOfRange.abovePriceBaseValued, 0) : "…", `${baseSymbol(m)}, valued`],
               ["Buckets", String(buckets.length), `${buckets.reduce((a, b) => a + b.openLegs, 0)} open legs`],
             ].map(([k, v, s], i) => (
               <div key={k} className={`px-4 py-3 sm:px-5 ${i % 2 ? "border-l" : ""} border-line ${i >= 2 ? "border-t lg:border-t-0" : ""} ${i === 2 ? "lg:border-l" : ""}`}>
@@ -130,8 +134,8 @@ export default function Earn() {
           <div className="flex shrink-0 items-center justify-between px-4 py-2.5 sm:px-5">
             <div className="label">Buckets</div>
             <div className="flex items-center gap-4 text-[12px] text-ink-3">
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-[3px] bg-accent" /> USDC, below</span>
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-[3px] bg-steel" /> SOL, above</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-[3px] bg-accent" /> {quoteSymbol(m)}, below</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-[3px] bg-steel" /> {baseSymbol(m)}, above</span>
             </div>
           </div>
           <div className="min-h-0 flex-1 overflow-auto border-t border-line">
@@ -151,7 +155,7 @@ export default function Earn() {
                       <td className="num">
                         <span className="flex items-center gap-2">
                           <span className={`h-2.5 w-[3px] ${b.side === "below" ? "bg-accent" : b.side === "above" ? "bg-steel" : "bg-line-strong"}`} />
-                          {fmtUsd(b.priceLower)}–{fmtUsd(b.priceUpper)}
+                          {fmtPrice(b.priceLower)}–{fmtPrice(b.priceUpper)}
                         </span>
                       </td>
                       <td className="num">{fmtUsd(totalV, 0)}</td>
@@ -197,7 +201,7 @@ export default function Earn() {
               <select className="input mt-1" value={dep?.address ?? ""} onChange={(e) => setDepBucket(e.target.value)}>
                 {buckets.map((b) => (
                   <option key={b.address} value={b.address}>
-                    {fmtUsd(b.priceLower)} – {fmtUsd(b.priceUpper)} · {fmtPct(b.utilization, 0)} used
+                    {fmtPrice(b.priceLower)} – {fmtPrice(b.priceUpper)} · {fmtPct(b.utilization, 0)} used
                   </option>
                 ))}
               </select>
@@ -206,7 +210,7 @@ export default function Earn() {
               <span className="cap">Value (USD)</span>
               <input className="input mt-1" type="number" min={1} value={depValue} onChange={(e) => setDepValue(Math.max(0, Number(e.target.value)))} />
             </label>
-            <div className="kv mt-2"><span>Pays in</span><span>{dep ? (dep.side === "below" ? "USDC" : dep.side === "above" ? "SOL" : "SOL + USDC") : "—"}</span></div>
+            <div className="kv mt-2"><span>Pays in</span><span>{dep ? (dep.side === "below" ? quoteSymbol(m) : dep.side === "above" ? baseSymbol(m) : `${baseSymbol(m)} + ${quoteSymbol(m)}`) : "—"}</span></div>
             <button
               className="btn btn-primary mt-3 w-full"
               disabled={!wallet.address || busy || depLiquidity <= 0n}
@@ -238,8 +242,8 @@ export default function Earn() {
               <div className="label">Claimable</div>
               <div className="mt-2">
                 <div className="kv"><span>Premium</span><span>{fmtUsd(claimPremium, 4)}</span></div>
-                <div className="kv"><span>Fees, SOL</span><span>{fmtNum(claimBase, 6)}</span></div>
-                <div className="kv"><span>Fees, USDC</span><span>{fmtUsd(claimQuote, 4)}</span></div>
+                <div className="kv"><span>Fees, {baseSymbol(m)}</span><span>{fmtNum(claimBase, 6)}</span></div>
+                <div className="kv"><span>Fees, {quoteSymbol(m)}</span><span>{fmtUsd(claimQuote, 4)}</span></div>
               </div>
             </div>
           )}

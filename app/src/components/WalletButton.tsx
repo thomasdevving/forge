@@ -41,8 +41,7 @@ export function WalletButton() {
                   onClick={async () => {
                     setStatus("Funding…");
                     try {
-                      await w.fundDemo();
-                      setStatus("Funded: 20 SOL, 5,000 USDC.");
+                      setStatus(`Funded: ${await w.fundDemo()}.`);
                     } catch (e) {
                       setStatus((e as Error).message);
                     }

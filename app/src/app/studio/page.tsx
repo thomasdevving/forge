@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell, Bar } from "@/components/AppShell";
-import { type Horizon, PayoffChart } from "@/components/studio/PayoffChart";
+import { type Horizon, type Moves, PayoffChart } from "@/components/studio/PayoffChart";
 import { api, type BucketInfo, type BuiltTx, type CompileResponse, type Feasibility, type MarketInfo } from "@/lib/api";
-import { USDC, WSOL } from "@/lib/config";
-import { ago, fmtNum, fmtUsd, short } from "@/lib/format";
+import { ago, fmtNum, fmtPrice, fmtUsd, short } from "@/lib/format";
 import { KIND_LABEL, kindTag, type Point, PRESETS } from "@/lib/payoff";
 import { tokenAccount, tokenBalance } from "@/lib/rpc";
+import { baseSymbol, defaultUnits, MarketPicker, pickMarket, quoteSymbol, useMarketChoice } from "@/lib/market";
 import { useWallet } from "@/lib/wallet";
 
 const KIND_NAME: Record<string, string> = { borrow_put: "BorrowQuote", borrow_call: "BorrowBase", provide_put: "ProvideQuote", provide_call: "ProvideBase" };
@@ -34,17 +34,23 @@ export default function Studio() {
   const [horizon, setHorizon] = useState<Horizon>("7d");
   const [steps, setSteps] = useState<Step[]>([]);
   const [opened, setOpened] = useState<string | null>(null);
-  const [walletBal, setWalletBal] = useState<{ sol: number; usdc: number } | null>(null);
+  const [walletBal, setWalletBal] = useState<{ base: number; quote: number } | null>(null);
+  const [markets, setMarkets] = useState<MarketInfo[]>([]);
+  const [marketName, chooseMarket] = useMarketChoice();
+  const [moves, setMoves] = useState<Moves | null>(null);
 
   // market + buckets
   useEffect(() => {
+    if (!marketName) return;
     let alive = true;
     const load = async () => {
       try {
         const ms = await api<MarketInfo[]>("indexer/markets");
-        if (!alive || !ms[0]) return;
-        setMarket(ms[0]);
-        setBuckets(await api<BucketInfo[]>(`indexer/markets/${ms[0].address}/buckets`));
+        const pick = pickMarket(ms, marketName);
+        if (!alive || !pick) return;
+        setMarkets(ms);
+        setMarket(pick);
+        setBuckets(await api<BucketInfo[]>(`indexer/markets/${pick.address}/buckets`));
         setLoadErr(null);
       } catch (e) {
         if (alive) setLoadErr((e as Error).message);
@@ -56,23 +62,33 @@ export default function Studio() {
       alive = false;
       clearInterval(t);
     };
-  }, []);
+  }, [marketName]);
+
+  // switching market starts a fresh design at a comparable size
+  const marketAddr = market?.address;
+  useEffect(() => {
+    if (!market) return;
+    const units = defaultUnits(market);
+    setFeas(null);
+    setBaseHoldings(units);
+    setPoints(PRESETS[preset]!.make(units, market.poolPrice));
+    setScenario(market.poolPrice * 0.92);
+    const sym = baseSymbol(market).toLowerCase();
+    fetch(`/moves/${sym}.json`).then((r) => (r.ok ? r.json() : null)).then(setMoves).catch(() => setMoves(null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marketAddr]);
 
   const spot = market?.poolPrice ?? null;
-  useEffect(() => {
-    if (!spot || points) return;
-    setPoints(PRESETS[preset]!.make(baseHoldings, spot));
-    setScenario(spot * 0.92);
-  }, [spot, points, preset, baseHoldings]);
 
   useEffect(() => {
     if (!wallet.address) return setWalletBal(null);
     const addr = wallet.address;
-    const read = () => void Promise.all([tokenBalance(addr, WSOL), tokenBalance(addr, USDC)]).then(([sol, usdc]) => setWalletBal({ sol, usdc })).catch(() => setWalletBal(null));
+    if (!market) return;
+    const read = () => void Promise.all([tokenBalance(addr, market.baseMint), tokenBalance(addr, market.quoteMint)]).then(([base, quote]) => setWalletBal({ base, quote })).catch(() => setWalletBal(null));
     read();
     const t = setInterval(read, 8_000);
     return () => clearInterval(t);
-  }, [wallet.address, opened]);
+  }, [wallet.address, opened, marketAddr]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const request = useCallback(
     (pts: Point[], extra: Record<string, unknown> = {}) => {
@@ -181,9 +197,9 @@ export default function Studio() {
     setSteps(plan);
     const upd = (i: number, s: Partial<Step>) => setSteps((prev) => prev.map((x, j) => (j === i ? { ...x, ...s } : x)));
     try {
-      const userBase = await tokenAccount(wallet.address, WSOL);
-      const userQuote = await tokenAccount(wallet.address, USDC);
-      if (!userBase || !userQuote) throw new Error("No SOL/USDC token accounts. Get test funds from the wallet menu.");
+      const userBase = await tokenAccount(wallet.address, market.baseMint);
+      const userQuote = await tokenAccount(wallet.address, market.quoteMint);
+      if (!userBase || !userQuote) throw new Error(`No ${market.name} token accounts. Get test funds from the wallet menu.`);
       const nonce = String(Date.now());
       const body = (hash: string) => ({
         owner: wallet.address,
@@ -228,10 +244,10 @@ export default function Studio() {
         title="Studio"
         meta={
           <>
-            <span>{market?.name ?? "…"}</span>
-            <span>Pool <span className="num text-ink">{fmtUsd(market?.poolPrice)}</span></span>
+            <MarketPicker markets={markets} value={market} onChange={chooseMarket} />
+            <span>Pool <span className="num text-ink">{fmtPrice(market?.poolPrice)}</span></span>
             <span>
-              Ref <span className="num text-ink">{fmtUsd(market?.reference?.price)}</span>
+              Ref <span className="num text-ink">{fmtPrice(market?.reference?.price)}</span>
               {market?.reference && <span className="ml-1.5">{market.reference.kind === "PythPair" ? "Pyth" : "scenario"} · {ago(market.reference.ageSeconds)}</span>}
             </span>
             {(market?.borrowPaused || market?.opensPaused) && <span className="text-warn">{market.opensPaused ? "Opens paused" : "Borrowing paused"}</span>}
@@ -265,16 +281,16 @@ export default function Studio() {
             <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-3">
               <span className="flex items-center gap-1.5"><span className="h-[2px] w-4 bg-accent" /> Target</span>
               <span className="flex items-center gap-1.5"><span className="h-px w-4 bg-ink" /> Compiled</span>
-              <span className="flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-ink-3" /> Hold {fmtNum(baseHoldings, 1)} SOL</span>
+              <span className="flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-ink-3" /> Hold {fmtNum(baseHoldings, 1)} {baseSymbol(market)}</span>
               {status === "infeasible" && <span className="flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-warn" /> Closest</span>}
-              <span className="flex items-center gap-2" title="How far SOL/USDC moved over this horizon in the Binance history, centred on today's price">
+              {moves && <span className="flex items-center gap-2" title={`How far ${market?.name} moved over this horizon in the Binance history, centred on today's price`}>
                 <span className="h-2.5 w-4 bg-accent/25" /> Past moves
                 <span className="seg !text-[11px]">
                   {(["off", "1d", "7d", "30d"] as const).map((h) => (
                     <button key={h} aria-pressed={horizon === h} onClick={() => setHorizon(h)} className="!px-1.5 !py-0.5">{h}</button>
                   ))}
                 </span>
-              </span>
+              </span>}
             </div>
           </div>
           <div className="h-[380px] min-h-0 px-2 pb-2 pt-1 sm:px-3 lg:h-auto lg:flex-1">
@@ -291,6 +307,7 @@ export default function Studio() {
                 scenario={scenario}
                 onScenario={setScenario}
                 horizon={horizon}
+                moves={moves}
                 liquidityScale={scale}
               />
             ) : (
@@ -305,8 +322,8 @@ export default function Studio() {
             <div className="label">Limits</div>
             <div className="mt-2.5 grid grid-cols-3 gap-2">
               {[
-                ["SOL held", baseHoldings, 0.5, setBaseHoldings],
-                ["USDC held", quoteHoldings, 50, setQuoteHoldings],
+                [`${baseSymbol(market)} held`, baseHoldings, market && market.poolPrice < 1 ? 100 : 0.5, setBaseHoldings],
+                [`${quoteSymbol(market)} held`, quoteHoldings, 50, setQuoteHoldings],
                 ["Max premium", budget, 1, setBudget],
               ].map(([k, v, step, set]) => (
                 <label key={k as string} className="block">
@@ -315,7 +332,7 @@ export default function Studio() {
                 </label>
               ))}
             </div>
-            <div className="kv mt-2"><span>Wallet</span><span>{walletBal ? `${fmtNum(walletBal.sol, 2)} SOL · ${fmtNum(walletBal.usdc, 0)} USDC` : "—"}</span></div>
+            <div className="kv mt-2"><span>Wallet</span><span>{walletBal ? `${fmtNum(walletBal.base, 2)} ${baseSymbol(market)} · ${fmtNum(walletBal.quote, 0)} ${quoteSymbol(market)}` : "—"}</span></div>
             <div className="kv">
               <span className="flex items-center gap-2">
                 <span className={`size-1.5 ${status === "ok" ? "bg-good" : status === "infeasible" ? "bg-warn" : "bg-ink-3"}`} />
@@ -380,9 +397,9 @@ export default function Studio() {
                             {KIND_LABEL[kindTag(l.kind)]}
                           </span>
                         </td>
-                        <td className="num whitespace-nowrap">{fmtUsd(l.price_lower)} – {fmtUsd(l.price_upper)}</td>
+                        <td className="num whitespace-nowrap">{fmtPrice(l.price_lower)} – {fmtPrice(l.price_upper)}</td>
                         <td className="num">{fmtUsd(l.notional)}</td>
-                        <td className="whitespace-nowrap text-ink-2">{l.kind.startsWith("borrow") ? "LP escrow" : l.kind === "provide_call" ? "Your SOL" : "Your USDC"}</td>
+                        <td className="whitespace-nowrap text-ink-2">{l.kind.startsWith("borrow") ? "LP escrow" : l.kind === "provide_call" ? `Your ${baseSymbol(market)}` : `Your ${quoteSymbol(market)}`}</td>
                         <td className="num">{l.mult ? `${l.mult.toFixed(2)}×` : "—"}</td>
                       </tr>
                     ))}
@@ -426,7 +443,7 @@ export default function Studio() {
             {cert ? (
               <div className="mt-1">
                 <div className="kv"><span>Max error</span><span className="text-[15px] font-medium">±{fmtUsd(cert.error.certified_bound)}</span></div>
-                <div className="kv"><span>Domain</span><span>{fmtUsd(cert.target.domain[0], 0)} – {fmtUsd(cert.target.domain[1], 0)}</span></div>
+                <div className="kv"><span>Domain</span><span>{fmtPrice(cert.target.domain[0])} – {fmtPrice(cert.target.domain[1])}</span></div>
                 <div className="kv"><span>Liquidity</span><span className={certOk === false ? "!text-bad" : ""}>{certOk == null ? "—" : certOk ? "available" : "insufficient"}</span></div>
                 <div className="kv"><span>Simulation</span><span>{cert.simulation ? `${(cert.simulation.compute_units as number[]).map((x) => x.toLocaleString()).join(" + ")} CU` : "at open"}</span></div>
                 <div className="kv"><span>Hash</span><span className="truncate pl-4" title={cert.hash}>{cert.hash.slice(0, 14)}…</span></div>
