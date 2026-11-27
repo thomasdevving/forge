@@ -5,9 +5,10 @@ import { useEffect, useRef } from "react";
 import meta from "../../../public/shots/meta.json";
 import { Stars } from "./Stars";
 
-type Meta = { spot: number; target: [number, number][]; certifiedBound: number; maxErrorAt: number; solveMs: number; capitalLocked: number; holdings: { base: number } };
+type Meta = { market: string; base: string; spot: number; target: [number, number][]; certifiedBound: number; maxErrorAt: number; solveMs: number; capitalLocked: number; holdings: { base: number } };
 const m = meta as unknown as Meta;
-const usd = (n: number, d = 2) => `$${n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
+const units = m.holdings.base.toLocaleString("en-US");
+const usd = (n: number, d = Math.abs(n) < 1 ? 4 : 2) => `$${n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
 
 /** The collar from the snapshot, as a small polyline. */
 function Sparkline({ className = "" }: { className?: string }) {
@@ -77,14 +78,15 @@ export function Hero() {
             </svg>
             <span className="num text-[11px] uppercase tracking-[0.28em] text-ink-2">Built on Solana</span>
             <span className="h-px w-10 bg-line-strong" aria-hidden />
-            <span className="num text-[11px] uppercase tracking-[0.28em] text-ink-3">Orca liquidity</span>
+            <span className="num text-[11px] uppercase tracking-[0.28em] text-ink-3">Any Orca token</span>
           </div>
           <h1 className="hero-in mt-[min(1.75rem,3vh)] font-display text-[clamp(2.2rem,min(4.2vw,7.4vh),5.2rem)] font-semibold leading-[1.02] tracking-[-0.04em]" style={{ animationDelay: "160ms" }}>
-            Draw a payoff. Get it built from <span className="text-ink-3">Orca liquidity.</span>
+            Options for tokens <span className="text-ink-3">that don&apos;t have any.</span>
           </h1>
           <p className="hero-in mt-[min(1.75rem,3vh)] max-w-xl text-[clamp(14px,min(1.15vw,2.5vh),17px)] leading-relaxed text-ink-2" style={{ animationDelay: "260ms" }}>
-            Pick any Solana token with Orca liquidity and set what it should be worth at close, for example <span className="text-ink">10 SOL never below {usd(floor[1], 0)}, gains capped at {usd(cap[1], 0)}</span>.
-            FORGE builds that payoff from the token&apos;s own liquidity ranges, certifies the worst-case error and opens it as your on-chain position.
+            Most Solana tokens trade on Orca but have no options market. Draw the payoff you want, for example{" "}
+            <span className="text-ink">{units} {m.base} never worth less than {usd(floor[1], 0)}, gains capped at {usd(cap[1], 0)}</span>, and FORGE builds it
+            from the token&apos;s own liquidity, certifies the worst-case error and opens it on-chain.
           </p>
           <div className="hero-in mt-[min(2.25rem,4vh)] flex flex-wrap gap-3" style={{ animationDelay: "360ms" }}>
             <Link href="/studio" className="btn btn-primary !px-6 !py-3 !text-[15px]">
@@ -97,14 +99,14 @@ export function Hero() {
         {/* tilted Studio with cards from the same compile */}
         <div className="hero-stage relative z-0 mx-auto w-full max-w-[calc((100dvh-150px)*1.6)] lg:ml-[-2rem] lg:mr-auto lg:w-[94%]">
           <div className="hero-screen relative overflow-hidden rounded-[10px] border border-[rgba(183,196,214,0.16)] bg-bg shadow-[0_50px_140px_-30px_rgba(5,6,8,0.95),0_0_80px_-10px_rgba(183,196,214,0.10)]">
-            <img src="/shots/studio-compiled.jpg" alt="The Studio after compiling a collar on 10 SOL: payoff chart, ranges, cost and certificate" className="block w-full" />
+            <img src="/shots/studio-compiled.jpg" alt={`The Studio after compiling a collar on ${units} ${m.base}: payoff chart, ranges, cost and certificate`} className="block w-full" />
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(242,244,248,0.07),transparent_32%)]" />
             <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_60px_10px_rgba(16,18,22,0.85)]" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-bg/90 to-transparent" />
           </div>
 
           <div className="hero-card float-a absolute -bottom-6 left-[-4%] w-[min(280px,46%)] sm:left-[-6%]">
-            <div className="cap">Collar · {m.holdings.base} SOL</div>
+            <div className="cap">Collar · {units} {m.base}</div>
             <div className="mt-1 flex items-end justify-between gap-3">
               <div>
                 <div className="num text-[22px] font-medium leading-none">{usd(floor[1], 0)}</div>
@@ -121,7 +123,7 @@ export function Hero() {
           </div>
 
           <div className="hero-card float-c absolute -top-6 right-[8%] hidden w-[min(200px,34%)] md:block">
-            <div className="cap">SOL/USDC at snapshot</div>
+            <div className="cap">{m.market} at snapshot</div>
             <div className="num mt-1 text-[22px] font-medium leading-none">{usd(m.spot)}</div>
             <div className="cap mt-1.5">Orca Whirlpool</div>
           </div>

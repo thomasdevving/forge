@@ -7,9 +7,9 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "500", "
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-plex-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "FORGE — custom payoffs from Orca liquidity",
+  title: "FORGE — options for tokens that don't have options",
   description:
-    "Draw what a token should be worth to you at close. FORGE builds that payoff from the token's Orca Whirlpool liquidity, certifies the worst-case error and opens it as an on-chain position. Works for any Whirlpool; LPs who lend the ranges earn a premium.",
+    "Most Solana tokens have an Orca pool but no options market. Draw the payoff you want and FORGE builds it from the token's own liquidity, certifies the worst-case error and opens it on-chain. LPs who lend the liquidity earn a premium.",
   icons: { icon: "/icon.svg" },
 };
 

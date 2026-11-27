@@ -115,7 +115,8 @@ function AddMarket({ onAdded }: { onAdded: (name: string) => void }) {
   );
 }
 
-export function MarketPicker({ markets, value, onChange }: { markets: MarketInfo[]; value: MarketInfo | null; onChange: (name: string) => void }) {
+export function MarketPicker({ markets: all, value, onChange }: { markets: MarketInfo[]; value: MarketInfo | null; onChange: (name: string) => void }) {
+  const markets = [...all].sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
   return (
     <span className="flex items-center gap-2">
       {markets.length > 3 ? (

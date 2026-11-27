@@ -1,51 +1,58 @@
 {
- "capturedAt": "2026-11-27T16:18:12.162Z",
- "market": "SOL/USDC",
- "spot": 63.499999999999986,
+ "capturedAt": "2026-11-27T16:24:38.298Z",
+ "market": "JUP/USDC",
+ "spot": 0.24557958000000002,
+ "base": "JUP",
+ "quote": "USDC",
  "holdings": {
-  "base": 10,
+  "base": 3000,
   "quote": 2000
  },
  "premiumBudget": 20,
  "target": [
   [
-   34.925,
-   571.4999999999999
+   0.13506876900000003,
+   663.064866
   ],
   [
-   57.14999999999999,
-   571.4999999999999
+   0.22102162200000003,
+   663.064866
   ],
   [
-   71.11999999999999,
-   711.1999999999999
+   0.27504912960000005,
+   825.1473888000002
   ],
   [
-   101.59999999999998,
-   711.1999999999999
+   0.3929273280000001,
+   825.1473888000002
   ]
  ],
  "legs": [
   {
    "kind": "borrow_put",
-   "priceLower": 56.86605723193372,
-   "priceUpper": 58.34054752764556
+   "priceLower": 0.2152568731616628,
+   "priceUpper": 0.22083830760624934
+  },
+  {
+   "kind": "borrow_put",
+   "priceLower": 0.22083830760624934,
+   "priceUpper": 0.2265644640752788
   },
   {
    "kind": "provide_call",
-   "priceLower": 69.7898364877607,
-   "priceUpper": 71.59942979613466
+   "priceLower": 0.2710275712489351,
+   "priceUpper": 0.27805509422361546
   },
   {
    "kind": "provide_call",
-   "priceLower": 71.59942979613466,
-   "priceUpper": 73.4559443770966
+   "priceLower": 0.27805509422361546,
+   "priceUpper": 0.2852648351141044
   }
  ],
- "capitalLocked": 645.0769139636183,
- "certifiedBound": 3.6520713839502803,
- "maxErrorAt": 71.11999999999999,
- "solveMs": 104,
- "hash": "d5177e7034a62932b65f8fdfa4e600cb01d5b267ce568db3679e8097045eb628",
+ "capitalLocked": 750.2130521336849,
+ "certifiedBound": 2.8066533971034597,
+ "maxErrorAt": 0.21544768392707533,
+ "solveMs": 247,
+ "hash": "e9fbbfa9331684e0dbbd2afa2026628d09f5d43304b362bdaa64c4204b0288d8",
  "openTransactions": 4
 }

@@ -20,10 +20,11 @@ const lp = bench.lpGuarantee as unknown as {
   summary: Record<string, { borrows: number; borrows_eligible: number; borrows_guarantee_holds: number; borrows_guarantee_violations: number; borrows_premium_shortfall: number; restoration_failures_total: number; paths: number }>;
 } | null;
 
-const snap = shotMeta as unknown as { openTransactions?: number; spot: number; target: [number, number][]; certifiedBound: number; capitalLocked: number; legs: { kind: string; priceLower: number; priceUpper: number }[] };
-const usd = (n: number, d = 2) => `$${n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
+const snap = shotMeta as unknown as { market: string; base: string; holdings: { base: number }; openTransactions?: number; spot: number; target: [number, number][]; certifiedBound: number; capitalLocked: number; legs: { kind: string; priceLower: number; priceUpper: number }[] };
+const usd = (n: number, d = Math.abs(n) < 1 ? 4 : 2) => `$${n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
 const FLOOR = snap.target[1]!, CAP = snap.target[2]!;
-const PUT = snap.legs.find((l) => l.kind === "borrow_put");
+const PUTS = snap.legs.filter((l) => l.kind === "borrow_put");
+const UNITS = `${snap.holdings.base.toLocaleString("en-US")} ${snap.base}`;
 
 const fmt = (n: number, d = 0) => n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 
@@ -46,12 +47,12 @@ function Head({ n, kicker, title, intro }: { n: string; kicker: string; title: R
 const TRADER: Step[] = [
   {
     title: "Draw what you want",
-    body: `You hold 10 SOL at ${usd(snap.spot)}. You want it never worth less than ${usd(FLOOR[1], 0)}, and you're fine giving up gains above ${usd(CAP[1], 0)}. Pick "Collar" or drag the points yourself.`,
+    body: `You hold ${UNITS} at ${usd(snap.spot, 4)}. You want it never worth less than ${usd(FLOOR[1], 0)}, and you're fine giving up gains above ${usd(CAP[1], 0)}. There is no ${snap.base} options market to buy that from. In FORGE you pick "Collar" or drag the points yourself.`,
     shot: "/shots/studio-draw.jpg", path: "/studio", alt: "Studio with a collar drawn over the bucket ladder",
   },
   {
     title: "FORGE finds the ranges",
-    body: `It borrows LP liquidity just below the floor (${PUT ? `${usd(PUT.priceLower)}–${usd(PUT.priceUpper)}` : "below the price"}) and places your SOL in ranges around the cap. The result matches your line to within ±${usd(snap.certifiedBound)}, checked exactly and written into a certificate.`,
+    body: `It borrows LP liquidity just below the floor (${PUTS.length ? `${usd(Math.min(...PUTS.map((l) => l.priceLower)), 4)}–${usd(Math.max(...PUTS.map((l) => l.priceUpper)), 4)}` : "below the price"}) and places your ${snap.base} in ranges around the cap. The result matches your line to within ±${usd(snap.certifiedBound)}, checked exactly and written into a certificate.`,
     shot: "/shots/studio-compiled.jpg", path: "/studio", alt: "Compiled collar with cost and certificate",
   },
   {
@@ -68,8 +69,8 @@ const TRADER: Step[] = [
 
 const FAQ = [
   ["Is this an options exchange?", "No order book. Each position is built from Orca liquidity ranges: a borrowed range below the price acts as a put, one above as a call. LPs who deposit into FORGE buckets are the other side and are paid a premium."],
-  ["Which tokens work?", "Any token with an Orca Whirlpool and a Pyth price feed. The math is the same for every pool, so a new market is one command: point it at the pool, a second pool for restoration swaps, and the feed. The demo fork runs SOL/USDC and JUP/USDC."],
-  ["Where do the numbers on this page come from?", "From committed benchmark runs on a Surfpool mainnet fork and ten months of Binance SOL/USDC prices. Nothing is typed in by hand; rerun them with benchmarks/run_all.py --fork."],
+  ["Which tokens work?", "Any token with an Orca Whirlpool and a Pyth price feed. The math is the same for every pool, so a new market is one command: point it at the pool, a second pool for restoration swaps, and the feed. The demo fork runs SOL, JUP and BONK against USDC; add another token from the Studio with “+ Add”."],
+  ["Where do the numbers on this page come from?", "From committed benchmark runs on a Surfpool mainnet fork and ten months of Binance prices for the token shown. Nothing is typed in by hand; rerun them with benchmarks/run_all.py --fork."],
   ["What does an LP risk?", "Borrowed liquidity needs a 24-hour notice to withdraw. The guarantee is conditional: finite buffers, capped premium budgets and failed restorations can produce shortfalls, which are recorded and pause new borrowing."],
   ["Is the certified bound the whole cost?", "No. It covers replication error over the stated price range. Premium, pool fees and settlement swap costs are reported separately."],
   ["Are opens and closes atomic?", "Not across batches. Large positions span several transactions; pending states and recovery are explicit and anyone can continue them."],
@@ -137,7 +138,7 @@ export default function Landing() {
                 How it works
               </div>
               <h2 className="mt-4 font-display text-[clamp(1.9rem,3.2vw,2.9rem)] font-semibold leading-[1] tracking-[-0.03em]">One example, start to finish.</h2>
-              <p className="mt-3 max-w-md text-[14px] leading-relaxed text-ink-2">Protecting 10 SOL with a collar. Real screens from the Studio, captured on the fork.</p>
+              <p className="mt-3 max-w-md text-[14px] leading-relaxed text-ink-2">{`Protecting ${UNITS} with a collar. Real screens from the Studio, captured on the fork.`}</p>
             </>
           }
         />
@@ -150,9 +151,9 @@ export default function Landing() {
             <div className="num flex items-center gap-3 text-[12px] text-ink-3"><span className="text-ink">02</span><span className="h-px w-8 bg-line-strong" />The idea</div>
             <h2 className="mt-5 font-display text-[clamp(2rem,4vw,3.3rem)] font-semibold leading-[0.98] tracking-[-0.03em]">Concentrated liquidity already is an option.</h2>
             <p className="mt-6 max-w-lg text-[15px] leading-relaxed text-ink-2">
-              An Orca range below the price holds only USDC. FORGE borrows it and locks that USDC. If SOL falls through the
+              An Orca range below the price holds only USDC. FORGE borrows it and locks that USDC. If the token falls through the
               range, giving the liquidity back costs less than what was locked, and you keep the difference. That is a put.
-              Do the same above the price with SOL and you get a call.
+              Do the same above the price with the token itself and you get a call.
             </p>
             <div className="num mt-8 border-l border-accent pl-5 text-[14px] leading-8 text-ink-2">
               <div>V(P) = L(2√P − P/√p<sub>b</sub> − √p<sub>a</sub>)</div>
@@ -298,7 +299,7 @@ export default function Landing() {
         <div className="mx-auto max-w-[1480px] px-5 py-28 sm:px-8">
           <Reveal>
             <h2 className="max-w-4xl font-display text-[clamp(2.2rem,5.4vw,4.8rem)] font-semibold leading-[0.95] tracking-[-0.035em]">
-              Protect 10 SOL below a floor. Cap the upside. <span className="text-ink-3">Watch it settle.</span>
+              Pick a token. Draw a floor and a cap. <span className="text-ink-3">Watch it settle.</span>
             </h2>
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <Link href="/studio" className="btn btn-primary !px-5 !py-2.5">Open the Studio</Link>
