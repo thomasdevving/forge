@@ -94,6 +94,17 @@ export default function Earn() {
   const claimBase = mine.reduce((a, l) => a + atoms(l.feesOwedBaseNow, bd), 0);
   const claimQuote = mine.reduce((a, l) => a + atoms(l.feesOwedQuoteNow, qd), 0);
 
+  // what borrowers pay on top of the fees you forgo, at a bucket's current utilization (program's curve)
+  const multiplier = (u: number) => {
+    if (!m) return 1;
+    const c = m.params.curve, k = c.kink_ppm / 1e6;
+    return u <= k ? 1 + (c.slope1_ppm / 1e6) * u : 1 + (c.slope1_ppm / 1e6) * k + (c.slope2_ppm / 1e6) * (u - k);
+  };
+  const floorPct = m ? m.params.floor_rate_bps / 100 : 5;
+  const B = baseSymbol(m), Q = quoteSymbol(m);
+  const earnedTotal = compare.fees + compare.premium;
+  const depTokens = dep && P > 0 ? (dep.side === "below" ? `${fmtNum(depValue, 2)} ${Q}` : dep.side === "above" ? `${fmtNum(depValue / P, P < 1 ? 0 : 4)} ${B}` : `${B} and ${Q}`) : "";
+
   return (
     <AppShell>
       <Bar
@@ -102,7 +113,6 @@ export default function Earn() {
           <>
             <MarketPicker markets={markets} value={m} onChange={chooseMarket} />
             <span>Pool <span className="num text-ink">{fmtPrice(m?.poolPrice)}</span></span>
-            <span>{notice}h notice on borrowed liquidity</span>
           </>
         }
       />
@@ -112,73 +122,83 @@ export default function Earn() {
         </div>
       )}
 
-      <div className="grid min-h-0 flex-1 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="flex min-h-0 min-w-0 flex-col xl:border-r xl:border-line">
-          {/* headline numbers */}
-          <div className="grid shrink-0 grid-cols-2 border-b border-line lg:grid-cols-4">
-            {[
-              ["Out of range on Orca", stats ? `$${fmtCompact(stats.outOfRange.outOfRangeQuoteValue)}` : "…", "earning nothing"],
-              ["Below price", stats ? fmtUsd(stats.outOfRange.belowPriceQuote, 0) : "…", quoteSymbol(m)],
-              ["Above price", stats ? fmtUsd(stats.outOfRange.abovePriceBaseValued, 0) : "…", `${baseSymbol(m)}, valued`],
-              ["Buckets", String(buckets.length), `${buckets.reduce((a, b) => a + b.openLegs, 0)} open legs`],
-            ].map(([k, v, s], i) => (
-              <div key={k} className={`px-4 py-3 sm:px-5 ${i % 2 ? "border-l" : ""} border-line ${i >= 2 ? "border-t lg:border-t-0" : ""} ${i === 2 ? "lg:border-l" : ""}`}>
-                <div className="cap">{k}</div>
-                <div className="num mt-1 text-xl font-medium">{v}</div>
-                <div className="cap mt-0.5">{s}</div>
-              </div>
-            ))}
+      {/* how it works, in one line each */}
+      <div className="grid shrink-0 border-b border-line lg:grid-cols-[1fr_1fr_1fr_minmax(0,0.9fr)]">
+        {[
+          ["1", "Pick a price range", `Deposit into a range of the ${B}/${Q} Orca pool, like any Orca LP position.`],
+          ["2", "Earn Orca fees", `While nobody borrows it, your liquidity trades in the pool and earns normal fees.`],
+          ["3", "Get paid when it's borrowed", `A trader who borrows it pays you at least the fees you miss, times a multiplier, and never under ${floorPct}% a year.`],
+        ].map(([n, h, s], i) => (
+          <div key={n} className={`flex gap-3 border-line px-4 py-3 sm:px-5 ${i ? "border-t lg:border-l lg:border-t-0" : ""}`}>
+            <span className="num text-[12px] text-ink-3">{n}</span>
+            <div>
+              <div className="text-[13px] font-medium text-ink">{h}</div>
+              <div className="mt-0.5 text-[12px] leading-snug text-ink-3">{s}</div>
+            </div>
           </div>
+        ))}
+        <div className="border-t border-line px-4 py-3 sm:px-5 lg:border-l lg:border-t-0">
+          <div className="cap">Idle on Orca right now</div>
+          <div className="num mt-0.5 text-lg font-medium">{stats ? `$${fmtCompact(stats.outOfRange.outOfRangeQuoteValue)}` : "…"}</div>
+          <div className="cap">out of range, earning nothing</div>
+        </div>
+      </div>
 
-          {/* ladder */}
+      <div className="grid min-h-0 flex-1 xl:grid-cols-[minmax(0,1fr)_340px]">
+        {/* ranges */}
+        <div className="flex min-h-0 min-w-0 flex-col xl:border-r xl:border-line">
           <div className="flex shrink-0 items-center justify-between px-4 py-2.5 sm:px-5">
-            <div className="label">Buckets</div>
+            <div className="label">Choose a price range</div>
             <div className="flex items-center gap-4 text-[12px] text-ink-3">
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-[3px] bg-accent" /> {quoteSymbol(m)}, below</span>
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-[3px] bg-steel" /> {baseSymbol(m)}, above</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-[3px] bg-accent" /> below the price: you add {Q}</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-[3px] bg-steel" /> above: you add {B}</span>
             </div>
           </div>
           <div className="min-h-0 flex-1 overflow-auto border-t border-line">
-            <table className="tbl tbl-dense min-w-[880px]">
+            <table className="tbl tbl-dense min-w-[860px]">
               <thead className="sticky top-0 z-10 bg-panel">
-                <tr>{["Range", "Liquidity", "Used", "Borrowable", "Premium", "Fees", "Forgone", "Yours", ""].map((h) => <th key={h}>{h}</th>)}</tr>
+                <tr>{["Price range", "In the pool", "Lent out", "Borrowers pay", "Paid to LPs", "Yours", ""].map((h) => <th key={h}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {buckets.map((b) => {
                   const lp = mine.find((x) => x.bucket === b.address);
                   const totalV = m ? Number(BigInt(b.totalLiquidity)) * valuePerUnit(m, b, P) : 0;
-                  const borrowV = m ? Number(BigInt(b.borrowable)) * valuePerUnit(m, b, P) : 0;
-                  const fees = atoms(b.feesCollectedQuote, qd) + atoms(b.feesCollectedBase, bd) * P;
+                  const paid = atoms(b.premiumDistributed, qd) + atoms(b.feesCollectedQuote, qd) + atoms(b.feesCollectedBase, bd) * P;
                   const noticeSince = Number(b.withdrawalNoticeStart);
+                  const selected = dep?.address === b.address;
                   return (
-                    <tr key={b.address} className={b.side === "spot" ? "bg-sunk" : ""}>
+                    <tr
+                      key={b.address}
+                      onClick={() => setDepBucket(b.address)}
+                      className={`cursor-pointer ${selected ? "bg-accent-soft" : b.side === "spot" ? "bg-sunk" : ""}`}
+                      aria-selected={selected}
+                    >
                       <td className="num">
                         <span className="flex items-center gap-2">
                           <span className={`h-2.5 w-[3px] ${b.side === "below" ? "bg-accent" : b.side === "above" ? "bg-steel" : "bg-line-strong"}`} />
                           {fmtPrice(b.priceLower)}–{fmtPrice(b.priceUpper)}
+                          {b.side === "spot" && <span className="font-sans text-[11px] text-ink-3">at the price</span>}
                         </span>
                       </td>
                       <td className="num">{fmtUsd(totalV, 0)}</td>
                       <td>
                         <div className="flex items-center gap-2">
-                          <div className="h-1 w-16 bg-line"><div className="h-full bg-accent" style={{ width: `${Math.min(100, b.utilization * 125)}%` }} /></div>
+                          <div className="h-1 w-14 bg-line"><div className="h-full bg-accent" style={{ width: `${Math.min(100, b.utilization * 125)}%` }} /></div>
                           <span className="num text-[12px]">{fmtPct(b.utilization, 0)}</span>
                         </div>
                       </td>
-                      <td className="num text-ink-2">{b.side === "spot" ? "—" : fmtUsd(borrowV, 0)}</td>
-                      <td className="num">{fmtUsd(atoms(b.premiumDistributed, qd), 4)}</td>
-                      <td className="num">{fmtUsd(fees, 4)}</td>
-                      <td className="num text-ink-2">{fmtUsd(atoms(b.forgoneMeasured, qd), 4)}</td>
-                      <td className="num">{lp ? fmtPct(lp.shareOfBucket, 1) : "—"}{noticeSince > 0 && <div className="font-sans text-[11px] text-warn">notice</div>}</td>
-                      <td>
+                      <td className="num text-ink-2">{b.side === "spot" ? "not lendable" : `${multiplier(b.utilization).toFixed(2)}× fees`}</td>
+                      <td className="num">{fmtUsd(paid, 2)}</td>
+                      <td className="num">{lp ? fmtPct(lp.shareOfBucket, 1) : "—"}{noticeSince > 0 && <div className="font-sans text-[11px] text-warn">withdrawal requested</div>}</td>
+                      <td onClick={(e) => e.stopPropagation()}>
                         {lp && (
                           <div className="flex gap-1.5">
                             <button className="btn btn-ghost !px-2 !py-1 !text-[12px]" disabled={busy} onClick={() => run("tx/build/claim", { bucket: b.address }, "Claimed.")}>Claim</button>
                             {BigInt(b.borrowed) + BigInt(b.reserved) === 0n ? (
                               <button className="btn btn-ghost !px-2 !py-1 !text-[12px]" disabled={busy} onClick={() => run("tx/build/withdraw", { bucket: b.address, liquidity: lp.liquidity }, "Withdrawn.")}>Withdraw</button>
                             ) : (
-                              <button className="btn btn-ghost !px-2 !py-1 !text-[12px]" disabled={busy || BigInt(lp.withdrawal_liquidity) > 0n} onClick={() => run("tx/build/request-withdrawal", { bucket: b.address, liquidity: lp.liquidity }, `Requested. Withdrawable after ${notice}h.`)}>
-                                {BigInt(lp.withdrawal_liquidity) > 0n ? "Requested" : "Request"}
+                              <button className="btn btn-ghost !px-2 !py-1 !text-[12px]" disabled={busy || BigInt(lp.withdrawal_liquidity) > 0n} title={`Lent-out liquidity needs ${notice}h notice`} onClick={() => run("tx/build/request-withdrawal", { bucket: b.address, liquidity: lp.liquidity }, `Requested. Withdrawable after ${notice}h.`)}>
+                                {BigInt(lp.withdrawal_liquidity) > 0n ? "Requested" : `Withdraw (${notice}h)`}
                               </button>
                             )}
                           </div>
@@ -192,61 +212,70 @@ export default function Earn() {
           </div>
         </div>
 
-        {/* side column */}
+        {/* deposit + earnings */}
         <aside className="min-h-0 divide-y divide-line overflow-y-auto border-t border-line text-sm xl:border-t-0">
           <div className="p-5">
-            <div className="label">Deposit</div>
-            <label className="mt-3 block">
-              <span className="cap">Bucket</span>
-              <select className="input mt-1" value={dep?.address ?? ""} onChange={(e) => setDepBucket(e.target.value)}>
-                {buckets.map((b) => (
-                  <option key={b.address} value={b.address}>
-                    {fmtPrice(b.priceLower)} – {fmtPrice(b.priceUpper)} · {fmtPct(b.utilization, 0)} used
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="mt-2 block">
-              <span className="cap">Value (USD)</span>
-              <input className="input mt-1" type="number" min={1} value={depValue} onChange={(e) => setDepValue(Math.max(0, Number(e.target.value)))} />
-            </label>
-            <div className="kv mt-2"><span>Pays in</span><span>{dep ? (dep.side === "below" ? quoteSymbol(m) : dep.side === "above" ? baseSymbol(m) : `${baseSymbol(m)} + ${quoteSymbol(m)}`) : "—"}</span></div>
-            <button
-              className="btn btn-primary mt-3 w-full"
-              disabled={!wallet.address || busy || depLiquidity <= 0n}
-              onClick={() => run("tx/build/deposit", { bucket: dep!.address, liquidity: depLiquidity.toString() }, "Deposited.")}
-            >
-              Deposit
-            </button>
-          </div>
-
-          <div className="p-5">
-            <div className="label">FORGE vs Orca</div>
-            {!wallet.address ? (
-              <p className="cap mt-2">Connect a wallet.</p>
-            ) : !mine.length ? (
-              <p className="cap mt-2">No positions yet.</p>
+            <div className="flex items-baseline justify-between">
+              <div className="label">Deposit</div>
+              <span className="cap">click a range to change</span>
+            </div>
+            {dep ? (
+              <>
+                <div className="num mt-2 text-[17px] font-medium">{fmtPrice(dep.priceLower)} – {fmtPrice(dep.priceUpper)}</div>
+                <ul className="mt-2 space-y-1.5 text-[12.5px] leading-snug text-ink-2">
+                  {dep.side === "below" && <li>Below today&apos;s price: you add <span className="text-ink">{Q}</span>. If {B} falls into this range your {Q} gradually turns into {B}, like any Orca position.</li>}
+                  {dep.side === "above" && <li>Above today&apos;s price: you add <span className="text-ink">{B}</span>. If {B} rises into this range your {B} gradually turns into {Q}, like any Orca position.</li>}
+                  {dep.side === "spot" && <li>Contains today&apos;s price: you add both tokens and earn fees right away. This range cannot be lent out.</li>}
+                  {dep.side !== "spot" && <li>When lent out, borrowers pay you <span className="text-ink">{multiplier(dep.utilization).toFixed(2)}×</span> the fees you would have earned (at least {floorPct}% a year). The multiplier rises as more is lent.</li>}
+                  <li>Withdraw any time while it&apos;s not lent out; lent-out liquidity needs {notice}h notice.</li>
+                </ul>
+                <label className="mt-3 block">
+                  <span className="cap">Amount (USD)</span>
+                  <input className="input mt-1" type="number" min={1} value={depValue} onChange={(e) => setDepValue(Math.max(0, Number(e.target.value)))} />
+                </label>
+                <div className="kv mt-1"><span>You add</span><span>{depTokens}</span></div>
+                <button
+                  className="btn btn-primary mt-3 w-full"
+                  disabled={!wallet.address || busy || depLiquidity <= 0n}
+                  onClick={() => run("tx/build/deposit", { bucket: dep.address, liquidity: depLiquidity.toString() }, "Deposited. Your liquidity is in the pool and earning fees.")}
+                >
+                  {wallet.address ? "Deposit" : "Connect a wallet to deposit"}
+                </button>
+              </>
             ) : (
-              <div className="mt-2">
-                <div className="kv"><span>Idle fees</span><span>{fmtUsd(compare.fees, 4)}</span></div>
-                <div className="kv"><span>Fees forgone</span><span>{fmtUsd(compare.forgone, 4)}</span></div>
-                <div className="kv"><span>Premium earned</span><span className="!text-good">{fmtUsd(compare.premium, 4)}</span></div>
-                <div className="kv mt-1 border-t border-line pt-2"><span className="!text-ink">Difference</span><span className="font-medium">{fmtUsd(compare.premium - compare.forgone, 4)}</span></div>
-                <p className="cap mt-2">Measured fees, same-trading assumption.</p>
-              </div>
+              <p className="cap mt-2">Loading ranges…</p>
             )}
           </div>
 
-          {mine.length > 0 && (
-            <div className="p-5">
-              <div className="label">Claimable</div>
+          <div className="p-5">
+            <div className="label">Your earnings</div>
+            {!wallet.address ? (
+              <p className="cap mt-2">Connect a wallet to see what you&apos;ve earned.</p>
+            ) : !mine.length ? (
+              <p className="cap mt-2">Nothing deposited in {m?.name ?? "this market"} yet.</p>
+            ) : (
               <div className="mt-2">
-                <div className="kv"><span>Premium</span><span>{fmtUsd(claimPremium, 4)}</span></div>
-                <div className="kv"><span>Fees, {baseSymbol(m)}</span><span>{fmtNum(claimBase, 6)}</span></div>
-                <div className="kv"><span>Fees, {quoteSymbol(m)}</span><span>{fmtUsd(claimQuote, 4)}</span></div>
+                <div className="flex items-baseline justify-between">
+                  <span className="cap">Earned so far</span>
+                  <span className="num text-xl font-medium">{fmtUsd(earnedTotal, 2)}</span>
+                </div>
+                <div className="kv"><span>Orca fees</span><span>{fmtUsd(compare.fees, 4)}</span></div>
+                <div className="kv"><span>Premium from borrowers</span><span className="!text-good">{fmtUsd(compare.premium, 4)}</span></div>
+                <div className="kv"><span>Fees you missed while lent</span><span>{fmtUsd(compare.forgone, 4)}</span></div>
+                <div className="kv mt-1 border-t border-line pt-2">
+                  <span className="!text-ink">Extra vs plain Orca</span>
+                  <span className={`font-medium ${compare.premium - compare.forgone >= 0 ? "!text-good" : "!text-bad"}`}>{compare.premium - compare.forgone >= 0 ? "+" : ""}{fmtUsd(compare.premium - compare.forgone, 4)}</span>
+                </div>
+                <div className="mt-3 border-t border-line pt-2">
+                  <div className="cap">Ready to claim</div>
+                  <div className="kv"><span>Premium</span><span>{fmtUsd(claimPremium, 4)}</span></div>
+                  <div className="kv"><span>Fees in {B}</span><span>{fmtNum(claimBase, 6)}</span></div>
+                  <div className="kv"><span>Fees in {Q}</span><span>{fmtUsd(claimQuote, 4)}</span></div>
+                  <p className="cap mt-1">Claim per range in the table.</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </aside>
       </div>
     </AppShell>
