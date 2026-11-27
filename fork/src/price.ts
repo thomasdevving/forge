@@ -35,10 +35,17 @@ export async function movePoolTo(
   decimalsB = 6,
 ): Promise<number> {
   const target = sqrtPriceForHumanPrice(targetPrice, decimalsA, decimalsB);
-  for (let i = 0; i < 40; i++) {
+  // Deep pools cross many initialized ticks: move at most ~1.5% per transaction to stay well
+  // inside the compute limit.
+  const maxStep = 1.0075; // in sqrt price, i.e. ~1.5% in price
+  for (let i = 0; i < 200; i++) {
     const pool = await readPool(rpc, poolAddr);
     if (pool.sqrtPrice === target) break;
     const aToB = target < pool.sqrtPrice; // selling A lowers the price
+    const stepLimit = aToB
+      ? BigInt(Math.floor(Number(pool.sqrtPrice) / maxStep))
+      : BigInt(Math.ceil(Number(pool.sqrtPrice) * maxStep));
+    const limit = aToB ? (stepLimit > target ? stepLimit : target) : stepLimit < target ? stepLimit : target;
     const [t0, t1, t2] = await swapTickArrays(pool, aToB);
     const ix = getSwapInstruction({
       tokenAuthority: trader,
@@ -53,13 +60,14 @@ export async function movePoolTo(
       oracle: await pdas.oracle(poolAddr),
       amount: U64_MAX / 4n,
       otherAmountThreshold: 0n,
-      sqrtPriceLimit: target,
+      sqrtPriceLimit: limit,
       amountSpecifiedIsInput: true,
       aToB,
     });
     await sendInstructions(rpc, trader, [getSetComputeUnitLimitInstruction({ units: 1_400_000 }), ix]);
     const after = await readPool(rpc, poolAddr);
     if (after.sqrtPrice === target || after.sqrtPrice === pool.sqrtPrice) break;
+    if (after.sqrtPrice !== limit) break; // ran out of liquidity or balance before the limit
   }
   const p = await readPool(rpc, poolAddr);
   return (Number(p.sqrtPrice) / 2 ** 64) ** 2 * 10 ** (decimalsA - decimalsB);
