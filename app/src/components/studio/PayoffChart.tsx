@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BucketInfo } from "@/lib/api";
 import { fmtNum, fmtUsd } from "@/lib/format";
+import moves from "@/data/moves.json";
 import { interp, type Point } from "@/lib/payoff";
+
+type Moves = { edges: number[]; horizons: Record<string, { counts: number[]; quantiles: Record<string, number> }> };
+export type Horizon = "off" | "1d" | "7d" | "30d";
 
 export type ChosenLeg = { kind: string; priceLower: number; priceUpper: number };
 
@@ -17,6 +21,8 @@ type Props = {
   buckets: BucketInfo[];
   chosen: ChosenLeg[];
   scenario: number;
+  /** overlay: historical SOL moves over this horizon, centred on spot */
+  horizon?: Horizon;
   onScenario: (s: number) => void;
   liquidityScale: number;
 };
@@ -97,14 +103,30 @@ export function PayoffChart(p: Props) {
   const S = Math.min(hi, Math.max(lo, p.scenario));
   const tS = interp(p.points, S);
   const cS = p.compiled ? interp(p.compiled, S) : null;
+  const density = useMemo(() => {
+    if (!p.spot || !p.horizon || p.horizon === "off") return null;
+    const mv = moves as Moves;
+    const h = mv.horizons[p.horizon];
+    if (!h) return null;
+    const max = Math.max(...h.counts, 1);
+    const pts = h.counts
+      .map((c, i) => [((mv.edges[i]! + mv.edges[i + 1]!) / 2) * p.spot!, c / max] as const)
+      .filter(([px]) => px >= lo && px <= hi);
+    return { pts, p5: h.quantiles.p5! * p.spot, p95: h.quantiles.p95! * p.spot };
+  }, [p.spot, p.horizon, lo, hi]);
+  const base = H - M.b, DH = (H - M.t - M.b) * 0.34;
+  const densityPath = density?.pts.length
+    ? `M${x(density.pts[0]![0]).toFixed(1)},${base}` + density.pts.map(([px, v]) => `L${x(px).toFixed(1)},${(base - v * DH).toFixed(1)}`).join("") + `L${x(density.pts[density.pts.length - 1]![0]).toFixed(1)},${base}Z`
+    : null;
+
   const isChosen = (b: BucketInfo) => p.chosen.find((c) => Math.abs(c.priceLower - b.priceLower) < 1e-9);
 
   return (
-    <div className="relative">
+    <div className="relative flex h-full min-h-0 flex-col">
       <svg
         ref={svg}
         viewBox={`0 0 ${W} ${H}`}
-        className="h-auto w-full touch-none select-none"
+        className="min-h-0 w-full flex-1 touch-none select-none"
         role="application"
         aria-label="Payoff editor. Drag points to shape the payoff; double-click to add a point; select a point and press Delete to remove it."
         onDoubleClick={(e) => {
@@ -112,6 +134,11 @@ export function PayoffChart(p: Props) {
           if (px <= lo || px >= hi) return;
           const next = [...p.points, [px, Math.max(0, py)] as Point].sort((a, b) => a[0] - b[0]);
           p.onChange(next);
+        }}
+        onPointerMove={(e) => {
+          if (drag !== null || e.buttons) return;
+          const [px] = toData(e.clientX, e.clientY);
+          if (px > lo && px < hi && (e.target as SVGElement).dataset.track) p.onScenario(px);
         }}
         onPointerDown={(e) => {
           if ((e.target as SVGElement).dataset.handle) return;
@@ -151,6 +178,25 @@ export function PayoffChart(p: Props) {
           <line x1={M.l} x2={W - M.r} y1={H - 34} y2={H - 34} stroke="var(--line-strong)" />
           <text x={M.l} y={H - 14} fontSize="11" fill="var(--ink-3)" fontFamily="var(--font-sans)">Buckets · height = borrowable · bright = used</text>
         </g>
+
+        {/* historical distribution of SOL moves (Binance 1m history), behind everything */}
+        {densityPath && density && (
+          <g pointerEvents="none">
+            <defs>
+              <linearGradient id="pc-dens" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0" stopColor="var(--accent)" stopOpacity="0.20" />
+                <stop offset="1" stopColor="var(--accent)" stopOpacity="0.02" />
+              </linearGradient>
+            </defs>
+            <path d={densityPath} fill="url(#pc-dens)" stroke="var(--accent)" strokeOpacity="0.35" strokeWidth="1" />
+            {[["5%", density.p5], ["95%", density.p95]].map(([lab, px]) => (Number(px) > lo && Number(px) < hi ? (
+              <g key={lab as string}>
+                <line x1={x(px as number)} x2={x(px as number)} y1={base - DH - 6} y2={base} stroke="var(--ink-3)" strokeDasharray="1 3" />
+                <text x={x(px as number)} y={base - DH - 10} textAnchor="middle" fontSize="10" fill="var(--ink-3)" fontFamily="var(--font-mono)">{lab}</text>
+              </g>
+            ) : null))}
+          </g>
+        )}
 
         {/* spot */}
         {p.spot && p.spot > lo && p.spot < hi && (

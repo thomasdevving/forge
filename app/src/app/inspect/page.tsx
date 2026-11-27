@@ -29,7 +29,7 @@ function Inner() {
       <Bar title="Transaction" meta={<><span className="num break-all text-ink-2">{sig || "—"}</span><span className="text-warn">Fork only</span></>} />
       {err && <div className="border-b border-line px-5 py-3 text-sm text-bad">{err}</div>}
       {tx && (
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+        <div className="grid min-h-0 flex-1 overflow-auto lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
           <div className="space-y-2 p-5 text-sm lg:border-r lg:border-line">
             <div className="flex justify-between"><span className="text-ink-3">Status</span><span className={tx.meta?.err ? "text-bad" : "text-good"}>{tx.meta?.err ? "failed" : "success"}</span></div>
             <div className="flex justify-between"><span className="text-ink-3">Slot</span><span className="num">{tx.slot.toString()}</span></div>

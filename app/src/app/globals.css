@@ -49,8 +49,8 @@
   --color-bad-soft: var(--bad-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
-  --font-display: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-onest), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -218,9 +218,9 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   transform: translate3d(calc(var(--mx) * -14px), calc(var(--my) * -10px + var(--sy) * 120px), 0) scale(calc(1 + var(--sy) * 0.06));
   transition: transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
   animation: moon-in 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  opacity: 0.62;
+  opacity: 0.85;
 }
-@keyframes moon-in { from { opacity: 0; filter: brightness(0.4); } to { opacity: 0.62; filter: none; } }
+@keyframes moon-in { from { opacity: 0; filter: brightness(0.4); } to { opacity: 0.85; filter: none; } }
 .hero-terrain {
   transform: translate3d(calc(var(--mx) * 18px), calc(var(--sy) * -40px), 0);
   transition: transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -241,10 +241,10 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   transition: transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .hero-card {
-  border: 1px solid rgba(183, 196, 214, 0.22);
+  border: 1px solid rgba(183, 196, 214, 0.16);
   border-radius: 8px;
   padding: 14px 16px;
-  background: linear-gradient(160deg, rgba(35, 39, 47, 0.78), rgba(16, 18, 22, 0.72));
+  background: linear-gradient(160deg, rgba(35, 39, 47, 0.62), rgba(16, 18, 22, 0.55));
   backdrop-filter: blur(14px) saturate(1.2);
   box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(242, 244, 248, 0.08);
   transform:
@@ -278,3 +278,14 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .glow-top { background: radial-gradient(60% 40% at 50% 0%, rgba(183, 196, 214, 0.06), transparent 70%); }
 
 @media (prefers-reduced-motion: reduce) { .sol-mark path { animation: none; } }
+
+/* Cool light behind the tilted screen so it sits in the scene rather than on it. */
+.hero-glow {
+  background: radial-gradient(50% 50% at 50% 50%, rgba(183, 196, 214, 0.14), rgba(103, 118, 140, 0.06) 45%, transparent 72%);
+  filter: blur(20px);
+  transform: translate3d(calc(var(--mx) * 12px), calc(var(--my) * 10px), 0);
+  transition: transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.tbl-dense th { padding: 0.4rem 1.25rem; }
+.tbl-dense td { padding: 0.4rem 1.25rem; }
+

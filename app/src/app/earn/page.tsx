@@ -108,17 +108,17 @@ export default function Earn() {
         </div>
       )}
 
-      <div className="grid xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-w-0 xl:border-r xl:border-line">
+      <div className="grid min-h-0 flex-1 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="flex min-h-0 min-w-0 flex-col xl:border-r xl:border-line">
           {/* headline numbers */}
-          <div className="grid grid-cols-2 border-b border-line lg:grid-cols-4">
+          <div className="grid shrink-0 grid-cols-2 border-b border-line lg:grid-cols-4">
             {[
               ["Out of range on Orca", stats ? `$${fmtCompact(stats.outOfRange.outOfRangeQuoteValue)}` : "…", "earning nothing"],
               ["Below price", stats ? fmtUsd(stats.outOfRange.belowPriceQuote, 0) : "…", "USDC"],
               ["Above price", stats ? fmtUsd(stats.outOfRange.abovePriceBaseValued, 0) : "…", "SOL, valued"],
               ["Buckets", String(buckets.length), `${buckets.reduce((a, b) => a + b.openLegs, 0)} open legs`],
             ].map(([k, v, s], i) => (
-              <div key={k} className={`px-4 py-4 sm:px-5 ${i % 2 ? "border-l" : ""} border-line ${i >= 2 ? "border-t lg:border-t-0" : ""} ${i === 2 ? "lg:border-l" : ""}`}>
+              <div key={k} className={`px-4 py-3 sm:px-5 ${i % 2 ? "border-l" : ""} border-line ${i >= 2 ? "border-t lg:border-t-0" : ""} ${i === 2 ? "lg:border-l" : ""}`}>
                 <div className="cap">{k}</div>
                 <div className="num mt-1 text-xl font-medium">{v}</div>
                 <div className="cap mt-0.5">{s}</div>
@@ -127,16 +127,16 @@ export default function Earn() {
           </div>
 
           {/* ladder */}
-          <div className="flex items-center justify-between px-4 py-3 sm:px-5">
+          <div className="flex shrink-0 items-center justify-between px-4 py-2.5 sm:px-5">
             <div className="label">Buckets</div>
             <div className="flex items-center gap-4 text-[12px] text-ink-3">
               <span className="flex items-center gap-1.5"><span className="h-2.5 w-[3px] bg-accent" /> USDC, below</span>
               <span className="flex items-center gap-1.5"><span className="h-2.5 w-[3px] bg-steel" /> SOL, above</span>
             </div>
           </div>
-          <div className="overflow-x-auto border-t border-line">
-            <table className="tbl min-w-[880px]">
-              <thead>
+          <div className="min-h-0 flex-1 overflow-auto border-t border-line">
+            <table className="tbl tbl-dense min-w-[880px]">
+              <thead className="sticky top-0 z-10 bg-panel">
                 <tr>{["Range", "Liquidity", "Used", "Borrowable", "Premium", "Fees", "Forgone", "Yours", ""].map((h) => <th key={h}>{h}</th>)}</tr>
               </thead>
               <tbody>
@@ -189,7 +189,7 @@ export default function Earn() {
         </div>
 
         {/* side column */}
-        <aside className="divide-y divide-line border-t border-line text-sm xl:border-t-0">
+        <aside className="min-h-0 divide-y divide-line overflow-y-auto border-t border-line text-sm xl:border-t-0">
           <div className="p-5">
             <div className="label">Deposit</div>
             <label className="mt-3 block">

@@ -204,7 +204,7 @@ function PositionsInner() {
       ) : list.length === 0 ? (
         <div className="px-5 py-16 text-center text-sm text-ink-3">No positions. <Link href="/studio" className="text-ink underline underline-offset-4">Open one</Link></div>
       ) : (
-        <div>{list.map((s) => <PositionCard key={s.address} s={s} m={m} onAction={act} busy={busy} />)}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto">{list.map((s) => <PositionCard key={s.address} s={s} m={m} onAction={act} busy={busy} />)}</div>
       )}
     </AppShell>
   );
