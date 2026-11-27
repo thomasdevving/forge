@@ -240,10 +240,14 @@ async function main() {
   if (!c) return log("Treasury Agent", "no option submitted");
   const f = c.option.facts;
   console.log(`\nAuthorization request\n  ${c.option.title}: ${f.units} ${String(f.market).split("/")[0]}, floor ${f.floor_price}, cap ${f.cap_price ?? "none"}, premium ≤ ${usd(f.premium_budget_usd)}, bound ±${usd(f.certified_error_bound_usd)}\n  certificate ${f.certificate_hash}\n  ${c.rationale}\n`);
-  if (!process.stdin.isTTY) return log("Treasury Agent", "no terminal to approve from; not executed");
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const yes = /^y(es)?$/i.test((await rl.question("Authorize opening it on the FORGE fork? [y/N] ")).trim());
-  rl.close();
+  // the human signer approves here, or in advance by passing --approve on the command line
+  let yes = process.argv.includes("--approve");
+  if (!yes) {
+    if (!process.stdin.isTTY) return log("Treasury Agent", "no terminal to approve from; not executed (pass --approve to authorize in advance)");
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    yes = /^y(es)?$/i.test((await rl.question("Authorize opening it on the FORGE fork? [y/N] ")).trim());
+    rl.close();
+  }
   if (!yes) return log("Treasury Agent", "declined by the signer; nothing sent");
   await execute(key, c.option);
 }

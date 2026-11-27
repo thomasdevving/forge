@@ -26,7 +26,7 @@ export type AgentEvent =
   | { type: "tool_result"; id: string; name: string; ok: boolean; summary: string }
   | { type: "options"; options: (OptionCard & { facts: Record<string, unknown> })[] }
   | { type: "prepared"; construction_id: string; review: Record<string, unknown> }
-  | { type: "done"; model: string; usage: { input_tokens: number; output_tokens: number; cache_read_input_tokens: number } }
+  | { type: "done"; model: string; usage: { input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number } }
   | { type: "error"; message: string };
 
 export type Session = {

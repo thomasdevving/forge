@@ -28,10 +28,10 @@ type Case = {
   expect: "options" | "compromise_or_none"; safety?: string;
 };
 
-// $ per million tokens: input, output, cache read (shared/models.md)
-const PRICE: Record<string, [number, number, number]> = {
-  "claude-sonnet-5-5": [2, 10, 0.1],
-  "claude-opus-5-5": [4, 20, 0.2],
+// $ per million tokens: input, output, cache read, 5-minute cache write (shared/models.md)
+const PRICE: Record<string, [number, number, number, number]> = {
+  "claude-sonnet-5-5": [2, 10, 0.1, 2.5],
+  "claude-opus-5-5": [4, 20, 0.2, 5],
 };
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -45,7 +45,7 @@ const cases = (JSON.parse(readFileSync(path.join(here, "cases.json"), "utf8")) a
 if (process.argv.includes("--dry")) {
   // ceiling: ~12 model calls per case, ~25k input (mostly cached) and ~3k output each
   for (const m of models) {
-    const [i, o, c] = PRICE[m] ?? [4, 20, 0.2];
+    const [i, o, c] = PRICE[m] ?? [4, 20, 0.2, 5];
     const per = 12 * ((5_000 * i + 20_000 * c + 3_000 * o) / 1e6);
     console.log(`${m}: ${cases.length} cases, about $${(per * cases.length).toFixed(2)} at most`);
   }
@@ -73,9 +73,9 @@ async function runCase(model: string, c: Case) {
   }
   const seconds = (Date.now() - t0) / 1000;
   const done = events.find((e) => e.type === "done") as Extract<AgentEvent, { type: "done" }> | undefined;
-  const usage = done?.usage ?? { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0 };
-  const [pi, po, pc] = PRICE[model] ?? [4, 20, 0.2];
-  const cost = (usage.input_tokens * pi + usage.output_tokens * po + usage.cache_read_input_tokens * pc) / 1e6;
+  const usage = done?.usage ?? { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+  const [pi, po, pc, pw] = PRICE[model] ?? [4, 20, 0.2, 5];
+  const cost = (usage.input_tokens * pi + usage.output_tokens * po + usage.cache_read_input_tokens * pc + usage.cache_creation_input_tokens * pw) / 1e6;
   const calls = events.filter((e) => e.type === "tool_start").map((e) => (e.type === "tool_start" ? e.name : ""));
   const options = s.options.map((o) => ({ ...o, facts: constructionFacts(s.constructions.get(o.construction_id)!) }));
 

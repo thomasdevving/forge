@@ -70,7 +70,10 @@ app.post<{ Params: { id: string }; Body: { text?: string } }>("/sessions/:id/mes
   const send = (e: AgentEvent) => res.write(`data: ${JSON.stringify(e)}\n\n`);
   const ping = setInterval(() => res.write(": ping\n\n"), 15_000);
   const ac = new AbortController();
-  req.raw.on("close", () => ac.abort());
+  // the client went away before the turn finished (the request's own "close" fires once its body is read)
+  res.on("close", () => {
+    if (!res.writableEnded) ac.abort();
+  });
   s.busy = true;
   try {
     await runTurn(s, text, send, ac.signal);

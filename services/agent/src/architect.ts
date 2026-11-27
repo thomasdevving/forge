@@ -60,7 +60,7 @@ export async function runTurn(s: Session, text: string, emit: (e: AgentEvent) =>
     { signal },
   );
 
-  const usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0 };
+  const usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
   let last: Anthropic.Beta.Messages.BetaMessage | null = null;
   for await (const stream of runner) {
     let thinking = false;
@@ -77,6 +77,7 @@ export async function runTurn(s: Session, text: string, emit: (e: AgentEvent) =>
     usage.input_tokens += msg.usage.input_tokens;
     usage.output_tokens += msg.usage.output_tokens;
     usage.cache_read_input_tokens += msg.usage.cache_read_input_tokens ?? 0;
+    usage.cache_creation_input_tokens += msg.usage.cache_creation_input_tokens ?? 0;
     if (msg.stop_reason === "refusal") {
       emit({ type: "error", message: "The model declined this request." });
       break;
