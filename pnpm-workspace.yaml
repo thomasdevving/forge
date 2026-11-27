@@ -1,0 +1,7 @@
+packages:
+  - services/indexer
+  - services/txbuilder
+  - services/agent
+  - fork
+  - app
+  - tests
