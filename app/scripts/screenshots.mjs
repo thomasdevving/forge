@@ -67,6 +67,8 @@ const c = compile.result.construction;
 const meta = {
   capturedAt: new Date().toISOString(),
   market: market.name,
+  whirlpool: market.whirlpool,
+  swapPool: market.swapPool,
   spot: c.spot,
   base: market.name.split("/")[0],
   quote: market.name.split("/")[1],

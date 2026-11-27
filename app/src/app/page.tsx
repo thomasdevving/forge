@@ -1,12 +1,13 @@
 import Link from "next/link";
 import bench from "@/data/benchmarks.json";
 import { HeroGraphic } from "@/components/landing/HeroGraphic";
+import { Example } from "@/components/landing/Example";
 import { Hero } from "@/components/landing/Hero";
 import { LiveStrip } from "@/components/landing/LiveStrip";
 import { CountUp, Reveal } from "@/components/landing/Reveal";
 import { type Step, Walkthrough } from "@/components/landing/Walkthrough";
 import { Logo } from "@/components/Logo";
-import { NavShell } from "@/components/landing/NavShell";
+import { SiteNav } from "@/components/landing/SiteNav";
 import { config } from "@/lib/config";
 import shotMeta from "../../public/shots/meta.json";
 
@@ -86,45 +87,12 @@ export default function Landing() {
 
   return (
     <div className="overflow-x-clip bg-bg">
-      <NavShell>
-        <div className="mx-auto flex h-14 max-w-[1480px] items-center gap-8 px-5 sm:px-8">
-          <Logo />
-          <nav className="hidden items-center gap-7 text-[14px] text-ink-2 md:flex">
-            <a href="#how" className="transition-colors hover:text-ink">How it works</a>
-            <Link href="/studio" className="transition-colors hover:text-ink">Studio</Link>
-            <a href="#lps" className="transition-colors hover:text-ink">For LPs</a>
-            <a href="#proof" className="transition-colors hover:text-ink">Proof</a>
-            <a href={`${config.repoUrl}/tree/main/docs`} className="transition-colors hover:text-ink" target="_blank" rel="noreferrer">Docs</a>
-          </nav>
-          <div className="ml-auto flex items-center gap-2">
-            <a href={config.repoUrl} className="btn btn-ghost hidden !py-1.5 sm:inline-flex" target="_blank" rel="noreferrer">
-              <svg viewBox="0 0 16 16" className="size-4" fill="currentColor" aria-hidden><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.71 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.66 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z" /></svg>
-              GitHub
-            </a>
-            <Link href="/studio" className="btn btn-primary !py-1.5">Launch app <span aria-hidden>↗</span></Link>
-          </div>
-        </div>
-      </NavShell>
+      <SiteNav />
 
       <Hero />
 
-      {/* fork: the hero's screens are real and run here */}
-      <section id="fork" className="relative">
-        <div className="mx-auto grid max-w-[1480px] gap-10 px-5 py-24 sm:px-8 lg:grid-cols-[1fr_1.6fr] lg:items-center">
-          <Reveal>
-            <div className="num flex items-center gap-3 text-[12px] text-ink-3"><span className="size-1.5 animate-pulse bg-good" />Live right now</div>
-            <h2 className="mt-5 font-display text-[clamp(1.9rem,3.4vw,3rem)] font-semibold leading-[1] tracking-[-0.03em]">Running on a copy of Solana mainnet.</h2>
-            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-ink-2">
-              FORGE runs on a Surfpool fork: Orca’s real pools and programs, copied from mainnet, with test money. Prices can be moved to show a crash. Grab free
-              fork funds with the demo wallet and try every step. Nothing touches mainnet.
-            </p>
-          </Reveal>
-          <Reveal delay={120}>
-            <LiveStrip />
-            <p className="cap mt-3">Read from the fork every 15 seconds.</p>
-          </Reveal>
-        </div>
-      </section>
+      <Example />
+
 
       {/* how */}
       <section id="how" className="scroll-mt-14">
@@ -138,7 +106,7 @@ export default function Landing() {
                 How it works
               </div>
               <h2 className="mt-4 font-display text-[clamp(1.9rem,3.2vw,2.9rem)] font-semibold leading-[1] tracking-[-0.03em]">One example, start to finish.</h2>
-              <p className="mt-3 max-w-md text-[14px] leading-relaxed text-ink-2">{`Protecting ${UNITS} with a collar. Real screens from the Studio, captured on the fork.`}</p>
+              <p className="mt-3 max-w-md text-[14px] leading-relaxed text-ink-2">{`The ${UNITS} collar from above, in the Studio. Real screens, captured on the fork.`}</p>
             </>
           }
         />
@@ -267,6 +235,24 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* fork: the hero's screens are real and run here */}
+      <section id="fork" className="relative">
+        <div className="mx-auto grid max-w-[1480px] gap-10 px-5 py-24 sm:px-8 lg:grid-cols-[1fr_1.6fr] lg:items-center">
+          <Reveal>
+            <div className="num flex items-center gap-3 text-[12px] text-ink-3"><span className="size-1.5 animate-pulse bg-good" />Live right now</div>
+            <h2 className="mt-5 font-display text-[clamp(1.9rem,3.4vw,3rem)] font-semibold leading-[1] tracking-[-0.03em]">Running on a copy of Solana mainnet.</h2>
+            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-ink-2">
+              FORGE runs on a Surfpool fork: Orca’s real pools and programs, copied from mainnet, with test money. Prices can be moved to show a crash. Grab free
+              fork funds with the demo wallet and try every step. Nothing touches mainnet.
+            </p>
+          </Reveal>
+          <Reveal delay={120}>
+            <LiveStrip />
+            <p className="cap mt-3">Read from the fork every 15 seconds.</p>
+          </Reveal>
+        </div>
+      </section>
+
       {/* faq */}
       <section id="faq" className="scroll-mt-14 py-28">
         <div className="mx-auto grid max-w-[1480px] gap-12 px-5 sm:px-8 lg:grid-cols-[1fr_1.4fr]">
@@ -302,7 +288,7 @@ export default function Landing() {
               Pick a token. Draw a floor and a cap. <span className="text-ink-3">Watch it settle.</span>
             </h2>
             <div className="mt-10 flex flex-wrap items-center gap-3">
-              <Link href="/studio" className="btn btn-primary !px-5 !py-2.5">Open the Studio</Link>
+              <Link href="/studio" className="btn btn-primary !px-5 !py-2.5">Launch App <span aria-hidden>↗</span></Link>
               <a href={config.repoUrl} className="btn btn-ghost !px-5 !py-2.5" target="_blank" rel="noreferrer">Read the code</a>
               <span className="cap ml-2">Demo wallet with fork funds · about two minutes</span>
             </div>

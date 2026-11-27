@@ -54,5 +54,7 @@
  "maxErrorAt": 0.21544768392707533,
  "solveMs": 247,
  "hash": "e9fbbfa9331684e0dbbd2afa2026628d09f5d43304b362bdaa64c4204b0288d8",
- "openTransactions": 4
+ "openTransactions": 4,
+ "whirlpool": "HrLmpzp8Nu5wkn9SGZYSS9Ms6deTvMgGc6BETp4161ZX",
+ "swapPool": "4Ui9QdDNuUaAGqCPcDSp191QrixLzQiLxJ1Gnqvz3szP"
 }

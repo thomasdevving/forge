@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import meta from "../../../public/shots/meta.json";
+import { LivePrice } from "./LivePrice";
 import { Stars } from "./Stars";
 
-type Meta = { market: string; base: string; spot: number; target: [number, number][]; certifiedBound: number; maxErrorAt: number; solveMs: number; capitalLocked: number; holdings: { base: number } };
+type Meta = { market: string; base: string; swapPool: string; spot: number; target: [number, number][]; certifiedBound: number; maxErrorAt: number; solveMs: number; capitalLocked: number; holdings: { base: number } };
 const m = meta as unknown as Meta;
 const units = m.holdings.base.toLocaleString("en-US");
 const usd = (n: number, d = Math.abs(n) < 1 ? 4 : 2) => `$${n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
@@ -81,16 +82,15 @@ export function Hero() {
             <span className="num text-[11px] uppercase tracking-[0.28em] text-ink-3">Any Orca token</span>
           </div>
           <h1 className="hero-in mt-[min(1.75rem,3vh)] font-display text-[clamp(2.2rem,min(4.2vw,7.4vh),5.2rem)] font-semibold leading-[1.02] tracking-[-0.04em]" style={{ animationDelay: "160ms" }}>
-            Options for tokens <span className="text-ink-3">that don&apos;t have any.</span>
+            Trade options on tokens <span className="text-ink-3">that don&apos;t have any.</span>
           </h1>
           <p className="hero-in mt-[min(1.75rem,3vh)] max-w-xl text-[clamp(14px,min(1.15vw,2.5vh),17px)] leading-relaxed text-ink-2" style={{ animationDelay: "260ms" }}>
-            Most Solana tokens trade on Orca but have no options market. Draw the payoff you want, for example{" "}
-            <span className="text-ink">{units} {m.base} never worth less than {usd(floor[1], 0)}, gains capped at {usd(cap[1], 0)}</span>, and FORGE builds it
-            from the token&apos;s own liquidity, certifies the worst-case error and opens it on-chain.
+            Choose how much you can lose and how much you can gain, and Forge builds it from the token&apos;s trading liquidity. Or provide that
+            liquidity yourself and earn extra on top of your fees.
           </p>
           <div className="hero-in mt-[min(2.25rem,4vh)] flex flex-wrap gap-3" style={{ animationDelay: "360ms" }}>
             <Link href="/studio" className="btn btn-primary !px-6 !py-3 !text-[15px]">
-              Open the Studio <span aria-hidden>↗</span>
+              Launch App <span aria-hidden>↗</span>
             </Link>
             <Link href="/earn" className="btn btn-ghost !px-6 !py-3 !text-[15px]">Earn as an LP</Link>
           </div>
@@ -122,10 +122,8 @@ export function Hero() {
             <div className="cap mt-1.5">on a {usd(floor[1], 0)}–{usd(cap[1], 0)} payoff · {m.solveMs} ms</div>
           </div>
 
-          <div className="hero-card float-c absolute -top-6 right-[8%] hidden w-[min(200px,34%)] md:block">
-            <div className="cap">{m.market} at snapshot</div>
-            <div className="num mt-1 text-[22px] font-medium leading-none">{usd(m.spot)}</div>
-            <div className="cap mt-1.5">Orca Whirlpool</div>
+          <div className="hero-card float-c absolute -top-6 right-[8%] hidden w-[min(220px,36%)] md:block">
+            <LivePrice base={m.base} quote={m.market.split("/")[1] ?? "USDC"} pool={m.swapPool} units={m.holdings.base} spot={m.spot} target={m.target} />
           </div>
         </div>
       </div>
