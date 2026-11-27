@@ -1,7 +1,7 @@
 {
  "study": "FORGE recent-regime study",
  "folder": "benchmarks/research/2026-11-recent",
- "generatedAt": "2026-11-27T22:14:34+00:00",
+ "generatedAt": "2026-11-27T23:16:32+00:00",
  "windowDays": 56,
  "window": {
   "start": "2026-10-02 00:00",
@@ -14,9 +14,10 @@
   "swap_slippage_bps": 50,
   "keeper_trigger_bps": 8000,
   "bounty_bps": 100,
+  "protocol_fee_bps": 1000,
   "curve": {
-   "base_ppm": 1000000,
-   "slope1_ppm": 1000000,
+   "base_ppm": 1100000,
+   "slope1_ppm": 0,
    "kink_ppm": 600000,
    "slope2_ppm": 6000000,
    "cap_ppm": 800000
@@ -68,6 +69,13 @@
   "base 1.5": {
    "base_ppm": 1500000,
    "slope1_ppm": 1000000,
+   "kink_ppm": 600000,
+   "slope2_ppm": 6000000,
+   "cap_ppm": 800000
+  },
+  "hybrid": {
+   "base_ppm": 1100000,
+   "slope1_ppm": 0,
    "kink_ppm": 600000,
    "slope2_ppm": 6000000,
    "cap_ppm": 800000
@@ -504,7 +512,7 @@
  },
  "band": {
   "arb-band": {
-   "tested": 168,
+   "tested": 192,
    "passing": [
     {
      "token": "SOL",
@@ -517,8 +525,26 @@
     },
     {
      "token": "SOL",
+     "floor": 0.02,
+     "curve": "hybrid",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 4.714152262426069,
+     "borrowerExante7d": 0.8317944558051407
+    },
+    {
+     "token": "SOL",
      "floor": 0.05,
      "curve": "flat m=1.1",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 6.537789437539686,
+     "borrowerExante7d": 0.8740321461617497
+    },
+    {
+     "token": "SOL",
+     "floor": 0.05,
+     "curve": "hybrid",
      "lpMaxTake": 0.05,
      "lpMaxTakeOnExcess": 0.5,
      "lpExtra7dBps": 6.537789437539686,
@@ -553,6 +579,15 @@
     },
     {
      "token": "JUP",
+     "floor": 0.05,
+     "curve": "hybrid",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 8.123079416039218,
+     "borrowerExante7d": 0.8271654692158038
+    },
+    {
+     "token": "JUP",
      "floor": 0.1,
      "curve": "flat m=1.1",
      "lpMaxTake": 0.05,
@@ -571,6 +606,15 @@
     },
     {
      "token": "JUP",
+     "floor": 0.1,
+     "curve": "hybrid",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 11.166137567495753,
+     "borrowerExante7d": 0.8472774769326228
+    },
+    {
+     "token": "JUP",
      "floor": 0.2,
      "curve": "flat m=1.1",
      "lpMaxTake": 0.1,
@@ -586,6 +630,15 @@
      "lpMaxTakeOnExcess": 0.5,
      "lpExtra7dBps": 18.758990825198453,
      "borrowerExante7d": 0.9069200087316824
+    },
+    {
+     "token": "JUP",
+     "floor": 0.2,
+     "curve": "hybrid",
+     "lpMaxTake": 0.1,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 17.436733424968224,
+     "borrowerExante7d": 0.888641869601863
     },
     {
      "token": "BONK",
@@ -607,6 +660,15 @@
     },
     {
      "token": "BONK",
+     "floor": 0.02,
+     "curve": "hybrid",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 7.614202906353057,
+     "borrowerExante7d": 0.8146647461806504
+    },
+    {
+     "token": "BONK",
      "floor": 0.05,
      "curve": "flat m=1.1",
      "lpMaxTake": 0.05,
@@ -622,6 +684,15 @@
      "lpMaxTakeOnExcess": 0.5,
      "lpExtra7dBps": 15.023650160139368,
      "borrowerExante7d": 0.9072697058906144
+    },
+    {
+     "token": "BONK",
+     "floor": 0.05,
+     "curve": "hybrid",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 9.538344248981957,
+     "borrowerExante7d": 0.8344264477778823
     },
     {
      "token": "BONK",
@@ -643,6 +714,15 @@
     },
     {
      "token": "BONK",
+     "floor": 0.1,
+     "curve": "hybrid",
+     "lpMaxTake": 0.05,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 12.621129411517359,
+     "borrowerExante7d": 0.868073047910161
+    },
+    {
+     "token": "BONK",
      "floor": 0.2,
      "curve": "flat m=1.1",
      "lpMaxTake": 0.1,
@@ -660,6 +740,15 @@
      "borrowerExante7d": 0.9563127696606364
     },
     {
+     "token": "BONK",
+     "floor": 0.2,
+     "curve": "hybrid",
+     "lpMaxTake": 0.1,
+     "lpMaxTakeOnExcess": 0.5,
+     "lpExtra7dBps": 18.487506318640044,
+     "borrowerExante7d": 0.9382442369902306
+    },
+    {
      "token": "KMNO",
      "floor": 0.02,
      "curve": "flat m=1.2",
@@ -672,7 +761,7 @@
    "defaultCurvePassing": 0
   },
   "band+noise": {
-   "tested": 168,
+   "tested": 192,
    "passing": [],
    "defaultCurvePassing": 0
   }

@@ -49,3 +49,9 @@ next-env.d.ts
 .claude/
 .vercel
 .env*
+
+# Research studies: outputs and downloads are reproducible from the scripts and the data manifest
+benchmarks/research/*/results.json
+benchmarks/research/*/data/raw/
+benchmarks/research/*/data/*.npz
+benchmarks/research/*/data/deribit_*.json

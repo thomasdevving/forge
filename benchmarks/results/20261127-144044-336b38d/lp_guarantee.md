@@ -6,34 +6,34 @@ Per borrow (the guarantee is per borrowed range): eligible = fully funded. Refus
 
 | slice | borrows | eligible | guarantee holds | violations | premium shortfalls | restoration refusals | keeper closes | median fee APR (world A) |
 |---|---|---|---|---|---|---|---|---|
-| historical-price-driven/base | 10759 | 9621 | 9621 | 0 | 1138 | 0 | 0 | 59.9% |
-| historical-price-driven/base+noise | 10759 | 9556 | 9556 | 0 | 1203 | 0 | 0 | 83.7% |
+| historical-price-driven/base | 10759 | 9681 | 9681 | 0 | 1078 | 0 | 0 | 59.9% |
+| historical-price-driven/base+noise | 10759 | 9627 | 9627 | 0 | 1132 | 0 | 0 | 83.7% |
 | historical-price-driven/fully-funded | 10759 | 10759 | 10759 | 0 | 0 | 0 | 0 | 59.9% |
-| historical-price-driven/base+keeper | 11368 | 11137 | 11137 | 0 | 231 | 0 | 1320 | 59.9% |
-| historical-price-driven/stress-restoration | 10722 | 9573 | 9573 | 0 | 1149 | 148 | 0 | 59.9% |
-| historical-price-driven/legacy-fee-model | 10753 | 8866 | 8866 | 0 | 1887 | 0 | 0 | 1106.7% |
-| synthetic-gbm/base | 2139 | 1690 | 1690 | 0 | 449 | 0 | 0 | 78.9% |
-| synthetic-gbm/base+noise | 2139 | 1656 | 1656 | 0 | 483 | 0 | 0 | 85.3% |
+| historical-price-driven/base+keeper | 11319 | 11131 | 11131 | 0 | 188 | 0 | 1223 | 59.9% |
+| historical-price-driven/stress-restoration | 10722 | 9631 | 9631 | 0 | 1091 | 148 | 0 | 59.9% |
+| historical-price-driven/legacy-fee-model | 10753 | 8911 | 8911 | 0 | 1842 | 0 | 0 | 1106.7% |
+| synthetic-gbm/base | 2139 | 1723 | 1723 | 0 | 416 | 0 | 0 | 78.9% |
+| synthetic-gbm/base+noise | 2139 | 1699 | 1699 | 0 | 440 | 0 | 0 | 85.3% |
 | synthetic-gbm/fully-funded | 2139 | 2139 | 2139 | 0 | 0 | 0 | 0 | 78.9% |
-| synthetic-gbm/base+keeper | 2483 | 2434 | 2434 | 0 | 49 | 0 | 601 | 78.9% |
-| synthetic-gbm/stress-restoration | 2141 | 1691 | 1691 | 0 | 450 | 51 | 0 | 78.9% |
-| synthetic-gbm/legacy-fee-model | 2130 | 1533 | 1533 | 0 | 597 | 0 | 0 | 382.7% |
-| all | 65408 | 60256 | 60256 | 0 | 5152 | 199 | 1921 | 69.7% |
+| synthetic-gbm/base+keeper | 2440 | 2396 | 2396 | 0 | 44 | 0 | 541 | 78.9% |
+| synthetic-gbm/stress-restoration | 2141 | 1725 | 1725 | 0 | 416 | 51 | 0 | 78.9% |
+| synthetic-gbm/legacy-fee-model | 2130 | 1550 | 1550 | 0 | 580 | 0 | 0 | 382.7% |
+| all | 65316 | 60511 | 60511 | 0 | 4805 | 199 | 1764 | 69.7% |
 
 Per path (all borrows on the path eligible):
 
 | slice | paths | eligible paths | holds (eligible paths) | final-value counterexamples (all paths) |
 |---|---|---|---|---|
-| historical-price-driven/base | 86 | 0 | 0 | 10 |
-| historical-price-driven/base+noise | 86 | 0 | 0 | 12 |
+| historical-price-driven/base | 86 | 0 | 0 | 20 |
+| historical-price-driven/base+noise | 86 | 0 | 0 | 23 |
 | historical-price-driven/fully-funded | 86 | 86 | 86 | 0 |
-| historical-price-driven/base+keeper | 86 | 8 | 8 | 0 |
-| historical-price-driven/stress-restoration | 86 | 0 | 0 | 9 |
+| historical-price-driven/base+keeper | 86 | 13 | 13 | 0 |
+| historical-price-driven/stress-restoration | 86 | 0 | 0 | 20 |
 | historical-price-driven/legacy-fee-model | 86 | 0 | 0 | 86 |
-| synthetic-gbm/base | 60 | 0 | 0 | 40 |
-| synthetic-gbm/base+noise | 60 | 0 | 0 | 46 |
+| synthetic-gbm/base | 60 | 0 | 0 | 47 |
+| synthetic-gbm/base+noise | 60 | 0 | 0 | 49 |
 | synthetic-gbm/fully-funded | 60 | 60 | 60 | 0 |
 | synthetic-gbm/base+keeper | 60 | 28 | 28 | 0 |
-| synthetic-gbm/stress-restoration | 60 | 0 | 0 | 38 |
+| synthetic-gbm/stress-restoration | 60 | 0 | 0 | 46 |
 | synthetic-gbm/legacy-fee-model | 60 | 0 | 0 | 60 |
-| all | 730 | 182 | 182 | 155 |
+| all | 730 | 187 | 187 | 205 |
