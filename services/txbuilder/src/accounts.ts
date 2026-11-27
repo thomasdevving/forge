@@ -96,6 +96,12 @@ export type Leg = {
   restored_at: bigint;
   swap_in: bigint;
   swap_out: bigint;
+  provided_base: bigint;
+  provided_quote: bigint;
+  returned_base: bigint;
+  returned_quote: bigint;
+  fees_base: bigint;
+  fees_quote: bigint;
 };
 export type StrategyState = "PendingOpen" | "Open" | "PendingClose" | "Recovery" | "Closed" | "Cancelled";
 export type Strategy = {
@@ -124,6 +130,9 @@ export type Strategy = {
   cap_binding: boolean;
   aborting: boolean;
   recovery_recorded: boolean;
+  close_started_at: bigint;
+  fee_credit_base: bigint;
+  fee_credit_quote: bigint;
   leg_count: number;
   legs: Leg[];
 };

@@ -3,7 +3,7 @@
  * always signs in their own wallet. Strategies that fit in one transaction pack
  * begin + execute + finalize together so the open (or close) is atomic.
  */
-import type { AccountMeta, Address, Instruction, Rpc, SolanaRpcApi, TransactionSigner } from "@solana/kit";
+import { type AccountMeta, type Address, getAddressEncoder, getProgramDerivedAddress, type Instruction, type Rpc, type SolanaRpcApi, type TransactionSigner } from "@solana/kit";
 import { type Bucket, fetchBucket, fetchMarket, fetchStrategy, type Market, type MarketParams, type ReferenceConfig, type Strategy } from "./accounts.js";
 import { bucketTickArrays, liquidityDeltas, type PoolState, readPool, swapTickArrays } from "./orca.js";
 import { type AccountInput, forgeIx, pdas, RENT_SYSVAR_ID, ro, rw, SYSTEM_PROGRAM_ID, TOKEN_PROGRAM_ID, WHIRLPOOL_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, FORGE_PROGRAM_ID } from "./program.js";
@@ -76,7 +76,23 @@ export async function createBucketIx(payer: TransactionSigner, market: Address, 
   };
 }
 
-export type LegSpec = { kind: "BorrowQuote" | "BorrowBase"; tickLower: number; liquidity: bigint; extraBuffer?: bigint };
+export type LegKindName = "BorrowQuote" | "BorrowBase" | "ProvideQuote" | "ProvideBase";
+export const LEG_KIND_TAG: Record<LegKindName, number> = { BorrowQuote: 0, BorrowBase: 1, ProvideQuote: 2, ProvideBase: 3 };
+export type LegSpec = { kind: LegKindName; tickLower: number; liquidity: bigint; extraBuffer?: bigint };
+const isBorrowTag = (tag: number) => tag <= 1;
+
+/** Per-strategy authority, provided-leg funding accounts and position-mint PDAs. */
+export async function strategyPdas(strategy: Address) {
+  const enc = getAddressEncoder();
+  const seed = async (s: string, extra: Uint8Array[] = []) =>
+    (await getProgramDerivedAddress({ programAddress: FORGE_PROGRAM_ID, seeds: [new TextEncoder().encode(s), enc.encode(strategy) as Uint8Array, ...extra] }))[0];
+  return {
+    authority: await seed("strategy_authority"),
+    provideBase: await seed("provide_base"),
+    provideQuote: await seed("provide_quote"),
+    legMint: (i: number) => seed("leg_mint", [Uint8Array.of(i)]),
+  };
+}
 
 function referenceAccounts(m: Market): { reference_base: Address; reference_quote: Address } {
   return {
@@ -86,12 +102,21 @@ function referenceAccounts(m: Market): { reference_base: Address; reference_quot
   };
 }
 
-async function legRemaining(m: Market, buckets: Bucket[], bucketKeys: Address[], spacing: number): Promise<AccountMeta[]> {
+type LegRef = { tag: number; index: number; tickLower: number; tickUpper: number; bucket?: Address };
+
+/** Remaining accounts per leg: borrowed -> bucket accounts; provided -> its own position. */
+async function legRemaining(m: Market, strategy: Address, legs: LegRef[], spacing: number, rpc: Rpc<SolanaRpcApi>): Promise<AccountMeta[]> {
+  const sp = await strategyPdas(strategy);
   const out: AccountMeta[] = [];
-  for (let i = 0; i < buckets.length; i++) {
-    const b = buckets[i]!;
-    const ta = await bucketTickArrays(m.whirlpool, b.tick_lower, b.tick_upper, spacing);
-    out.push(rw(bucketKeys[i]!), rw(b.position), ro(b.position_token_account), rw(ta.lower), rw(ta.upper));
+  for (const l of legs) {
+    const ta = await bucketTickArrays(m.whirlpool, l.tickLower, l.tickUpper, spacing);
+    if (isBorrowTag(l.tag)) {
+      const b = await fetchBucket(rpc, l.bucket!);
+      out.push(rw(l.bucket!), rw(b.position), ro(b.position_token_account), rw(ta.lower), rw(ta.upper));
+    } else {
+      const mint = await sp.legMint(l.index);
+      out.push(rw(mint), rw(await pdas.orcaPosition(mint)), rw(await pdas.ata(sp.authority, mint)), rw(ta.lower), rw(ta.upper));
+    }
   }
   return out;
 }
@@ -117,9 +142,17 @@ export async function buildOpen(rpc: Rpc<SolanaRpcApi>, p: OpenParams): Promise<
   const pool = await readPool(rpc, m.whirlpool);
   const strategy = await pdas.strategy(p.market, p.owner.address, p.nonce);
   const vault = await pdas.vault(p.market);
-  const bucketKeys = await Promise.all(p.legs.map((l) => pdas.bucket(p.market, l.tickLower)));
-  const buckets = await Promise.all(bucketKeys.map((k) => fetchBucket(rpc, k)));
+  const sp = await strategyPdas(strategy);
   const refs = referenceAccounts(m);
+  const legRefs: LegRef[] = await Promise.all(p.legs.map(async (l, i) => ({
+    tag: LEG_KIND_TAG[l.kind],
+    index: i,
+    tickLower: l.tickLower,
+    tickUpper: l.tickLower + m.bucket_width,
+    bucket: isBorrowTag(LEG_KIND_TAG[l.kind]) ? await pdas.bucket(p.market, l.tickLower) : undefined,
+  })));
+  // begin_open: one remaining account per leg (bucket, or the provided leg's mint PDA)
+  const beginRemaining = await Promise.all(legRefs.map(async (l) => rw(l.bucket ?? (await sp.legMint(l.index)))));
 
   const begin = forgeIx("begin_open", {
     owner: p.owner,
@@ -129,6 +162,9 @@ export async function buildOpen(rpc: Rpc<SolanaRpcApi>, p: OpenParams): Promise<
     escrow_base: await pdas.escrowBase(strategy),
     escrow_quote: await pdas.escrowQuote(strategy),
     budget: await pdas.budget(strategy),
+    strategy_authority: sp.authority,
+    provide_base: sp.provideBase,
+    provide_quote: sp.provideQuote,
     base_mint: m.base_mint,
     quote_mint: m.quote_mint,
     user_base: p.userBase,
@@ -141,7 +177,7 @@ export async function buildOpen(rpc: Rpc<SolanaRpcApi>, p: OpenParams): Promise<
   }, {
     args: {
       nonce: p.nonce,
-      legs: p.legs.map((l) => ({ kind_tag: l.kind === "BorrowQuote" ? 0 : 1, tick_lower: l.tickLower, liquidity: l.liquidity, extra_buffer: l.extraBuffer ?? 0n })),
+      legs: p.legs.map((l) => ({ kind_tag: LEG_KIND_TAG[l.kind], tick_lower: l.tickLower, liquidity: l.liquidity, extra_buffer: l.extraBuffer ?? 0n })),
       premium_budget: p.premiumBudget,
       expiry: p.expiry,
       open_reference_x64: p.openReferenceX64,
@@ -149,7 +185,7 @@ export async function buildOpen(rpc: Rpc<SolanaRpcApi>, p: OpenParams): Promise<
       swap_slippage_bps: p.swapSlippageBps,
       certificate_hash: p.certificateHash,
     },
-  }, bucketKeys.map((k) => rw(k)));
+  }, beginRemaining);
 
   const execAccounts = {
     owner: p.owner,
@@ -161,18 +197,23 @@ export async function buildOpen(rpc: Rpc<SolanaRpcApi>, p: OpenParams): Promise<
     whirlpool_vault_b: pool.vaultB,
     escrow_base: await pdas.escrowBase(strategy),
     escrow_quote: await pdas.escrowQuote(strategy),
+    strategy_authority: sp.authority,
+    provide_base: sp.provideBase,
+    provide_quote: sp.provideQuote,
     ...refs,
     token_program: TOKEN_PROGRAM_ID,
+    rent: RENT_SYSVAR_ID,
+    associated_token_program: ASSOCIATED_TOKEN_PROGRAM_ID,
     whirlpool_program: WHIRLPOOL_PROGRAM_ID,
+    ...SYSTEM,
   } satisfies Record<string, AccountInput>;
-
   const batches: number[][] = [];
   for (let i = 0; i < p.legs.length; i += m.params.max_ops_per_tx) {
     batches.push(Array.from({ length: Math.min(m.params.max_ops_per_tx, p.legs.length - i) }, (_, k) => i + k));
   }
   const execIxs: Instruction[] = [];
   for (const batch of batches) {
-    const rem = await legRemaining(m, batch.map((i) => buckets[i]!), batch.map((i) => bucketKeys[i]!), pool.tickSpacing);
+    const rem = await legRemaining(m, strategy, batch.map((i) => legRefs[i]!), pool.tickSpacing, rpc);
     execIxs.push(forgeIx("execute_open_batch", execAccounts, { leg_indices: batch }, rem));
   }
   const finalize = forgeIx("finalize_open", { owner: p.owner, strategy });
@@ -183,6 +224,7 @@ export async function buildOpen(rpc: Rpc<SolanaRpcApi>, p: OpenParams): Promise<
 /** Which way the restoration swap would go for each remaining leg at the current price. */
 function restorationDirection(m: Market, pool: PoolState, s: Strategy, legIdx: number): "buyBase" | "sellBase" | "none" {
   const l = s.legs[legIdx]!;
+  if (!isBorrowTag(l.kind_tag)) return "none";
   const d = liquidityDeltas(pool, l.tick_lower, l.tick_upper, l.liquidity, true);
   const [needBase, needQuote] = m.base_is_a ? [d.a, d.b] : [d.b, d.a];
   if (needBase > l.escrow_base) return "buyBase";
@@ -202,9 +244,14 @@ export async function buildCloseBatch(rpc: Rpc<SolanaRpcApi>, p: CloseParams, le
   const dir = dirs[0] ?? "none";
   const payIsA = dir === "buyBase" ? !m.base_is_a : m.base_is_a;
   const [t0, t1, t2] = await swapTickArrays(swapPool, payIsA);
-  const bucketKeys = legIndices.map((i) => s.legs[i]!.bucket);
-  const buckets = await Promise.all(bucketKeys.map((k) => fetchBucket(rpc, k)));
-  const rem = await legRemaining(m, buckets, bucketKeys, pool.tickSpacing);
+  const sp = await strategyPdas(p.strategy);
+  const rem = await legRemaining(
+    m,
+    p.strategy,
+    legIndices.map((i) => ({ tag: s.legs[i]!.kind_tag, index: i, tickLower: s.legs[i]!.tick_lower, tickUpper: s.legs[i]!.tick_upper, bucket: s.legs[i]!.bucket })),
+    pool.tickSpacing,
+    rpc,
+  );
   return forgeIx("execute_close_batch", {
     caller: p.caller,
     market: p.market,
@@ -225,6 +272,10 @@ export async function buildCloseBatch(rpc: Rpc<SolanaRpcApi>, p: CloseParams, le
     swap_tick_array_1: t1,
     swap_tick_array_2: t2,
     swap_oracle: await pdas.oracle(m.swap_pool),
+    strategy_authority: sp.authority,
+    provide_base: sp.provideBase,
+    provide_quote: sp.provideQuote,
+    owner: s.owner,
     token_program: TOKEN_PROGRAM_ID,
     whirlpool_program: WHIRLPOOL_PROGRAM_ID,
   }, { leg_indices: legIndices }, rem);
@@ -234,7 +285,7 @@ export async function buildFinalizeClose(rpc: Rpc<SolanaRpcApi>, p: CloseParams)
   const m = await fetchMarket(rpc, p.market);
   const s = await fetchStrategy(rpc, p.strategy);
   // every leg's bucket: the program credits whichever legs still have unpaid premium
-  const unpaidBuckets = [...new Set(s.legs.map((l) => l.bucket))].map((b) => rw(b));
+  const unpaidBuckets = [...new Set(s.legs.filter((l) => isBorrowTag(l.kind_tag)).map((l) => l.bucket))].map((b) => rw(b));
   return forgeIx("finalize_close", {
     caller: p.caller,
     market: p.market,
@@ -248,6 +299,9 @@ export async function buildFinalizeClose(rpc: Rpc<SolanaRpcApi>, p: CloseParams)
     user_base: p.userBase,
     user_quote: p.userQuote,
     keeper_quote: p.keeperQuote ?? p.userQuote,
+    strategy_authority: (await strategyPdas(p.strategy)).authority,
+    provide_base: (await strategyPdas(p.strategy)).provideBase,
+    provide_quote: (await strategyPdas(p.strategy)).provideQuote,
     token_program: TOKEN_PROGRAM_ID,
   }, {}, unpaidBuckets);
 }
@@ -257,7 +311,9 @@ export async function buildClose(rpc: Rpc<SolanaRpcApi>, p: CloseParams): Promis
   const m = await fetchMarket(rpc, p.market);
   const s = await fetchStrategy(rpc, p.strategy);
   const pending = s.legs.map((l, i) => ({ l, i })).filter(({ l }) => l.executed && !l.restored).map(({ i }) => i);
-  const begin = s.state === "Open" ? [forgeIx("begin_close", { caller: p.caller, market: p.market, strategy: p.strategy }, {}, s.legs.map((l) => ro(l.bucket)))] : [];
+  const begin = s.state === "Open"
+    ? [forgeIx("begin_close", { caller: p.caller, market: p.market, strategy: p.strategy }, {}, s.legs.filter((l) => isBorrowTag(l.kind_tag)).map((l) => ro(l.bucket)))]
+    : [];
   const batches: number[][] = [];
   for (let i = 0; i < pending.length; i += m.params.max_ops_per_tx) batches.push(pending.slice(i, i + m.params.max_ops_per_tx));
   const execs = await Promise.all(batches.map((b) => buildCloseBatch(rpc, p, b)));
