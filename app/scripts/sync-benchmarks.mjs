@@ -29,6 +29,7 @@ const latest = (file) => {
 const rep = latest("replication.json");
 const real = latest("realized.json");
 const lp = latest("lp_guarantee.json");
+const prof = latest("lp_profitability.json");
 const doc = {
   market,
   replication: rep && {
@@ -49,6 +50,22 @@ const doc = {
       spot: r.spot, legs: r.legs, detail: r.construction_detail ?? null, breakpoints: r.target_breakpoints ?? null,
     })),
   },
+  // Benchmark 4: historical windows, conservative fee model (arbitrage only), per utilization level
+  lpProfit: prof && (() => {
+    const rows = prof.data.summary.filter((r) => r.regime === "hist-all" && r.fee_mode === "arb-band");
+    const pick = (demand, budget) => rows.find((r) => r.demand === demand && r.budget === budget) ?? null;
+    const slim = (r) => r && {
+      n: r.n, shareBgeA: r.share_B_ge_A, extraMedianBps: r.extra_bps_median, extraP5Bps: r.extra_bps_p5, extraMinBps: r.extra_bps_min,
+      shareBgtHodl: r.share_B_gt_HODL, shareAgtHodl: r.share_A_gt_HODL, aprA: r.apr_a_median, aprB: r.apr_b_median,
+    };
+    return {
+      run: prof.run,
+      capitalUsd: prof.data.capital_usd,
+      none: slim(pick("none", "-")),
+      keeper: Object.fromEntries(["u20-long", "u50-long", "u80-long"].map((d) => [d, slim(pick(d, "realistic+keeper"))])),
+      noKeeper: Object.fromEntries(["u20-long", "u50-long", "u80-long"].map((d) => [d, slim(pick(d, "realistic"))])),
+    };
+  })(),
   lpGuarantee: lp && {
     run: lp.run,
     seed: lp.data.seed,

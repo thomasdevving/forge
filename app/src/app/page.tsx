@@ -2,6 +2,7 @@ import Link from "next/link";
 import bench from "@/data/benchmarks.json";
 import { HeroGraphic } from "@/components/landing/HeroGraphic";
 import { Example } from "@/components/landing/Example";
+import { LpEvidence } from "@/components/landing/LpEvidence";
 import { Hero } from "@/components/landing/Hero";
 import { LiveStrip } from "@/components/landing/LiveStrip";
 import { CountUp, Reveal } from "@/components/landing/Reveal";
@@ -167,6 +168,7 @@ export default function Landing() {
             </figure>
           </Reveal>
         </div>
+        <LpEvidence />
       </section>
 
       {/* proof */}

@@ -756,6 +756,91 @@
    }
   ]
  },
+ "lpProfit": {
+  "run": "20261127-155803-d513c2d-jup",
+  "capitalUsd": 10000,
+  "none": {
+   "n": 1146,
+   "shareBgeA": 1,
+   "extraMedianBps": 0,
+   "extraP5Bps": 0,
+   "extraMinBps": 0,
+   "shareBgtHodl": 0.537521815008726,
+   "shareAgtHodl": 0.537521815008726,
+   "aprA": 0.8567183419613563,
+   "aprB": 0.8567183419613563
+  },
+  "keeper": {
+   "u20-long": {
+    "n": 1146,
+    "shareBgeA": 0.9851657940663177,
+    "extraMedianBps": 7.35598423834017,
+    "extraP5Bps": 2.118921559686896,
+    "extraMinBps": -11.21626004503014,
+    "shareBgtHodl": 0.5418848167539267,
+    "shareAgtHodl": 0.537521815008726,
+    "aprA": 0.8567183419613563,
+    "aprB": 0.8818234761449686
+   },
+   "u50-long": {
+    "n": 1146,
+    "shareBgeA": 1,
+    "extraMedianBps": 39.773491651978475,
+    "extraP5Bps": 14.34429274088825,
+    "extraMinBps": 3.0456159367695363,
+    "shareBgtHodl": 0.56282722513089,
+    "shareAgtHodl": 0.537521815008726,
+    "aprA": 0.8567183419613563,
+    "aprB": 0.9893789182131086
+   },
+   "u80-long": {
+    "n": 1146,
+    "shareBgeA": 1,
+    "extraMedianBps": 159.60361174952232,
+    "extraP5Bps": 54.230065463074425,
+    "extraMinBps": 28.473674190272504,
+    "shareBgtHodl": 0.6369982547993019,
+    "shareAgtHodl": 0.537521815008726,
+    "aprA": 0.8567183419613563,
+    "aprB": 1.3615349172016555
+   }
+  },
+  "noKeeper": {
+   "u20-long": {
+    "n": 1146,
+    "shareBgeA": 0.027050610820244327,
+    "extraMedianBps": -36.41438917416508,
+    "extraP5Bps": -167.31757375880443,
+    "extraMinBps": -236.75911405815896,
+    "shareBgtHodl": 0.5226876090750436,
+    "shareAgtHodl": 0.537521815008726,
+    "aprA": 0.8567183419613563,
+    "aprB": 0.7552168400248438
+   },
+   "u50-long": {
+    "n": 1146,
+    "shareBgeA": 0.030541012216404886,
+    "extraMedianBps": -89.57929511180646,
+    "extraP5Bps": -422.2629787669498,
+    "extraMinBps": -588.9965437063984,
+    "shareBgtHodl": 0.4799301919720768,
+    "shareAgtHodl": 0.537521815008726,
+    "aprA": 0.8567183419613563,
+    "aprB": 0.6132378849847837
+   },
+   "u80-long": {
+    "n": 1146,
+    "shareBgeA": 0.04450261780104712,
+    "extraMedianBps": -138.16930170911473,
+    "extraP5Bps": -659.8834257665134,
+    "extraMinBps": -903.8169642533376,
+    "shareBgtHodl": 0.41710296684118675,
+    "shareAgtHodl": 0.537521815008726,
+    "aprA": 0.8567183419613563,
+    "aprB": 0.47199706574493905
+   }
+  }
+ },
  "lpGuarantee": {
   "run": "20261127-155803-d513c2d-jup",
   "seed": 20261127,
