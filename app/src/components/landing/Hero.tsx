@@ -39,27 +39,67 @@ export function ShowAgentRun({ children, className = "" }: { children: ReactNode
   );
 }
 
-/** Segmented two-way switch; the indicator slides under the active option. */
+/** Two-way mode switch: each option has an icon and a one-line description; the indicator slides
+ * under the active one. The agents side pulses quietly until it has been opened once. */
 function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
-  const opts: [Mode, string][] = [["people", "For people"], ["agents", "For agents"]];
+  const [seenAgents, setSeenAgents] = useState(false);
+  useEffect(() => {
+    if (mode === "agents") setSeenAgents(true);
+  }, [mode]);
+  const opts: { m: Mode; label: string; sub: string; icon: ReactNode }[] = [
+    {
+      m: "people",
+      label: "For people",
+      sub: "Draw it or describe it",
+      icon: (
+        <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+          <path d="M2 12.5c2.2-.2 3.4-4.8 5.2-4.8 1.6 0 1.8 2.6 3.4 2.6 1.3 0 2.3-2.4 3.4-5.8" strokeLinecap="round" />
+          <circle cx="7.2" cy="7.7" r="1.1" fill="currentColor" stroke="none" />
+        </svg>
+      ),
+    },
+    {
+      m: "agents",
+      label: "For agents",
+      sub: "Pay per request · x402",
+      icon: (
+        <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+          <rect x="1.5" y="2.5" width="13" height="11" />
+          <path d="M4.5 6.5 6.8 8.5 4.5 10.5M8.5 10.5h3" strokeLinecap="square" />
+        </svg>
+      ),
+    },
+  ];
   return (
-    <div role="group" aria-label="Show FORGE for" className="relative inline-grid grid-cols-2 border border-line-strong bg-bg/50 p-[3px] backdrop-blur-sm">
+    <div role="group" aria-label="Show FORGE for" className="relative inline-grid grid-cols-2 border border-line-strong bg-panel/70 p-1 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-md">
       <span
         aria-hidden
-        className="absolute inset-y-[3px] left-[3px] w-[calc(50%-3px)] bg-ink transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none"
+        className="absolute inset-y-1 left-1 w-[calc(50%-4px)] bg-ink shadow-[0_0_0_1px_rgba(242,244,248,0.25),0_6px_24px_rgba(183,196,214,0.25)] transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none"
         style={{ transform: mode === "agents" ? "translateX(100%)" : "none" }}
       />
-      {opts.map(([m, label]) => (
-        <button
-          key={m}
-          type="button"
-          aria-pressed={mode === m}
-          onClick={() => onChange(m)}
-          className={`relative z-10 px-3.5 py-1.5 text-[12.5px] font-medium transition-colors duration-300 ${mode === m ? "text-bg" : "text-ink-2 hover:text-ink"}`}
-        >
-          {label}
-        </button>
-      ))}
+      {opts.map(({ m, label, sub, icon }) => {
+        const on = mode === m;
+        return (
+          <button
+            key={m}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onChange(m)}
+            className={`relative z-10 flex items-center gap-2.5 px-3.5 py-2 text-left transition-colors duration-300 sm:px-4 sm:py-2.5 ${on ? "text-bg" : "text-ink-2 hover:text-ink"}`}
+          >
+            <span className="relative shrink-0">
+              {icon}
+              {m === "agents" && !on && !seenAgents && (
+                <span aria-hidden className="absolute -right-1 -top-1 size-1.5 animate-pulse bg-accent motion-reduce:animate-none" />
+              )}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[13.5px] font-semibold leading-tight">{label}</span>
+              <span className={`mt-0.5 block whitespace-nowrap font-mono text-[10.5px] leading-tight ${on ? "text-bg/70" : "text-ink-3"}`}>{sub}</span>
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
