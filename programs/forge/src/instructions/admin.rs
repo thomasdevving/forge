@@ -66,6 +66,12 @@ pub struct InitializeMarket<'info> {
     #[account(init, payer = admin, seeds = [b"staging_quote", market.key().as_ref()], bump,
         token::mint = quote_mint, token::authority = vault)]
     pub staging_quote: Box<Account<'info, TokenAccount>>,
+    #[account(init, payer = admin, seeds = [b"fee_vault_base", market.key().as_ref()], bump,
+        token::mint = base_mint, token::authority = vault)]
+    pub fee_vault_base: Box<Account<'info, TokenAccount>>,
+    #[account(init, payer = admin, seeds = [b"fee_vault_quote", market.key().as_ref()], bump,
+        token::mint = quote_mint, token::authority = vault)]
+    pub fee_vault_quote: Box<Account<'info, TokenAccount>>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
@@ -114,6 +120,8 @@ pub fn initialize_market(ctx: Context<InitializeMarket>, args: InitializeMarketA
     m.reference = args.reference;
     m.params = args.params;
     m.premium_vault = ctx.accounts.premium_vault.key();
+    m.fee_vault_base = ctx.accounts.fee_vault_base.key();
+    m.fee_vault_quote = ctx.accounts.fee_vault_quote.key();
     m.bump = ctx.bumps.market;
     m.vault_bump = ctx.bumps.vault;
     Ok(())

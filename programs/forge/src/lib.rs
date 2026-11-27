@@ -64,6 +64,39 @@ pub mod forge {
         instructions::bucket::deposit_liquidity(ctx, liquidity, max_base, max_quote)
     }
 
+    pub fn collect_and_distribute(ctx: Context<BucketPool>) -> Result<()> {
+        instructions::bucket::collect_and_distribute(ctx)
+    }
+
+    pub fn withdraw_liquidity(
+        ctx: Context<WithdrawLiquidity>,
+        liquidity: u128,
+        min_base: u64,
+        min_quote: u64,
+    ) -> Result<()> {
+        instructions::bucket::withdraw_liquidity(ctx, liquidity, min_base, min_quote)
+    }
+
+    pub fn request_lp_withdrawal(ctx: Context<RequestLpWithdrawal>, liquidity: u128) -> Result<()> {
+        instructions::bucket::request_lp_withdrawal(ctx, liquidity)
+    }
+
+    pub fn claim_lp(ctx: Context<ClaimLp>) -> Result<()> {
+        instructions::bucket::claim_lp(ctx)
+    }
+
+    pub fn begin_lp_deposit(ctx: Context<BeginLpDeposit>, nonce: u64, liquidity: u128) -> Result<()> {
+        instructions::bucket::begin_lp_deposit(ctx, nonce, liquidity)
+    }
+
+    pub fn execute_lp_deposit_bucket(ctx: Context<ExecuteLpDepositBucket>) -> Result<()> {
+        instructions::bucket::execute_lp_deposit_bucket(ctx)
+    }
+
+    pub fn finish_lp_deposit(ctx: Context<FinishLpDeposit>, cancel: bool) -> Result<()> {
+        instructions::bucket::finish_lp_deposit(ctx, cancel)
+    }
+
     pub fn begin_open<'info>(ctx: Context<'info, BeginOpen<'info>>, args: BeginOpenArgs) -> Result<()> {
         instructions::strategy_open::begin_open(ctx, args)
     }

@@ -134,6 +134,9 @@ pub struct Market {
     pub reference: ReferenceConfig,
     pub params: MarketParams,
     pub premium_vault: Pubkey,
+    /// Idle-liquidity Orca fees collected for LPs, by token.
+    pub fee_vault_base: Pubkey,
+    pub fee_vault_quote: Pubkey,
     pub opens_paused: bool,
     pub borrow_paused: bool,
     pub strategy_count: u64,
@@ -183,10 +186,13 @@ pub struct Bucket {
     pub premium_index_x64: u128,
     pub premium_remainder_x64: u128,
     pub premium_distributed: u64,
-    pub fee_index_a_x64: u128,
-    pub fee_index_b_x64: u128,
-    pub fee_remainder_a_x64: u128,
-    pub fee_remainder_b_x64: u128,
+    /// Idle Orca fees per share (Q64.64), by token, with exact carried remainders.
+    pub fee_index_base_x64: u128,
+    pub fee_index_quote_x64: u128,
+    pub fee_remainder_base_x64: u128,
+    pub fee_remainder_quote_x64: u128,
+    pub fees_collected_base: u64,
+    pub fees_collected_quote: u64,
     pub lp_shortfall_quote: u64,
     /// Number of executed, unrestored borrowed legs on this bucket.
     pub open_legs: u32,
@@ -230,13 +236,47 @@ pub struct LpPosition {
     pub liquidity: u128,
     pub premium_index_x64: u128,
     pub premium_owed: u64,
-    pub fee_index_a_x64: u128,
-    pub fee_index_b_x64: u128,
-    pub fee_owed_a: u64,
-    pub fee_owed_b: u64,
+    pub premium_claimed: u64,
+    pub fee_index_base_x64: u128,
+    pub fee_index_quote_x64: u128,
+    pub fee_owed_base: u64,
+    pub fee_owed_quote: u64,
+    pub fees_claimed_base: u64,
+    pub fees_claimed_quote: u64,
     pub withdrawal_liquidity: u128,
     pub withdrawal_requested_at: i64,
     pub bump: u8,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq, InitSpace)]
+pub enum DepositState {
+    Pending,
+    Done,
+    Cancelled,
+}
+
+/// A staged ladder deposit of an existing Orca position (section 4.2). The original position's
+/// liquidity is withdrawn into this ticket's escrow and redeployed bucket by bucket; it is not
+/// advertised as active until every bucket is funded.
+#[account]
+#[derive(InitSpace)]
+pub struct LpDeposit {
+    pub lp: Pubkey,
+    pub market: Pubkey,
+    pub nonce: u64,
+    pub state: DepositState,
+    pub tick_lower: i32,
+    pub tick_upper: i32,
+    pub liquidity: u128,
+    pub withdrawn_base: u64,
+    pub withdrawn_quote: u64,
+    /// Next bucket (by index from tick_lower) to redeploy.
+    pub cursor: u16,
+    pub bucket_count: u16,
+    pub created_at: i64,
+    pub bump: u8,
+    pub escrow_base_bump: u8,
+    pub escrow_quote_bump: u8,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq, InitSpace)]
