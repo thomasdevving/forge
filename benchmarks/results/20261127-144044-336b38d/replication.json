@@ -20,7 +20,7 @@
    "median_relative_error_bps": 27.92035775533431,
    "max_relative_error_bps": 70.7615602465866,
    "mean_legs": 1.9333333333333333,
-   "mean_solve_ms": 1.5709873430592858
+   "mean_solve_ms": 1.9246032208447224
   },
   "optimizer/deep": {
    "payoffs": 23,
@@ -29,7 +29,7 @@
    "median_relative_error_bps": 17.785579091695787,
    "max_relative_error_bps": 83.95587506178026,
    "mean_legs": 3.6,
-   "mean_solve_ms": 415.13275169848424
+   "mean_solve_ms": 442.4511882851062
   },
   "baseline/thin": {
    "payoffs": 23,
@@ -38,7 +38,7 @@
    "median_relative_error_bps": 49.59484311073839,
    "max_relative_error_bps": 49.59484311073839,
    "mean_legs": 3.0,
-   "mean_solve_ms": 1.602855141517585
+   "mean_solve_ms": 1.8624439126933399
   },
   "optimizer/thin": {
    "payoffs": 23,
@@ -47,7 +47,7 @@
    "median_relative_error_bps": 25.531307947951976,
    "max_relative_error_bps": 61.96646206793653,
    "mean_legs": 5.7894736842105265,
-   "mean_solve_ms": 299.28670644901854
+   "mean_solve_ms": 315.07084608260215
   }
  },
  "bound_violations": [],
@@ -60,7 +60,7 @@
    "reasons": [
     "kink at 43.938 is outside the bucket grid"
    ],
-   "solve_seconds": 0.0021130420500412583,
+   "solve_seconds": 0.004334208904765546,
    "tolerance": 11.716800000000001,
    "notional": 1171.68
   },
@@ -72,7 +72,7 @@
    "reasons": [
     "the payoff cannot be matched within tolerance by out-of-range ranges on this grid"
    ],
-   "solve_seconds": 0.6367694590007886,
+   "solve_seconds": 0.6453264160081744,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 18.054771085957693,
@@ -88,7 +88,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0015340830432251096,
+   "solve_seconds": 0.0018159589963033795,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 2.868490648021171,
@@ -104,7 +104,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.6864251249935478,
+   "solve_seconds": 0.7217815000331029,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 1.6846479006479198,
@@ -120,7 +120,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0014401249354705215,
+   "solve_seconds": 0.001854957896284759,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 3.780976745023523,
@@ -136,7 +136,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.8679912500083447,
+   "solve_seconds": 0.904068750096485,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 1.8321630086564396,
@@ -152,7 +152,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0017452919855713844,
+   "solve_seconds": 0.0018681250512599945,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 2.399101820587012,
@@ -168,7 +168,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.7884440829511732,
+   "solve_seconds": 0.8908323750365525,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 1.7951180277003145,
@@ -184,7 +184,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0013865000801160932,
+   "solve_seconds": 0.001999792060814798,
    "tolerance": 13.913699999999999,
    "notional": 1391.37,
    "certified_bound": 3.4697597135087985,
@@ -200,7 +200,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.23330850002821535,
+   "solve_seconds": 0.2530447080498561,
    "tolerance": 13.913699999999999,
    "notional": 1391.37,
    "certified_bound": 1.9988545270539102,
@@ -216,7 +216,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0013487499672919512,
+   "solve_seconds": 0.0018139580497518182,
    "tolerance": 15.012150000000002,
    "notional": 1501.2150000000001,
    "certified_bound": 9.089843145923039,
@@ -232,7 +232,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.2556540840305388,
+   "solve_seconds": 0.30824887508060783,
    "tolerance": 15.012150000000002,
    "notional": 1501.2150000000001,
    "certified_bound": 2.900704513525529,
@@ -248,7 +248,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0014768330147489905,
+   "solve_seconds": 0.0017176669789478183,
    "tolerance": 14.645999999999995,
    "notional": 1464.5999999999995,
    "certified_bound": 3.4697597135087985,
@@ -264,7 +264,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.3040385830681771,
+   "solve_seconds": 0.3452622080221772,
    "tolerance": 14.645999999999995,
    "notional": 1464.5999999999995,
    "certified_bound": 2.115744394559871,
@@ -280,7 +280,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0013540840009227395,
+   "solve_seconds": 0.0017192079685628414,
    "tolerance": 15.74445,
    "notional": 1574.445,
    "certified_bound": 9.089843145923039,
@@ -296,7 +296,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.1998765830649063,
+   "solve_seconds": 0.21177395805716515,
    "tolerance": 15.74445,
    "notional": 1574.445,
    "certified_bound": 2.9852736719022297,
@@ -312,7 +312,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0015007499605417252,
+   "solve_seconds": 0.0018210839480161667,
    "tolerance": 17.20905,
    "notional": 1720.9050000000002,
    "certified_bound": 2.432318278948815,
@@ -328,7 +328,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.6497412079479545,
+   "solve_seconds": 0.6574870409676805,
    "tolerance": 17.20905,
    "notional": 1720.9050000000002,
    "certified_bound": 1.8150944087039127,
@@ -346,7 +346,7 @@
    "reasons": [
     "kink at 47.5995 is outside the bucket grid"
    ],
-   "solve_seconds": 0.0015420829877257347,
+   "solve_seconds": 0.0015748749719932675,
    "tolerance": 16.476750000000003,
    "notional": 1647.6750000000002,
    "certified_bound": 33.151328473375834,
@@ -362,7 +362,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 1.2822714999783784,
+   "solve_seconds": 1.3357744999229908,
    "tolerance": 16.476750000000003,
    "notional": 1647.6750000000002,
    "certified_bound": 10.208477750658341,
@@ -378,7 +378,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0015631669666618109,
+   "solve_seconds": 0.001694333041086793,
    "tolerance": 17.5752,
    "notional": 1757.52,
    "certified_bound": 3.753520529722839,
@@ -394,7 +394,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 1.0458050000015646,
+   "solve_seconds": 1.0928528340300545,
    "tolerance": 17.5752,
    "notional": 1757.52,
    "certified_bound": 1.7259103709088135,
@@ -410,7 +410,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0013032079441472888,
+   "solve_seconds": 0.001430625095963478,
    "tolerance": 8.787599999999996,
    "notional": 878.7599999999995,
    "certified_bound": 5.604411799721072,
@@ -426,7 +426,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.09768195799551904,
+   "solve_seconds": 0.10420208296272904,
    "tolerance": 8.787599999999996,
    "notional": 878.7599999999995,
    "certified_bound": 1.6170537213154148,
@@ -444,7 +444,7 @@
    "reasons": [
     "kink at 106.184 is outside the bucket grid"
    ],
-   "solve_seconds": 0.0015289579750970006,
+   "solve_seconds": 0.0017912500770762563,
    "tolerance": 9.702975,
    "notional": 970.2975,
    "certified_bound": 32.61748358574762,
@@ -460,7 +460,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.16304691706318408,
+   "solve_seconds": 0.16846620908472687,
    "tolerance": 9.702975,
    "notional": 970.2975,
    "certified_bound": 4.889271144741195,
@@ -476,7 +476,7 @@
    "method": "baseline",
    "status": "infeasible",
    "reasons": [],
-   "solve_seconds": 0.0012561249313876033,
+   "solve_seconds": 0.0015511660603806376,
    "tolerance": 8.348220000000001,
    "notional": 834.8220000000001,
    "certified_bound": 9.526876278567423,
@@ -492,7 +492,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.5427293329266831,
+   "solve_seconds": 0.5763357080286369,
    "tolerance": 8.348220000000001,
    "notional": 834.8220000000001,
    "certified_bound": 1.681484537321442,
@@ -510,7 +510,7 @@
    "reasons": [
     "kink at 73.23 lies in the range containing the current price"
    ],
-   "solve_seconds": 0.001788457971997559,
+   "solve_seconds": 0.0019545829854905605,
    "tolerance": 14.646,
    "notional": 1464.6000000000001
   },
@@ -520,7 +520,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.08168049994856119,
+   "solve_seconds": 0.08790175011381507,
    "tolerance": 14.646,
    "notional": 1464.6000000000001,
    "certified_bound": 12.29617746154834,
@@ -536,7 +536,7 @@
    "method": "baseline",
    "status": "infeasible",
    "reasons": [],
-   "solve_seconds": 0.0016521670622751117,
+   "solve_seconds": 0.001998791005462408,
    "tolerance": 13.181400000000004,
    "notional": 1318.1400000000003,
    "certified_bound": 315.26935128008995,
@@ -554,7 +554,7 @@
    "reasons": [
     "the payoff cannot be matched within tolerance by out-of-range ranges on this grid"
    ],
-   "solve_seconds": 0.3648104580352083,
+   "solve_seconds": 0.4046460000099614,
    "tolerance": 13.181400000000004,
    "notional": 1318.1400000000003,
    "certified_bound": 39.03703743565466,
@@ -570,7 +570,7 @@
    "method": "baseline",
    "status": "infeasible",
    "reasons": [],
-   "solve_seconds": 0.0023154999362304807,
+   "solve_seconds": 0.0028302499558776617,
    "tolerance": 16.1106,
    "notional": 1611.0600000000002,
    "certified_bound": 386.5764782277368,
@@ -588,7 +588,7 @@
    "reasons": [
     "the payoff cannot be matched within tolerance by out-of-range ranges on this grid"
    ],
-   "solve_seconds": 0.15321854106150568,
+   "solve_seconds": 0.17760258296038955,
    "tolerance": 16.1106,
    "notional": 1611.0600000000002,
    "certified_bound": 48.05618365078382,
@@ -604,7 +604,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0017660419689491391,
+   "solve_seconds": 0.001904624979943037,
    "tolerance": 14.645999999999999,
    "notional": 1464.6,
    "certified_bound": 2.4750696190654535,
@@ -620,7 +620,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.10016124998219311,
+   "solve_seconds": 0.11154695902951062,
    "tolerance": 14.645999999999999,
    "notional": 1464.6,
    "certified_bound": 2.1650772917164374,
@@ -636,7 +636,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0016243329737335443,
+   "solve_seconds": 0.001950290985405445,
    "tolerance": 15.012150000000002,
    "notional": 1501.2150000000001,
    "certified_bound": 4.597150835652425,
@@ -652,7 +652,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.06668662501033396,
+   "solve_seconds": 0.07620562508236617,
    "tolerance": 15.012150000000002,
    "notional": 1501.2150000000001,
    "certified_bound": 3.444009797384213,
@@ -668,7 +668,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.001611500047147274,
+   "solve_seconds": 0.0018369590397924185,
    "tolerance": 14.646000000000004,
    "notional": 1464.6000000000004,
    "certified_bound": 4.089215596846264,
@@ -684,7 +684,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.4612110829912126,
+   "solve_seconds": 0.49806941591668874,
    "tolerance": 14.646000000000004,
    "notional": 1464.6000000000004,
    "certified_bound": 2.8264227982329135,
@@ -700,7 +700,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0013140840455889702,
+   "solve_seconds": 0.0014667080249637365,
    "tolerance": 8.78760000000001,
    "notional": 878.7600000000009,
    "certified_bound": 6.2182428682290505,
@@ -716,7 +716,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.3164877910166979,
+   "solve_seconds": 0.33872250001877546,
    "tolerance": 8.78760000000001,
    "notional": 878.7600000000009,
    "certified_bound": 1.5087973752083041,
@@ -732,7 +732,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0013691670028492808,
+   "solve_seconds": 0.0014573329826816916,
    "tolerance": 8.421450000000002,
    "notional": 842.1450000000002,
    "certified_bound": 4.176604915149279,
@@ -748,7 +748,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.19625754200387746,
+   "solve_seconds": 0.20969441602937877,
    "tolerance": 8.421450000000002,
    "notional": 842.1450000000002,
    "certified_bound": 1.035012126085213,
@@ -766,7 +766,7 @@
    "reasons": [
     "kink at 106.184 is outside the bucket grid"
    ],
-   "solve_seconds": 0.0015984580386430025,
+   "solve_seconds": 0.0018791250186040998,
    "tolerance": 9.519900000000009,
    "notional": 951.9900000000009,
    "certified_bound": 18.77695086357068,
@@ -782,7 +782,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0537559159565717,
+   "solve_seconds": 0.05653091601561755,
    "tolerance": 9.519900000000009,
    "notional": 951.9900000000009,
    "certified_bound": 2.797058069529224,
@@ -800,7 +800,7 @@
    "reasons": [
     "kink at 43.938 is outside the bucket grid"
    ],
-   "solve_seconds": 0.0014367079129442573,
+   "solve_seconds": 0.0017342920182272792,
    "tolerance": 11.716800000000001,
    "notional": 1171.68
   },
@@ -812,7 +812,7 @@
    "reasons": [
     "borrowable liquidity exhausted in [50.03, 51.33]"
    ],
-   "solve_seconds": 0.25416125007905066,
+   "solve_seconds": 0.2714788749581203,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 18.328567738454527,
@@ -830,7 +830,7 @@
    "reasons": [
     "kink at 51.261 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0014808339765295386,
+   "solve_seconds": 0.0018307080026715994,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 31.871510058199412,
@@ -846,7 +846,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.2334796249633655,
+   "solve_seconds": 0.25022075010929257,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 4.539975059263022,
@@ -864,7 +864,7 @@
    "reasons": [
     "kink at 58.584 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0014754999428987503,
+   "solve_seconds": 0.001980541041120887,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 47.932219864494805,
@@ -880,7 +880,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.2931090830825269,
+   "solve_seconds": 0.3144816249841824,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 3.316752942096755,
@@ -898,7 +898,7 @@
    "reasons": [
     "kink at 65.907 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0014830000000074506,
+   "solve_seconds": 0.001649125013500452,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 60.305596755752696,
@@ -914,7 +914,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.43330862501170486,
+   "solve_seconds": 0.47423724993132055,
    "tolerance": 11.716800000000001,
    "notional": 1171.68,
    "certified_bound": 3.738597032984799,
@@ -932,7 +932,7 @@
    "reasons": [
     "kink at 54.9225 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0015760409878566861,
+   "solve_seconds": 0.0018053329549729824,
    "tolerance": 13.913699999999999,
    "notional": 1391.37,
    "certified_bound": 51.25039912114121,
@@ -948,7 +948,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.09047824994195253,
+   "solve_seconds": 0.0954763749614358,
    "tolerance": 13.913699999999999,
    "notional": 1391.37,
    "certified_bound": 3.097045492880439,
@@ -966,7 +966,7 @@
    "reasons": [
     "kink at 54.9225 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0016132500022649765,
+   "solve_seconds": 0.0018755840137600899,
    "tolerance": 15.012150000000002,
    "notional": 1501.2150000000001,
    "certified_bound": 54.060440842860075,
@@ -982,7 +982,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.13288562500383705,
+   "solve_seconds": 0.13626029202714562,
    "tolerance": 15.012150000000002,
    "notional": 1501.2150000000001,
    "certified_bound": 3.6772747225976508,
@@ -1000,7 +1000,7 @@
    "reasons": [
     "kink at 62.2455 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0016707080649212003,
+   "solve_seconds": 0.0017361670034006238,
    "tolerance": 14.645999999999995,
    "notional": 1464.5999999999995,
    "certified_bound": 77.83053281786819,
@@ -1016,7 +1016,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.21911675005685538,
+   "solve_seconds": 0.23693049990106374,
    "tolerance": 14.645999999999995,
    "notional": 1464.5999999999995,
    "certified_bound": 3.6174010398987853,
@@ -1034,7 +1034,7 @@
    "reasons": [
     "kink at 62.2455 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0015724580734968185,
+   "solve_seconds": 0.0020442919339984655,
    "tolerance": 15.74445,
    "notional": 1574.445,
    "certified_bound": 80.64057453956342,
@@ -1050,7 +1050,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.1182310419389978,
+   "solve_seconds": 0.12566812511067837,
    "tolerance": 15.74445,
    "notional": 1574.445,
    "certified_bound": 4.019764014211325,
@@ -1068,7 +1068,7 @@
    "reasons": [
     "kink at 65.907 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0015711660962551832,
+   "solve_seconds": 0.0017882500542327762,
    "tolerance": 17.20905,
    "notional": 1720.9050000000002,
    "certified_bound": 59.64360024752743,
@@ -1084,7 +1084,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.10194862494245172,
+   "solve_seconds": 0.11109404196031392,
    "tolerance": 17.20905,
    "notional": 1720.9050000000002,
    "certified_bound": 3.6688662207812444,
@@ -1103,7 +1103,7 @@
     "kink at 47.5995 is outside the bucket grid",
     "kink at 62.2455 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0015561670297756791,
+   "solve_seconds": 0.001960582914762199,
    "tolerance": 16.476750000000003,
    "notional": 1647.6750000000002,
    "certified_bound": 40.34009095215715,
@@ -1119,7 +1119,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 1.012676874990575,
+   "solve_seconds": 1.0750604999484494,
    "tolerance": 16.476750000000003,
    "notional": 1647.6750000000002,
    "certified_bound": 10.210059038778734,
@@ -1137,7 +1137,7 @@
    "reasons": [
     "kink at 67.3716 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0015663749072700739,
+   "solve_seconds": 0.0018671249272301793,
    "tolerance": 17.5752,
    "notional": 1757.52,
    "certified_bound": 63.766332512365274,
@@ -1153,7 +1153,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 1.1687870000023395,
+   "solve_seconds": 1.2274518340127543,
    "tolerance": 17.5752,
    "notional": 1757.52,
    "certified_bound": 3.93566651831649,
@@ -1171,7 +1171,7 @@
    "reasons": [
     "kink at 80.553 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0017274590209126472,
+   "solve_seconds": 0.0020578340627253056,
    "tolerance": 8.787599999999996,
    "notional": 878.7599999999995,
    "certified_bound": 32.684731918359,
@@ -1187,7 +1187,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.26547454099636525,
+   "solve_seconds": 0.29228424991015345,
    "tolerance": 8.787599999999996,
    "notional": 878.7599999999995,
    "certified_bound": 1.948287669416072,
@@ -1206,7 +1206,7 @@
     "kink at 87.876 needs more borrowable liquidity than the bucket has",
     "kink at 106.184 is outside the bucket grid"
    ],
-   "solve_seconds": 0.0015707920538261533,
+   "solve_seconds": 0.0017837919294834137,
    "tolerance": 9.702975,
    "notional": 970.2975,
    "certified_bound": 21.968670339476503,
@@ -1222,7 +1222,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.07992400007788092,
+   "solve_seconds": 0.08738629193976521,
    "tolerance": 9.702975,
    "notional": 970.2975,
    "certified_bound": 4.895151373054302,
@@ -1240,7 +1240,7 @@
    "reasons": [
     "kink at 79.0884 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.00172737508546561,
+   "solve_seconds": 0.0019948339322581887,
    "tolerance": 8.348220000000001,
    "notional": 834.8220000000001,
    "certified_bound": 32.7784676711698,
@@ -1256,7 +1256,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.4629553750855848,
+   "solve_seconds": 0.48282466700766236,
    "tolerance": 8.348220000000001,
    "notional": 834.8220000000001,
    "certified_bound": 1.962431882977294,
@@ -1274,7 +1274,7 @@
    "reasons": [
     "kink at 73.23 lies in the range containing the current price"
    ],
-   "solve_seconds": 0.0017515410436317325,
+   "solve_seconds": 0.0017775410087779164,
    "tolerance": 14.646,
    "notional": 1464.6000000000001
   },
@@ -1294,7 +1294,7 @@
     "borrowable liquidity exhausted in [77.31, 79.32]",
     "borrowable liquidity exhausted in [79.32, 81.38]"
    ],
-   "solve_seconds": 0.03896954201627523,
+   "solve_seconds": 0.03900195797905326,
    "tolerance": 14.646,
    "notional": 1464.6000000000001,
    "certified_bound": 23.437969175561776,
@@ -1312,7 +1312,7 @@
    "reasons": [
     "kink at 65.907 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.001683542039245367,
+   "solve_seconds": 0.002007375005632639,
    "tolerance": 13.181400000000004,
    "notional": 1318.1400000000003,
    "certified_bound": 184.62970038817795,
@@ -1335,7 +1335,7 @@
     "borrowable liquidity exhausted in [77.31, 79.32]",
     "borrowable liquidity exhausted in [79.32, 81.38]"
    ],
-   "solve_seconds": 0.036966958083212376,
+   "solve_seconds": 0.037218332989141345,
    "tolerance": 13.181400000000004,
    "notional": 1318.1400000000003,
    "certified_bound": 49.70052036690227,
@@ -1353,7 +1353,7 @@
    "reasons": [
     "kink at 80.553 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0017161669675260782,
+   "solve_seconds": 0.001909458078444004,
    "tolerance": 16.1106,
    "notional": 1611.0600000000002,
    "certified_bound": 201.88952261599744,
@@ -1376,7 +1376,7 @@
     "borrowable liquidity exhausted in [83.49, 85.65]",
     "borrowable liquidity exhausted in [85.65, 87.87]"
    ],
-   "solve_seconds": 0.02706204098649323,
+   "solve_seconds": 0.02682533406186849,
    "tolerance": 16.1106,
    "notional": 1611.0600000000002,
    "certified_bound": 60.05296693756588,
@@ -1395,7 +1395,7 @@
     "kink at 62.2455 needs more borrowable liquidity than the bucket has",
     "kink at 84.2145 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0017189589561894536,
+   "solve_seconds": 0.001849916996434331,
    "tolerance": 14.645999999999999,
    "notional": 1464.6,
    "certified_bound": 102.32629511788214,
@@ -1411,7 +1411,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 1.0685568330809474,
+   "solve_seconds": 1.0805077919503674,
    "tolerance": 14.645999999999999,
    "notional": 1464.6,
    "certified_bound": 8.565013400617367,
@@ -1430,7 +1430,7 @@
     "kink at 54.9225 needs more borrowable liquidity than the bucket has",
     "kink at 95.199 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0016743340529501438,
+   "solve_seconds": 0.0019081670325249434,
    "tolerance": 15.012150000000002,
    "notional": 1501.2150000000001,
    "certified_bound": 75.12289125861571,
@@ -1446,7 +1446,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.05474366608541459,
+   "solve_seconds": 0.05539762508124113,
    "tolerance": 15.012150000000002,
    "notional": 1501.2150000000001,
    "certified_bound": 8.793699984633777,
@@ -1465,7 +1465,7 @@
     "kink at 65.907 needs more borrowable liquidity than the bucket has",
     "kink at 80.553 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0017544589936733246,
+   "solve_seconds": 0.0019510840065777302,
    "tolerance": 14.646000000000004,
    "notional": 1464.6000000000004,
    "certified_bound": 113.2960310012781,
@@ -1481,7 +1481,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.07531316694803536,
+   "solve_seconds": 0.07722120801918209,
    "tolerance": 14.646000000000004,
    "notional": 1464.6000000000004,
    "certified_bound": 6.701596384276779,
@@ -1499,7 +1499,7 @@
    "reasons": [
     "kink at 95.199 needs more borrowable liquidity than the bucket has"
    ],
-   "solve_seconds": 0.0015175410080701113,
+   "solve_seconds": 0.0017202909803017974,
    "tolerance": 8.78760000000001,
    "notional": 878.7600000000009,
    "certified_bound": 6.2177801888838315,
@@ -1515,7 +1515,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.5209369999356568,
+   "solve_seconds": 0.5423132920404896,
    "tolerance": 8.78760000000001,
    "notional": 878.7600000000009,
    "certified_bound": 1.5087607159330607,
@@ -1531,7 +1531,7 @@
    "method": "baseline",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0014060420216992497,
+   "solve_seconds": 0.0016564170364290476,
    "tolerance": 8.421450000000002,
    "notional": 842.1450000000002,
    "certified_bound": 4.176604915149279,
@@ -1547,7 +1547,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.12653437501285225,
+   "solve_seconds": 0.13493399997241795,
    "tolerance": 8.421450000000002,
    "notional": 842.1450000000002,
    "certified_bound": 1.0350121261434206,
@@ -1565,7 +1565,7 @@
    "reasons": [
     "kink at 106.184 is outside the bucket grid"
    ],
-   "solve_seconds": 0.0016152500174939632,
+   "solve_seconds": 0.0019475000444799662,
    "tolerance": 9.519900000000009,
    "notional": 951.9900000000009,
    "certified_bound": 18.77695086357068,
@@ -1581,7 +1581,7 @@
    "method": "optimizer",
    "status": "ok",
    "reasons": [],
-   "solve_seconds": 0.0679740000050515,
+   "solve_seconds": 0.07235454104375094,
    "tolerance": 9.519900000000009,
    "notional": 951.9900000000009,
    "certified_bound": 2.9230644078932997,
@@ -1592,5 +1592,5 @@
    "certificate_hash": "bf2ebc8605923139f305d0a9df66b6a58840bb35f94209c82333f93465ef3e39"
   }
  ],
- "seconds": 20.9
+ "seconds": 22.0
 }

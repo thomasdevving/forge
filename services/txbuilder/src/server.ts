@@ -18,7 +18,8 @@ import {
   createSolanaRpc,
   getBase64EncodedWireTransaction,
 } from "@solana/kit";
-import { buildClose, buildOpen, type LegKindName } from "./flows.js";
+import { buildClose, buildOpen, checkpointLegIx, type LegKindName } from "./flows.js";
+import { checkpointIxsForBucket, claimLpIx, depositLiquidityIx, requestWithdrawalIx, withdrawLiquidityIx } from "./lp.js";
 import { fetchMarket } from "./accounts.js";
 import { hexToBytes } from "./idl.js";
 import { humanPriceToX64 } from "./orca.js";
@@ -92,6 +93,49 @@ app.post<{ Body: { owner: string; market: string; strategy: string; userBase: st
     userQuote: address(b.userQuote),
   });
   return { transactions: await encode(owner, plan) };
+});
+
+type LpBody = { owner: string; market: string; bucket: string; liquidity?: string; userBase: string; userQuote: string };
+
+app.post<{ Body: LpBody }>("/build/deposit", async (req) => {
+  const b = req.body;
+  const owner = address(b.owner);
+  const s = createNoopSigner(owner);
+  const ixs = [
+    ...(await checkpointIxsForBucket(rpc, address(b.market), address(b.bucket))),
+    await depositLiquidityIx({ rpc, lp: s, market: address(b.market), bucket: address(b.bucket), liquidity: BigInt(b.liquidity ?? "0"), lpBase: address(b.userBase), lpQuote: address(b.userQuote) }),
+  ];
+  return { transactions: await encode(owner, [ixs]) };
+});
+
+app.post<{ Body: LpBody }>("/build/withdraw", async (req) => {
+  const b = req.body;
+  const owner = address(b.owner);
+  const s = createNoopSigner(owner);
+  const ixs = [
+    ...(await checkpointIxsForBucket(rpc, address(b.market), address(b.bucket))),
+    await withdrawLiquidityIx({ rpc, lp: s, market: address(b.market), bucket: address(b.bucket), liquidity: BigInt(b.liquidity ?? "0"), lpBase: address(b.userBase), lpQuote: address(b.userQuote) }),
+  ];
+  return { transactions: await encode(owner, [ixs]) };
+});
+
+app.post<{ Body: LpBody }>("/build/request-withdrawal", async (req) => {
+  const b = req.body;
+  const owner = address(b.owner);
+  return { transactions: await encode(owner, [[await requestWithdrawalIx(createNoopSigner(owner), address(b.bucket), BigInt(b.liquidity ?? "0"))]]) };
+});
+
+app.post<{ Body: LpBody }>("/build/claim", async (req) => {
+  const b = req.body;
+  const owner = address(b.owner);
+  const ix = await claimLpIx(rpc, createNoopSigner(owner), address(b.market), address(b.bucket), address(b.userBase), address(b.userQuote));
+  return { transactions: await encode(owner, [[ix]]) };
+});
+
+app.post<{ Body: { payer: string; market: string; strategy: string; legIndex: number } }>("/build/checkpoint", async (req) => {
+  const b = req.body;
+  const payer = address(b.payer);
+  return { transactions: await encode(payer, [[await checkpointLegIx(rpc, address(b.market), address(b.strategy), b.legIndex)]]) };
 });
 
 await app.listen({ port: PORT, host: process.env.HOST ?? "127.0.0.1" });
