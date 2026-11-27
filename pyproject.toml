@@ -46,7 +46,7 @@ testpaths = ["math/tests", "compiler/tests", "verifier/tests", "services/compile
 addopts = "-q"
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]
