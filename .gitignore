@@ -47,3 +47,5 @@ benchmarks/data/raw/
 benchmarks/data/*.npz
 next-env.d.ts
 .claude/
+.vercel
+.env*

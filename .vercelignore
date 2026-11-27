@@ -1,0 +1,16 @@
+# Only the web app (app/), the docs it renders and the committed benchmark results are needed to build.
+target
+.anchor
+**/node_modules
+**/.venv
+**/__pycache__
+benchmarks/data
+fork/.state
+fork/.surfpool
+programs
+solana-resources
+*.npz
+*.zip
+.env
+.env.*
+!.env.example
