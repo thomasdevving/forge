@@ -19,17 +19,20 @@ export const Proof: React.FC = () => {
   const tiles = [
     { big: opt.feasible, suffix: ` / ${opt.payoffs}`, label: "payoffs compiled on JUP's thin liquidity", note: `vs ${naive.feasible} / ${naive.payoffs} when replicating each kink directly` },
     { big: rep.boundViolations, suffix: "", label: "certificate bounds violated", note: "every certified error held on the fork" },
-    { big: lp.borrows_eligible, suffix: "", label: "borrows checked against the LP guarantee", note: `${lp.borrows_guarantee_violations} violations over ${fmt(lp.paths)} price paths` },
+    { big: lp.borrows_eligible, suffix: "", label: "funded borrows checked against the LP guarantee", note: `${lp.borrows_guarantee_violations} paid less than the fees they missed · ${fmt(lp.paths)} price paths` },
     { big: Math.round(keeper.shareBgeA * 100), suffix: "%", label: "of windows: FORGE LPs ≥ plain Orca LPs", note: `${fmt(keeper.n)} windows, ten months of JUP prices, 50% lent, keeper on` },
   ];
   return (
     <Backdrop glow={1}>
       <AbsoluteFill style={{ opacity: out }}>
         <div style={{ position: "absolute", left: 140, top: 86, opacity: title }}>
-          <Kicker n="04">Proof</Kicker>
+          <Kicker n="04">How we tested it</Kicker>
           <div style={{ fontFamily: sans, fontSize: 64, fontWeight: 600, letterSpacing: -2, marginTop: 18 }}>Measured, not promised.</div>
+          <div style={{ fontFamily: sans, fontSize: 30, color: C.ink2, marginTop: 14 }}>
+            On a fork of Solana mainnet with JUP's real pools, and on ten months of real JUP prices.
+          </div>
         </div>
-        <div style={{ position: "absolute", left: 140, right: 140, top: 300, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
+        <div style={{ position: "absolute", left: 140, right: 140, top: 330, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
           {tiles.map((t, i) => {
             const a = interpolate(f, [22 + i * 16, 46 + i * 16], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });
             const n = Math.round(t.big * interpolate(f, [30 + i * 16, 90 + i * 16], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease }));

@@ -9,6 +9,7 @@ import { Intro, LogoReveal, Outro, PartTitle } from "./scenes/Titles";
 import { RangeOption } from "./scenes/RangeOption";
 import { Compiler } from "./scenes/Compiler";
 import { X402 } from "./scenes/X402";
+import { Pricing } from "./scenes/Pricing";
 import { Proof } from "./scenes/Proof";
 
 type Marks = Record<string, { label: string; t: number }[]>;
@@ -60,7 +61,7 @@ function take(id: string, src: string, from: number, segs: Seg[]): Item[] {
 
 const paced = (k: number, el: React.ReactElement) => <Pace.Provider value={k}>{el}</Pace.Provider>;
 /** The agent run, faster than real reading speed: the voice-over carries it. */
-const TERM_PACE = { maxGap: 0.8, lead: 1.2, read: 0.6 };
+const TERM_PACE = { maxGap: 0.6, lead: 1.0, read: 0.45 };
 
 /** The intro's length when no recording exists yet; a recording sets its own. */
 export const INTRO_SECONDS = 18;
@@ -100,25 +101,25 @@ export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS):
       { to: m("wallet", 11) + 1.6, speed: 1.2, cap: wallet },
       { to: m("funded", 15), fit: 1.2, cap: wallet },
       { to: m("strategy", 18), speed: 1.6, cap: wallet },
-      { to: m("drag-cap", 30), speed: 1.3, zoom: FORM, cap: describe },
+      { to: m("drag-cap", 30), speed: 1.45, zoom: FORM, cap: describe },
       { to: m("duration", 34), speed: 1.2, zoom: CHART, cap: { n: "04", text: "Or drag it on the chart", sub: "the form follows" } },
       { to: m("compile", 37), speed: 1.3, zoom: FORM, cap: { n: "04", text: "Cover for one week", sub: "it closes automatically after 7 days" } },
       { to: m("compile", 37) + 1.4, speed: 1.2, cap: compile },
       { to: m("compiled", 40), fit: 0.8, cap: compile },
       { to: m("results", 44), speed: 1.3, fit: 3.5, cap: compile },
-      { to: m("open", 50), speed: 1.3, zoom: RESULTS, cap: results },
+      { to: m("open", 50), speed: 1.6, zoom: RESULTS, cap: results },
       { to: m("open", 50) + 1.4, speed: 1.2, cap: open },
       { to: m("opened", 62), fit: 2, cap: open },
       { to: m("position", 66), speed: 1.3, fit: 2.4, cap: open },
-      { to: m("position", 66) + 9.5, speed: 1.45, cap: position },
+      { to: m("position", 66) + 7, speed: 1.5, cap: position },
     ]));
   }
   if (has("close.mp4")) {
     const cap = { n: "09", text: "Close and settle", sub: "LP liquidity restored, payout from real balances" };
     push(...take("close", "close", at("close", "positions", 0) + 0.8, [
-      { to: at("close", "closing", 3.3) + 0.6, speed: 1.2, cap },
-      { to: at("close", "closed", 7.6), fit: 1.5, cap },
-      { to: at("close", "closed", 7.6) + 4.5, speed: 1.4, cap },
+      { to: at("close", "closing", 3.3) + 0.6, speed: 1.5, cap },
+      { to: at("close", "closed", 7.6), fit: 1.1, cap },
+      { to: at("close", "closed", 7.6) + 3.5, speed: 1.5, cap },
     ]));
   }
   if (has("architect.mp4") && MARKS.architect?.some((m) => m.label === "options")) {
@@ -126,9 +127,9 @@ export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS):
     const say = { n: "10", text: "Or just say it", sub: "the Architect compiles real options" };
     const choose = { n: "10", text: "Pick one, review it, sign it", sub: "every number comes from the compiler" };
     push(...take("a", A, m("studio") + 0.6, [
-      { to: m("send") + 0.8, speed: 2.2, cap: say },
-      { to: m("options"), fit: 2.2, cap: say },
-      { to: m("choose", m("options") + 5) + 3.2, speed: 1.35, cap: choose },
+      { to: m("send") + 0.8, speed: 3, cap: say },
+      { to: m("options"), fit: 1.6, cap: say },
+      { to: m("choose", m("options") + 5) + 2.6, speed: 1.6, cap: choose },
     ]));
   }
 
@@ -151,8 +152,8 @@ export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS):
   if (has("agents.mp4")) {
     const cap = { text: "FORGE for agents", sub: "protect, price, check, discover" };
     push(...take("g", "agents", 0.4, [
-      { to: at("agents", "section", 8), speed: 1.6, cap },
-      { to: at("agents", "section", 8) + 4.5, speed: 1.6, cap },
+      { to: at("agents", "section", 8), speed: 2.2, cap },
+      { to: at("agents", "section", 8) + 3.2, speed: 1.8, cap },
     ]));
   }
   const log = agentLog as unknown as TermLog;
@@ -161,15 +162,16 @@ export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS):
     el: <Terminal log={log} pace={TERM_PACE} title="treasury-agent — a DAO treasury agent buying a hedge" caption={{ n: "→", text: "A treasury agent, end to end", sub: "pays $0.01 over x402, verifies, asks its human, opens" }} />,
   });
 
-  // 4 · why it works
-  push(title(4, "04", "Why it works", "How it works.", "The idea, the math, the payment rail and the proof."));
+  // 4 · why it works: the math, the LP's side, how it was tested, and the payment rail
+  push(title(4, "04", "Why it works", "How it works.", "The math, the LP's side, and how we tested it."));
   push({ id: "range", dur: s(13), el: paced(1.7, <RangeOption />), enter: "fade", enterFrames: 12 });
   push({ id: "compiler", dur: s(8.5), el: paced(1.45, <Compiler />), enter: "fade", enterFrames: 12 });
+  push({ id: "pricing", dur: s(12), el: paced(1.3, <Pricing />), enter: "fade", enterFrames: 12 });
   // values for the x402 diagram, read from the agent's real run
   const paid = log.lines.find((l) => /402 Payment required/.test(l.line))?.line.match(/required: ([\d.]+) USDC/)?.[1] ?? "0.01";
   const tx = log.lines.find((l) => /settled on the fork/.test(l.line))?.line.match(/\(([1-9A-HJ-NP-Za-km-z]{6,})/)?.[1]?.slice(0, 12) ?? "";
-  push({ id: "x402", dur: s(7.5), el: paced(1.4, <X402 facts={{ path: "/x402/hedge", price: paid, tx }} />), enter: "fade", enterFrames: 12 });
-  push({ id: "proof", dur: s(7.5), el: paced(1.35, <Proof />), enter: "fade", enterFrames: 12 });
+  push({ id: "x402", dur: s(6.5), el: paced(1.55, <X402 facts={{ path: "/x402/hedge", price: paid, tx }} />), enter: "fade", enterFrames: 12 });
+  push({ id: "proof", dur: s(11), el: paced(1.2, <Proof />), enter: "fade", enterFrames: 12 });
 
   // outro
   push({ id: "outro", dur: s(4), el: paced(1.3, <Outro />), enter: "blade", enterFrames: 22 });

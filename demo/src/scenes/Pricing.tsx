@@ -36,8 +36,11 @@ export const Pricing: React.FC = () => {
         <div style={{ position: "absolute", left: 140, top: 86, opacity: title }}>
           <Kicker n="04">Fair pricing</Kicker>
           <div style={{ fontFamily: sans, fontSize: 64, fontWeight: 600, letterSpacing: -2, marginTop: 18 }}>LPs are paid for what they give up.</div>
+          <div style={{ fontFamily: sans, fontSize: 30, color: C.ink2, marginTop: 14, opacity: useIn(10, 20) }}>
+            When the position closes they get the exact same liquidity back. While it was out, the borrower pays the fees it missed.
+          </div>
         </div>
-        <div style={{ position: "absolute", left: 140, top: 268, fontFamily: mono, fontSize: 40, color: C.ink, display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ position: "absolute", left: 140, top: 312, fontFamily: mono, fontSize: 40, color: C.ink, display: "flex", alignItems: "center", gap: 6 }}>
           {chip(parts[0]!, <>premium = max(</>)}
           {chip(parts[1]!, <span style={{ color: C.ink2 }}>{P.floor_rate_bps / 100}%/yr floor</span>, true)}
           {chip(parts[1]!, <>,</>)}
