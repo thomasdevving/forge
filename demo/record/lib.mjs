@@ -17,20 +17,24 @@ const CURSOR = `
     const c = document.createElement("div");
     c.id = "__demo_cursor";
     c.innerHTML = '<svg width="26" height="26" viewBox="0 0 26 26"><path d="M3 2 L3 21 L8.2 16.4 L11.6 24 L15 22.5 L11.7 15.1 L18.5 15.1 Z" fill="#f2f4f8" stroke="#101216" stroke-width="1.6" stroke-linejoin="round"/></svg>';
-    Object.assign(c.style, { position: "fixed", left: "0", top: "0", width: "26px", height: "26px", zIndex: 2147483647, pointerEvents: "none", transform: "translate(-100px,-100px)", transition: "scale 120ms ease", filter: "drop-shadow(0 2px 4px rgba(0,0,0,.5))" });
+    Object.assign(c.style, { position: "fixed", left: "0", top: "0", width: "26px", height: "26px", zIndex: 2147483647, pointerEvents: "none", transform: "translate(-100px,-100px)", filter: "drop-shadow(0 2px 4px rgba(0,0,0,.5))" });
     document.documentElement.appendChild(c);
+    // the press effect shrinks only the arrow, around its tip; scaling the whole element would also
+    // scale its position and make the cursor jump toward the corner on every click
+    const arrow = c.firstChild;
+    Object.assign(arrow.style, { display: "block", transformOrigin: "3px 2px", transition: "transform 120ms ease" });
     const pos = JSON.parse(sessionStorage.getItem("__demo_cursor_pos") || "[-100,-100]");
     c.style.transform = "translate(" + pos[0] + "px," + pos[1] + "px)";
     addEventListener("mousemove", (e) => { c.style.transform = "translate(" + (e.clientX - 3) + "px," + (e.clientY - 2) + "px)"; sessionStorage.setItem("__demo_cursor_pos", JSON.stringify([e.clientX - 3, e.clientY - 2])); }, true);
     addEventListener("mousedown", (e) => {
-      c.style.scale = "0.86";
+      arrow.style.transform = "scale(0.86)";
       const r = document.createElement("div");
       Object.assign(r.style, { position: "fixed", left: e.clientX - 18 + "px", top: e.clientY - 18 + "px", width: "36px", height: "36px", borderRadius: "50%", border: "2px solid rgba(242,244,248,.85)", zIndex: 2147483646, pointerEvents: "none", transition: "transform 420ms cubic-bezier(.2,.7,.2,1), opacity 420ms ease", transform: "scale(.3)", opacity: "1" });
       document.documentElement.appendChild(r);
       requestAnimationFrame(() => { r.style.transform = "scale(1.4)"; r.style.opacity = "0"; });
       setTimeout(() => r.remove(), 500);
     }, true);
-    addEventListener("mouseup", () => { c.style.scale = "1"; }, true);
+    addEventListener("mouseup", () => { arrow.style.transform = ""; }, true);
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
   // hide the Next.js dev badge if this is a dev server

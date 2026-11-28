@@ -155,7 +155,7 @@ export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS):
       { to: m("pick", 9.3) + 1.2, speed: 1.3, cap: bucket },
       { to: m("deposit", 12.5) + 2.4, speed: 1.3, cap: paid },
       { to: m("deposited", 19.8), fit: 1.2, cap: paid },
-      { to: m("claim", 25) + 2, speed: 1.15, zoom: { scale: 1.45, x: 0.95, y: 0.75 }, cap: { n: "03", text: "Your earnings, line by line", sub: "Orca fees, premium, extra over plain Orca" } },
+      { to: m("claim", m("earnings", 20) + 0.9) + 2, speed: 1.15, zoom: { scale: 1.45, x: 0.95, y: 0.75 }, cap: { n: "03", text: "Your earnings, line by line", sub: "Orca fees, premium, extra over plain Orca" } },
     ]));
   }
 
