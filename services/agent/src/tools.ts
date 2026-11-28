@@ -182,14 +182,14 @@ export function makeTools(s: Session, emit: (e: AgentEvent) => void) {
         }
         const limits = { base: a.units, quote, budget: a.premium_budget_usd };
         const response = await forge.compile(forge.compileRequest(m, bs, payoff, limits));
+        const days = a.holding_days != null && a.holding_days > 0 ? Math.min(365, a.holding_days) : 30;
         const c: Construction = {
-          id: newConstructionId(), createdAt: Date.now(), label: a.label,
+          id: newConstructionId(), createdAt: Date.now(), label: a.label, days,
           market: { address: m.address, name: m.name, baseDecimals: m.baseDecimals, quoteDecimals: m.quoteDecimals, params: m.params },
           spec, payoff, limits, spotAtCompile: m.poolPrice, response, verified: null, facts: {},
         };
         if (response.result.construction) {
           const legs = response.result.construction.legs;
-          const days = a.holding_days != null && a.holding_days > 0 ? a.holding_days : 30;
           c.facts = { ...forge.costFacts(m, bs, legs, a.premium_budget_usd), ...forge.budgetSuggestion(m, bs, legs, a.premium_budget_usd, days) };
         }
         if (response.certificate) {
@@ -281,6 +281,8 @@ export function openTemplate(c: Construction, m: forge.Market) {
     limits: c.limits,
     legs: k.legs.map((l) => ({ kind: KIND_NAME[l.kind], tickLower: l.tick_lower, liquidity: String(Math.round(l.liquidity_onchain)) })),
     premiumBudget: String(Math.round(c.limits.budget * 10 ** m.quoteDecimals)),
+    // the keeper closes it after the holding period (chain clock)
+    expiry: String(m.now + c.days * 86_400),
     openReferencePrice: m.reference?.price ?? m.poolPrice,
     openToleranceBps: m.params.open_tolerance_bps,
     swapSlippageBps: m.params.swap_slippage_bps,

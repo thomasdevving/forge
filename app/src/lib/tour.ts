@@ -24,18 +24,18 @@ export const TOURS: Record<TourId, TourStep[]> = {
     },
     {
       target: "presets",
-      title: "Start from a preset",
-      body: "Protective put, collar, put and call spreads, strangle. Each one draws a starting payoff that you can reshape on the chart.",
+      title: "Describe your hedge",
+      body: "Pick a strategy (protective put, collar, spreads, strangle), then set its levels as a % from today's price: the floor, the cap. The exact prices show beside them. Choose how long the cover runs and your budget; the chart follows.",
     },
     {
       target: "chart",
-      title: "Draw the payoff",
-      body: "What your position is worth at each closing price. Drag points, double-click to add one, select one and press Delete to remove it. The dashed line is just holding the token; the shaded band is how far it moved in the past.",
+      title: "See it, or draw it",
+      body: "What your position is worth at each closing price. Each point shows its exact price; the pill marks today's price. You can also drag points, double-click to add one, or select one and press Delete. The dashed line is just holding the token; the shaded band is how far it moved in the past.",
     },
     {
       target: "limits",
-      title: "Set your limits",
-      body: "How much of the token you hold and commit, how much USDC, and the most you will pay in premium. After you compile, a suggested budget appears under these: fund near it, because the position is closed once the budget is used up.",
+      title: "What you hold",
+      body: "How much of the token you hold and commit, and how much USDC. After you compile, a suggested budget for your duration appears in the form: fund near it, because the position is closed once the budget is used up.",
     },
     {
       target: "compile",
@@ -50,7 +50,7 @@ export const TOURS: Record<TourId, TourStep[]> = {
     {
       target: "open",
       title: "Open the position",
-      body: "Open simulates the transactions, certifies the result, then signs and sends. A keeper closes the position for you when the premium reaches the trigger (80% of your cap by default).",
+      body: "Open simulates the transactions, certifies the result, then signs and sends. A keeper closes the position for you when your duration ends, or earlier if the premium reaches the trigger (80% of your budget by default).",
     },
     {
       target: "architect",

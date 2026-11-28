@@ -14,7 +14,10 @@ const W = 1440, H = 900;
 
 await mkdir(OUT, { recursive: true });
 const browser = await chromium.launch();
-const page = await (await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, colorScheme: "dark" })).newPage();
+const context = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, colorScheme: "dark" });
+// the guided tour opens on a first visit; screenshots show the pages themselves
+await context.addInitScript(() => { for (const t of ["studio", "earn", "positions"]) localStorage.setItem(`forge.tour.${t}`, "done"); });
+const page = await context.newPage();
 const shot = async (name) => {
   await page.waitForTimeout(600);
   await page.screenshot({ path: new URL(`${name}.jpg`, OUT).pathname, type: "jpeg", quality: 86 });
@@ -27,16 +30,14 @@ await page.getByText("Feasible", { exact: true }).waitFor({ timeout: 60_000 });
 
 // wallet: fresh demo key, fork test funds
 await button("Connect").click();
-await page.getByRole("button", { name: /Demo wallet/ }).click();
-await page.locator("header button.btn-ghost").last().click();
-await button("Get test funds").click();
+await page.getByRole("button", { name: /Demo wallet with test funds/ }).click();
 await page.getByText(/^Funded/).waitFor({ timeout: 90_000 });
 await page.mouse.click(10, 10);
 // wait until the funded balance is on screen, not the zero it shows before the first refresh
 await page.getByText(/^[1-9][\d.,]* \S+ · [\d,]+ \S+$/).waitFor({ timeout: 60_000 });
 await shot("studio-draw");
 
-const [baseHeld, quoteHeld] = await page.locator("aside input[type=number]").evaluateAll((els) => els.slice(0, 2).map((e) => e.value));
+const [baseHeld, quoteHeld] = await page.locator('[data-tour="limits"] input[type=number]').evaluateAll((els) => els.slice(0, 2).map((e) => e.value));
 const compiled = page.waitForResponse((r) => r.url().includes("/api/compiler/compile") && r.request().method() === "POST");
 await button("Compile").click();
 const compileRes = await compiled;

@@ -1,7 +1,9 @@
 {
- "capturedAt": "2026-11-27T16:24:38.298Z",
+ "capturedAt": "2026-11-28T10:26:37.007Z",
  "market": "JUP/USDC",
- "spot": 0.24557958000000002,
+ "whirlpool": "HrLmpzp8Nu5wkn9SGZYSS9Ms6deTvMgGc6BETp4161ZX",
+ "swapPool": "4Ui9QdDNuUaAGqCPcDSp191QrixLzQiLxJ1Gnqvz3szP",
+ "spot": 0.2474965234858114,
  "base": "JUP",
  "quote": "USDC",
  "holdings": {
@@ -11,20 +13,20 @@
  "premiumBudget": 20,
  "target": [
   [
-   0.13506876900000003,
-   663.064866
+   0.13612308791719627,
+   668.2406134116907
   ],
   [
-   0.22102162200000003,
-   663.064866
+   0.22274687113723024,
+   668.2406134116907
   ],
   [
-   0.27504912960000005,
-   825.1473888000002
+   0.2771961063041088,
+   831.5883189123264
   ],
   [
-   0.3929273280000001,
-   825.1473888000002
+   0.39599443757729824,
+   831.5883189123264
   ]
  ],
  "legs": [
@@ -39,6 +41,11 @@
    "priceUpper": 0.2265644640752788
   },
   {
+   "kind": "provide_put",
+   "priceLower": 0.2384660504808467,
+   "priceUpper": 0.2446492798870395
+  },
+  {
    "kind": "provide_call",
    "priceLower": 0.2710275712489351,
    "priceUpper": 0.27805509422361546
@@ -49,12 +56,10 @@
    "priceUpper": 0.2852648351141044
   }
  ],
- "capitalLocked": 750.2130521336849,
- "certifiedBound": 2.8066533971034597,
- "maxErrorAt": 0.21544768392707533,
- "solveMs": 247,
- "hash": "e9fbbfa9331684e0dbbd2afa2026628d09f5d43304b362bdaa64c4204b0288d8",
- "openTransactions": 4,
- "whirlpool": "HrLmpzp8Nu5wkn9SGZYSS9Ms6deTvMgGc6BETp4161ZX",
- "swapPool": "4Ui9QdDNuUaAGqCPcDSp191QrixLzQiLxJ1Gnqvz3szP"
+ "capitalLocked": 757.2510063478693,
+ "certifiedBound": 3.1963020099385786,
+ "maxErrorAt": 0.2155811981402844,
+ "solveMs": 223,
+ "hash": "c88ecc507222f45dfe7ba74a2beaea8635790bda8e654b22466a083a49219cb4",
+ "openTransactions": 5
 }

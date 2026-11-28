@@ -55,6 +55,11 @@ function PositionCard({ s, m, onAction, busy, working, tour }: { s: StrategyView
         <span className="num text-[12px] text-ink-2">{m.name}</span>
         <span className="text-[13px] font-medium">{s.legs.map((l) => KIND_LABEL[l.kind_tag]).join(" + ")}</span>
         <span className="num text-xs text-ink-3">{short(s.address, 6)}</span>
+        {s.state === "Open" && Number(s.expiry) > 0 && (
+          <span className="num text-[12px] text-ink-2" title={`The keeper closes this position at its expiry (chain time ${new Date(Number(s.expiry) * 1000).toISOString().replace("T", " ").slice(0, 16)} UTC)`}>
+            {Number(s.expiry) > s.now ? `ends in ${left(Number(s.expiry) - s.now)}` : "expired, closing"}
+          </span>
+        )}
         <div className="ml-auto flex items-center gap-2">
           {s.certificate_hash && !/^0+$/.test(s.certificate_hash) && (
             <a className="num text-[12px] text-ink-2 underline decoration-line-strong underline-offset-4 hover:text-ink" href={`/api/compiler/certificates/${s.certificate_hash}`} target="_blank" rel="noreferrer">certificate {s.certificate_hash.slice(0, 10)}…</a>
@@ -225,6 +230,12 @@ function PositionsInner() {
       )}
     </AppShell>
   );
+}
+
+/** Time left as "6d 23h", "5h 12m" or "40m". */
+function left(sec: number) {
+  const d = Math.floor(sec / 86_400), h = Math.floor((sec % 86_400) / 3600), m = Math.floor((sec % 3600) / 60);
+  return d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${Math.max(1, m)}m`;
 }
 
 export default function Positions() {

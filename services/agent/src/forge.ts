@@ -30,6 +30,8 @@ export type Market = {
     curve: { base_ppm: number; slope1_ppm: number; kink_ppm: number; slope2_ppm: number; cap_ppm: number };
   };
   opensPaused: boolean; borrowPaused: boolean;
+  /** Chain clock (unix seconds) when the indexer read the market. */
+  now: number;
 };
 
 export type Bucket = {

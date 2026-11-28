@@ -89,7 +89,7 @@ app.post<{ Params: { id: string }; Body: { text?: string } }>("/sessions/:id/mes
 app.get<{ Params: { id: string; cid: string } }>("/sessions/:id/constructions/:cid", async (req, reply) => {
   const c = getSession(req.params.id)?.constructions.get(req.params.cid);
   if (!c) return reply.code(404).send({ error: "unknown construction" });
-  return { facts: constructionFacts(c), payoff: c.payoff, limits: c.limits, market: c.market.name };
+  return { facts: constructionFacts(c), payoff: c.payoff, limits: c.limits, days: c.days, market: c.market.name };
 });
 
 app.get<{ Params: { id: string; cid: string } }>("/sessions/:id/prepared/:cid", async (req, reply) => {

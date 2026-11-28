@@ -8,12 +8,12 @@ import { type Horizon, type Moves, PayoffChart } from "@/components/studio/Payof
 import { api, type BucketInfo, type BuiltTx, type CompileResponse, type Feasibility, type MarketInfo } from "@/lib/api";
 import { legUtilization, liquidityScale, sigmaFromMoves, suggestedBudget } from "@/lib/fairvalue";
 import { ago, fmtNum, fmtPrice, fmtUsd, short } from "@/lib/format";
-import { KIND_LABEL, kindTag, type Point, PRESETS } from "@/lib/payoff";
+import { clampLevels, KIND_LABEL, kindTag, LEVEL_POINTS, levelsOf, type Point, PRESETS } from "@/lib/payoff";
+import { DURATIONS, HedgeForm } from "@/components/studio/HedgeForm";
 import { tokenAccount, tokenBalance } from "@/lib/rpc";
 import { baseSymbol, defaultUnits, MarketPicker, pickMarket, quoteSymbol, useMarketChoice } from "@/lib/market";
 import { BALANCES_EVENT, useWallet } from "@/lib/wallet";
 
-const HOLDING_DAYS = 30;
 
 const KIND_NAME: Record<string, string> = { borrow_put: "BorrowQuote", borrow_call: "BorrowBase", provide_put: "ProvideQuote", provide_call: "ProvideBase" };
 
@@ -29,6 +29,8 @@ export default function Studio() {
   const [baseHoldings, setBaseHoldings] = useState(10);
   const [quoteHoldings, setQuoteHoldings] = useState(2000);
   const [budget, setBudget] = useState(20);
+  /** How long the cover runs: sets the position's on-chain expiry and the suggested budget. */
+  const [days, setDays] = useState(7);
   const [feas, setFeas] = useState<Feasibility | null>(null);
   const [compiled, setCompiled] = useState<CompileResponse | null>(null);
   const [curve, setCurve] = useState<Point[] | null>(null);
@@ -67,6 +69,8 @@ export default function Studio() {
     setBaseHoldings(d.limits.base);
     setQuoteHoldings(d.limits.quote);
     setBudget(d.limits.budget);
+    // the closest duration the form offers to the holding period the Architect planned for
+    if (d.days) setDays(DURATIONS.reduce((a, x) => (Math.abs(x - d.days!) < Math.abs(a - d.days!) ? x : a), 7));
     setPoints(d.payoff);
     autoCompile.current = true;
   };
@@ -237,22 +241,28 @@ export default function Studio() {
     });
   }, [legs, buckets, market, scale]);
 
-  // suggested premium budget for HOLDING_DAYS: an estimate from the token's past moves (lib/fairvalue)
+  // suggested premium budget for the chosen duration: an estimate from the token's past moves (lib/fairvalue)
   const suggestion = useMemo(() => {
     if (!market || !moves || !legs.some((l) => l.kind.startsWith("borrow"))) return null;
     const q: Record<string, { p5?: number; p95?: number }> = {};
     for (const [h, v] of Object.entries(moves.horizons)) q[h] = v.quantiles;
-    const s = sigmaFromMoves(q, HOLDING_DAYS);
+    const s = sigmaFromMoves(q, days);
     if (!s) return null;
     const r = suggestedBudget({
       legs: legs.map((l) => ({ ...l, utilization: legUtilization(l, buckets, market.params.curve) })),
-      spot: market.poolPrice, sigma: s.sigma, days: HOLDING_DAYS, scale: liquidityScale(market.baseDecimals, market.quoteDecimals), params: market.params,
+      spot: market.poolPrice, sigma: s.sigma, days, scale: liquidityScale(market.baseDecimals, market.quoteDecimals), params: market.params,
     });
     if (!(r.budget > 0)) return null;
     const m = moves as Moves & { from_ms?: number; to_ms?: number };
     const day = (ms?: number) => (ms ? new Date(ms).toISOString().slice(0, 10) : "?");
     return { budget: Math.ceil(r.budget * 100) / 100, sigma: s.sigma, horizon: s.horizon, period: `${day(m.from_ms)} to ${day(m.to_ms)}` };
-  }, [legs, buckets, market, moves]);
+  }, [legs, buckets, market, moves, days]);
+
+  // the form and the chart describe the same payoff: levels read back from the breakpoints (null = reshaped by hand)
+  const levels = useMemo(() => (points ? levelsOf(preset, points, baseHoldings) : null), [points, preset, baseHoldings]);
+  const fromLevels = (prices: number[], units = baseHoldings) => {
+    if (spot) setPoints(PRESETS[preset]!.make(units, spot, prices.map((x) => x / spot)));
+  };
 
   const floorPerDay = market ? legRows.filter((l) => l.kind.startsWith("borrow")).reduce((a, l) => a + l.notional, 0) * (market.params.floor_rate_bps / 1e4) / 365 : 0;
   const cert = compiled?.certificate ?? null;
@@ -283,6 +293,7 @@ export default function Studio() {
         nonce,
         legs: compiled.result.construction!.legs.map((l) => ({ kind: KIND_NAME[l.kind], tickLower: l.tick_lower, liquidity: String(Math.round(l.liquidity_onchain)) })),
         premiumBudget: String(Math.round(budget * 10 ** market.quoteDecimals)),
+        expiry: String(market.now + days * 86_400),
         openReferencePrice: market.reference?.price ?? market.poolPrice,
         openToleranceBps: market.params.open_tolerance_bps,
         swapSlippageBps: market.params.swap_slippage_bps,
@@ -365,21 +376,6 @@ export default function Studio() {
         <button data-tour="architect" className="btn btn-ghost !py-1 text-[12px]" aria-pressed={architectOpen} onClick={() => setArchitectOpen((x) => !x)} title="Describe what you want; the Architect compiles alternatives">
           Architect
         </button>
-        <div className="seg" data-tour="presets">
-          {Object.entries(PRESETS).map(([k, v]) => (
-            <button
-              key={k}
-              title={v.hint}
-              aria-pressed={preset === k}
-              onClick={() => {
-                setPreset(k);
-                if (spot) setPoints(v.make(baseHoldings, spot));
-              }}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
       </Bar>
       {loadErr && !market && <div className="shrink-0 border-b border-line px-5 py-2 text-sm text-bad" role="alert">Market data is unreachable right now, retrying every 15 s. <span className="text-ink-3">({loadErr})</span></div>}
 
@@ -388,7 +384,7 @@ export default function Studio() {
         <section data-tour="chart" className="flex min-h-0 min-w-0 flex-col border-line lg:border-r">
           <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1 px-4 pt-3 sm:px-5">
             <div className="label">Payoff at close</div>
-            <div className="cap">Drag · double-click to add · Delete to remove</div>
+            <div className="cap">{levels ? "Drag a point to move its level · double-click to add a point for a custom shape" : "Drag · double-click to add · Delete to remove"}</div>
             <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-3">
               <span className="flex items-center gap-1.5"><span className="h-[2px] w-4 bg-accent" /> Target</span>
               <span className="flex items-center gap-1.5"><span className="h-px w-4 bg-ink" /> Compiled</span>
@@ -408,7 +404,20 @@ export default function Studio() {
             {points && market ? (
               <PayoffChart
                 points={points}
-                onChange={setPoints}
+                onChange={(next) => {
+                  // with a strategy active, dragging one of its level points slides that level along the
+                  // strategy's shape (the form follows); end points and added points reshape freely
+                  if (levels && spot && points && next.length === points.length) {
+                    const i = next.findIndex((q, k) => q[0] !== points[k]![0] || q[1] !== points[k]![1]);
+                    const li = (LEVEL_POINTS[preset] ?? []).indexOf(i);
+                    if (li >= 0) {
+                      const prices = [...levels];
+                      prices[li] = next[i]![0];
+                      return fromLevels(clampLevels(preset, prices, spot));
+                    }
+                  }
+                  setPoints(next);
+                }}
                 compiled={curve}
                 closest={status === "infeasible" && feas?.closest_feasible ? (feas.closest_feasible as Point[]) : null}
                 unhedgedUnits={baseHoldings}
@@ -428,30 +437,48 @@ export default function Studio() {
         </section>
 
         {/* controls column, full height */}
-        <aside className="flex min-h-0 flex-col border-t border-line text-sm lg:row-span-2 lg:border-t-0">
+        <aside className="flex min-h-0 flex-col border-t border-line text-sm lg:row-span-2 lg:overflow-y-auto lg:border-t-0">
+          <div className="border-b border-line p-4 sm:p-5">
+            <div className="label">Your hedge</div>
+            <div className="mt-3">
+              <HedgeForm
+                preset={preset}
+                levels={levels}
+                spot={spot}
+                onPreset={(k) => {
+                  if (!PRESETS[k]) return;
+                  setPreset(k);
+                  if (spot) setPoints(PRESETS[k]!.make(baseHoldings, spot));
+                }}
+                onLevels={(prices) => fromLevels(prices)}
+                days={days}
+                onDays={setDays}
+                budget={budget}
+                onBudget={setBudget}
+                quote={Q}
+                suggestion={suggestion ? {
+                  budget: suggestion.budget,
+                  title: `Estimate from ${baseSymbol(market)}'s past ${suggestion.horizon} moves (Binance, ${suggestion.period}; volatility about ${(suggestion.sigma * 100).toFixed(0)}%/yr): for each borrowed range, the larger of the time floor and m(u) × the range's expected payoff over ${days} days, plus the keeper's share. Actual premium depends on trading. The keeper closes the position when the budget is used, so a smaller budget can end the cover early. Click to use it.`,
+                } : null}
+              />
+            </div>
+          </div>
           <div data-tour="limits" className="border-b border-line p-4 sm:p-5">
-            <div className="label">Limits</div>
-            <div className="mt-2.5 grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
-              {[
-                [`${baseSymbol(market)} held`, baseHoldings, market && market.poolPrice < 1 ? 100 : 0.5, setBaseHoldings],
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                [`${baseSymbol(market)} held`, baseHoldings, market && market.poolPrice < 1 ? 100 : 0.5, (n: number) => {
+                  // a preset shape keeps its levels and scales with what you hold
+                  if (levels) fromLevels(levels, n);
+                  setBaseHoldings(n);
+                }],
                 [`${quoteSymbol(market)} held`, quoteHoldings, 50, setQuoteHoldings],
-                ["Max premium", budget, 1, setBudget],
-              ].map(([k, v, step, set]) => (
-                <label key={k as string} className="block">
-                  <span className="cap block truncate">{k as string}</span>
-                  <input className="input mt-1 !px-2" type="number" inputMode="decimal" min={0} step={step as number} value={v as number} onChange={(e) => (set as (n: number) => void)(Math.max(0, Number(e.target.value) || 0))} />
+              ] as const).map(([k, v, step, set]) => (
+                <label key={k} className="block">
+                  <span className="cap block truncate">{k}</span>
+                  <input className="input mt-1 !px-2 !py-1" type="number" inputMode="decimal" min={0} step={step} value={v} onChange={(e) => set(Math.max(0, Number(e.target.value) || 0))} />
                 </label>
               ))}
             </div>
-            {suggestion && (
-              <button
-                className={`mt-1 block w-full text-right text-[11px] underline decoration-dotted underline-offset-2 hover:text-ink ${budget < suggestion.budget ? "text-warn" : "text-ink-3"}`}
-                onClick={() => setBudget(suggestion.budget)}
-                title={`Estimate from ${baseSymbol(market)}'s past ${suggestion.horizon} moves (Binance, ${suggestion.period}; volatility about ${(suggestion.sigma * 100).toFixed(0)}%/yr): for each borrowed range, the larger of the time floor and m(u) × the range's expected payoff over ${HOLDING_DAYS} days, plus the keeper's share. Actual premium depends on trading. The keeper closes the position when the budget is used, so a smaller budget can end the cover early. Click to use it.`}
-              >
-                Suggested for {HOLDING_DAYS} days: {fmtUsd(suggestion.budget)}
-              </button>
-            )}
             <div className="kv mt-2">
               <span>Wallet</span>
               <span>

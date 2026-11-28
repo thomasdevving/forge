@@ -10,6 +10,8 @@ export type Construction = {
   spec: PayoffSpec;
   payoff: Point[];
   limits: { base: number; quote: number; budget: number };
+  /** How long the user means to hold it: the suggested budget's horizon and the position's expiry. */
+  days: number;
   spotAtCompile: number;
   response: CompileResponse;
   verified: { valid: boolean; hash: string; stored: boolean } | null;

@@ -34,7 +34,7 @@ type Item =
   | { kind: "prepared"; id: string }
   | { kind: "error"; text: string };
 
-export type Design = { market: string; payoff: Point[]; limits: { base: number; quote: number; budget: number }; label: string };
+export type Design = { market: string; payoff: Point[]; limits: { base: number; quote: number; budget: number }; days?: number; label: string };
 
 const STEP_LABEL: Record<string, string> = {
   get_wallet_holdings: "Read holdings",
@@ -96,8 +96,8 @@ export function Architect({ open, onClose, owner, onLoad, hint }: { open: boolea
     if (!session) return;
     const r = await fetch(`/api/agent/sessions/${session.id}/constructions/${cid}`);
     if (!r.ok) return setErr("Could not load that construction.");
-    const d = (await r.json()) as { market: string; payoff: Point[]; limits: Design["limits"]; facts: Facts };
-    onLoad({ market: d.market, payoff: d.payoff, limits: d.limits, label: d.facts.label });
+    const d = (await r.json()) as { market: string; payoff: Point[]; limits: Design["limits"]; days?: number; facts: Facts };
+    onLoad({ market: d.market, payoff: d.payoff, limits: d.limits, days: d.days, label: d.facts.label });
   };
 
   const send = async (text: string) => {
