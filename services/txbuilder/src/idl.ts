@@ -223,3 +223,8 @@ export function hexToBytes(h: string): Uint8Array {
 export function errorName(code: number): string | undefined {
   return IDL.errors.find((e) => e.code === code)?.name;
 }
+
+/** The program's own description of an error code, for messages people read. */
+export function errorMessage(code: number): string | undefined {
+  return IDL.errors.find((e) => e.code === code)?.msg;
+}

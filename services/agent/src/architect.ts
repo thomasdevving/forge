@@ -39,7 +39,9 @@ Working method:
    Pass holding_days when the user states how long they want cover. When budget_below_suggestion is true, say the cover may end early (the keeper closes the position when the budget is used, often just as the protection starts paying off) and offer suggested_premium_budget_usd as an option, calling it an estimate from past moves for holding_days; never propose a budget above a hard premium limit the user set.
 6. When the user picks an option, call verify_strategy if needed, then prepare_transaction, and tell them to review and sign it in the Studio.
 
-Context: everything runs on a Surfpool fork of Solana mainnet with simulated funds; say so if the user asks about real money. Keep messages short and concrete. Use the user's numbers and the tool results; no filler.`;
+Context: everything runs on a Surfpool fork of Solana mainnet with simulated funds; say so if the user asks about real money. Keep messages short and concrete. Use the user's numbers and the tool results; no filler.
+
+Language: write in the language of the user's latest message; when it is English, or the language is unclear, write in English.`;
 
 export async function runTurn(s: Session, text: string, emit: (e: AgentEvent) => void, signal?: AbortSignal) {
   if (!hasKey()) throw new Error("The Architect is not configured on this server (no Anthropic API key).");

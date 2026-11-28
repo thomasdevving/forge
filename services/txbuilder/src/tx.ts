@@ -21,7 +21,7 @@ import {
 } from "@solana/kit";
 import { fetchAddressLookupTable } from "@solana-program/address-lookup-table";
 import { getSetComputeUnitLimitInstruction } from "@solana-program/compute-budget";
-import { errorName } from "./idl.js";
+import { errorMessage, errorName } from "./idl.js";
 import { FORGE_PROGRAM_ID } from "./program.js";
 
 export const LIMITS = {
@@ -109,11 +109,18 @@ export async function prepareTransaction(
     // failing program in the logs is FORGE itself.
     const failed = [...logs].reverse().find((l) => / failed: /.test(l));
     const failingProgram = failed?.match(/^Program (\S+) failed/)?.[1];
-    const name = custom !== undefined && failingProgram === String(FORGE_PROGRAM_ID)
-      ? errorName(custom)
-      : custom !== undefined && failingProgram ? `${failingProgram}:${custom}` : undefined;
+    // a token transfer inside FORGE's instruction fails with the token program's code, which FORGE
+    // then returns: say what it means instead of a bare number
+    const tokenShort = logs.some((l) => /Program log: Error: insufficient funds/.test(l));
+    const forge = custom !== undefined && failingProgram === String(FORGE_PROGRAM_ID);
+    const name = tokenShort
+      ? "InsufficientFunds"
+      : forge
+        ? errorName(custom!)
+        : custom !== undefined && failingProgram ? `${failingProgram}:${custom}` : undefined;
+    const why = tokenShort ? "the wallet does not hold enough tokens for this" : forge ? errorMessage(custom!) : undefined;
     throw new SimulationError(
-      `simulation failed: ${name ?? JSON.stringify(sim.value.err, (_, v) => (typeof v === "bigint" ? v.toString() : v))}`,
+      `simulation failed: ${name && why ? `${name} (${why})` : name ?? JSON.stringify(sim.value.err, (_, v) => (typeof v === "bigint" ? v.toString() : v))}`,
       logs,
       custom,
       name,

@@ -15,6 +15,7 @@ import cors from "@fastify/cors";
 import {
   type Address,
   address,
+  isAddress,
   createDefaultRpcTransport,
   createSolanaRpcFromTransport,
   getAddressEncoder,
@@ -295,21 +296,24 @@ app.get<{ Params: { market: string } }>("/markets/:market/stats", async (req) =>
   }),
 );
 
-app.get<{ Querystring: { owner?: string } }>("/strategies", async (req) => {
+app.get<{ Querystring: { owner?: string } }>("/strategies", async (req, reply) => {
   if (!req.query.owner) return [];
+  if (!isAddress(req.query.owner)) return reply.code(400).send({ error: "owner is not a valid address" });
   const list = await programAccounts<Strategy>("Strategy", { offset: 8, bytes: address(req.query.owner) });
   const views = await Promise.all(list.map(({ address: a, data }) => strategyView(a, data)));
   return serialize(views.sort((a, b) => Number(b.created_at - a.created_at)));
 });
 
-app.get<{ Params: { address: string } }>("/strategies/:address", async (req) => {
+app.get<{ Params: { address: string } }>("/strategies/:address", async (req, reply) => {
+  if (!isAddress(req.params.address)) return reply.code(400).send({ error: "not a valid address" });
   const raw = await fetchRaw(rpc, address(req.params.address));
   if (!raw) return { error: "not found" };
   return serialize(await strategyView(address(req.params.address), decodeAccount<Strategy>("Strategy", raw)));
 });
 
-app.get<{ Querystring: { owner?: string } }>("/lp", async (req) => {
+app.get<{ Querystring: { owner?: string } }>("/lp", async (req, reply) => {
   if (!req.query.owner) return [];
+  if (!isAddress(req.query.owner)) return reply.code(400).send({ error: "owner is not a valid address" });
   const list = await programAccounts<LpPosition>("LpPosition", { offset: 8, bytes: address(req.query.owner) });
   const Q = 1n << 64n;
   const out = await Promise.all(

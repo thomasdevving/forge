@@ -32,6 +32,11 @@ const r = await fetchWithPayment(`${API}/x402/compile`, { method: "POST", header
   onPayment: (p) => log("FORGE API", `402 Payment required: ${Number(p.amount) / 1e6} USDC`),
 });
 log("Payment", `settled: ${r.settlement?.success} ${r.settlement?.transaction?.slice(0, 16)}…`);
+if (!r.response.ok) {
+  log("FORGE API", `compile failed: HTTP ${r.response.status} ${(await r.response.text()).slice(0, 200)}`);
+  if (r.response.status === 402) log("Ledger", "payment refused: fund the treasury first (pnpm --filter @forge/treasury-agent run fund)");
+  process.exit(1);
+}
 const out = (await r.response.json()) as { result: { status: string }; certificate: { hash: string; error: { certified_bound: number } } };
 const v = await post<{ valid: boolean; hash: string }>("/x402/verify", out.certificate);
 const after = (await balances(key.address)).get(USDC) ?? 0;
