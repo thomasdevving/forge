@@ -71,9 +71,9 @@ Record it as `demo/footage/intro.mp4`. The video takes its length from the file,
 |---|---|---|
 | 2:02 | Title, then **the math**: a range below the price, USDC locked in escrow; the price falls through it; V(P) and put = escrow − V(P) | "A range below the price holds only USDC. FORGE borrows it and locks that USDC. If the price falls, putting the liquidity back costs less, and the trader keeps the difference. That's a put." |
 | 2:16 | **The compiler** stacks ranges onto the payoff; the ±$3.20 certificate | "The compiler stacks ranges into your payoff and proves the worst-case error." |
-| 2:24 | **The LP's side**: premium = max(5%/yr floor, m(u) × forgone fees), the 1.1× curve, where a premium goes | "LPs get the exact same liquidity back when the position closes. While it's out, the trader pays at least the fees it would have earned, more as demand rises." |
+| 2:24 | **The LP's side**: premium = the larger of a 5% yearly minimum and a multiplier × the fees the LP missed; the 1.1× curve; where a premium goes | "LPs get the exact same liquidity back when the position closes. While it's out, the trader pays at least the fees it would have earned, more as demand rises." |
 | 2:36 | **x402**: 402 with a price, a signed USDC transfer, settled on Solana | "Agents pay over x402: a 402 reply with a price, settled in USDC on Solana." |
-| 2:42 | **How we tested it**: 19/23 payoffs, 0 bounds violated, 61,319 funded borrows, 92% of windows | "Tested on a mainnet fork and ten months of real JUP prices: across sixty-one thousand funded borrows, LPs never got less than the fees they missed." |
+| 2:42 | **How we tested it**: 19 of 23 hedges buildable, 0 off by more than promised, 0 of 61,319 loans paid LPs less than their missed fees, 92% of the time LPs beat or matched plain Orca | "Tested on a mainnet fork and ten months of real JUP prices: across sixty-one thousand funded borrows, LPs never got less than the fees they missed." |
 | 2:52 | Logo, site, repo | "That's FORGE. Try it at the link below." |
 
 (about 125 words)

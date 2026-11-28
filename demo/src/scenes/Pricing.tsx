@@ -40,11 +40,11 @@ export const Pricing: React.FC = () => {
             When the position closes they get the exact same liquidity back. While it was out, the borrower pays the fees it missed.
           </div>
         </div>
-        <div style={{ position: "absolute", left: 140, top: 312, fontFamily: mono, fontSize: 40, color: C.ink, display: "flex", alignItems: "center", gap: 6 }}>
-          {chip(parts[0]!, <>premium = max(</>)}
-          {chip(parts[1]!, <span style={{ color: C.ink2 }}>{P.floor_rate_bps / 100}%/yr floor</span>, true)}
+        <div style={{ position: "absolute", left: 140, top: 312, fontFamily: mono, fontSize: 32, color: C.ink, display: "flex", alignItems: "center", gap: 6 }}>
+          {chip(parts[0]!, <>premium = the larger of (</>)}
+          {chip(parts[1]!, <span style={{ color: C.ink2 }}>{P.floor_rate_bps / 100}% a year minimum</span>, true)}
           {chip(parts[1]!, <>,</>)}
-          {chip(parts[2]!, <><span style={{ color: C.ink }}>m(u)</span> × <span style={{ color: C.good }}>forgone fees</span></>, true)}
+          {chip(parts[2]!, <><span style={{ color: C.ink }}>multiplier</span> × <span style={{ color: C.good }}>fees the LP missed</span></>, true)}
           {chip(parts[2]!, <>)</>)}
         </div>
 
@@ -54,8 +54,8 @@ export const Pricing: React.FC = () => {
           {[0, 0.2, 0.4, 0.6, 0.8].map((u) => (
             <text key={u} x={x(u)} y={Y1 + 34} fill={C.ink3} fontFamily={mono} fontSize={20} textAnchor="middle" opacity={parts[2]}>{Math.round(u * 100)}%</text>
           ))}
-          <text x={X1} y={Y1 + 70} fill={C.ink3} fontFamily={mono} fontSize={20} textAnchor="end" opacity={parts[2]}>share of the bucket lent out (u)</text>
-          <text x={X0} y={Y0 - 34} fill={C.ink3} fontFamily={mono} fontSize={20} opacity={parts[2]}>m(u)</text>
+          <text x={X1} y={Y1 + 70} fill={C.ink3} fontFamily={mono} fontSize={20} textAnchor="end" opacity={parts[2]}>share of the range already lent out</text>
+          <text x={X0 + 14} y={Y0 + 6} fill={C.ink3} fontFamily={mono} fontSize={20} opacity={parts[2]}>multiplier</text>
           <line x1={x(kink)} x2={x(kink)} y1={Y0 - 10} y2={Y1} stroke={C.ink3} strokeDasharray="3 6" opacity={notes} />
           <polyline points={pts.join(" ")} fill="none" stroke={C.ink} strokeWidth={5} strokeLinejoin="round" />
           <g opacity={notes}>
@@ -68,7 +68,7 @@ export const Pricing: React.FC = () => {
         <div style={{ position: "absolute", left: 1100, top: 440, width: 680, opacity: split, transform: `translateY(${(1 - split) * 18}px)` }}>
           <div style={{ fontFamily: mono, fontSize: 20, color: C.ink3, marginBottom: 16 }}>where a premium goes</div>
           <div style={{ display: "flex", height: 84, borderRadius: 6, overflow: "hidden", border: `1px solid ${C.lineStrong}` }}>
-            <div style={{ flex: 1, background: "rgba(143,209,176,0.28)", display: "grid", placeItems: "center", fontFamily: sans, fontSize: 24, color: C.ink }}>forgone fees → LP</div>
+            <div style={{ flex: 1, background: "rgba(143,209,176,0.28)", display: "grid", placeItems: "center", fontFamily: sans, fontSize: 24, color: C.ink }}>missed fees → LP</div>
             <div style={{ width: 120 + 60 * cut, display: "flex" }}>
               <div style={{ flex: 9, background: "rgba(143,209,176,0.16)" }} />
               <div style={{ flex: 1 + 2 * cut, background: C.warn, opacity: 0.25 + 0.6 * cut }} />

@@ -16,20 +16,21 @@ export const Proof: React.FC = () => {
   const f = useFrame();
   const title = useIn(0, 20);
   const out = useOut(14);
+  // each tile: the number, then what it counts, in plain words
   const tiles = [
-    { big: opt.feasible, suffix: ` / ${opt.payoffs}`, label: "payoffs compiled on JUP's thin liquidity", note: `vs ${naive.feasible} / ${naive.payoffs} when replicating each kink directly` },
-    { big: rep.boundViolations, suffix: "", label: "certificate bounds violated", note: "every certified error held on the fork" },
-    { big: lp.borrows_eligible, suffix: "", label: "funded borrows checked against the LP guarantee", note: `${lp.borrows_guarantee_violations} paid less than the fees they missed · ${fmt(lp.paths)} price paths` },
-    { big: Math.round(keeper.shareBgeA * 100), suffix: "%", label: "of windows: FORGE LPs ≥ plain Orca LPs", note: `${fmt(keeper.n)} windows, ten months of JUP prices, 50% lent, keeper on` },
+    { big: opt.feasible, suffix: ` of ${opt.payoffs}`, label: "hedges could be built from JUP's small pools", note: `the obvious way, copying each corner directly, managed ${naive.feasible} of ${naive.payoffs}` },
+    { big: rep.boundViolations, suffix: "", label: "times a hedge was off by more than promised", note: "every promised error limit held, checked on the fork" },
+    { big: lp.borrows_guarantee_violations, suffix: ` of ${fmt(lp.borrows_eligible)}`, label: "loans where an LP got less than the fees it missed", note: `simulated over ${fmt(lp.paths)} real price paths, whenever the trader's budget covered the premium` },
+    { big: Math.round(keeper.shareBgeA * 100), suffix: "%", label: "of the time, LPs beat or matched plain Orca", note: `${fmt(keeper.n)} periods across ten months of JUP prices, with half the liquidity lent` },
   ];
   return (
     <Backdrop glow={1}>
       <AbsoluteFill style={{ opacity: out }}>
         <div style={{ position: "absolute", left: 140, top: 86, opacity: title }}>
           <Kicker n="04">How we tested it</Kicker>
-          <div style={{ fontFamily: sans, fontSize: 64, fontWeight: 600, letterSpacing: -2, marginTop: 18 }}>Measured, not promised.</div>
+          <div style={{ fontFamily: sans, fontSize: 64, fontWeight: 600, letterSpacing: -2, marginTop: 18 }}>Does it hold up? We checked.</div>
           <div style={{ fontFamily: sans, fontSize: 30, color: C.ink2, marginTop: 14 }}>
-            On a fork of Solana mainnet with JUP's real pools, and on ten months of real JUP prices.
+            On a copy of Solana mainnet with JUP's real pools, and on ten months of real JUP prices.
           </div>
         </div>
         <div style={{ position: "absolute", left: 140, right: 140, top: 330, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
@@ -39,14 +40,14 @@ export const Proof: React.FC = () => {
             return (
               <div key={i} style={{ padding: "34px 38px", border: `1px solid ${C.lineStrong}`, borderRadius: 8, background: "rgba(20,23,28,0.75)", opacity: a, transform: `translateY(${(1 - a) * 22}px)` }}>
                 <div style={{ fontFamily: mono, fontSize: 96, fontWeight: 500, letterSpacing: -3, lineHeight: 1 }}>{fmt(n)}<span style={{ color: C.ink3 }}>{t.suffix}</span></div>
-                <div style={{ fontFamily: sans, fontSize: 30, color: C.ink, marginTop: 18 }}>{t.label}</div>
+                <div style={{ fontFamily: sans, fontSize: 29, color: C.ink, marginTop: 18 }}>{t.label}</div>
                 <div style={{ fontFamily: sans, fontSize: 22, color: C.ink3, marginTop: 8 }}>{t.note}</div>
               </div>
             );
           })}
         </div>
-        <div style={{ position: "absolute", left: 140, bottom: 70, fontFamily: mono, fontSize: 22, color: C.ink3, opacity: useIn(110, 20) }}>
-          Plus {realized} real positions settled on the fork · reproduce all of it: uv run python benchmarks/run_all.py --fork
+        <div style={{ position: "absolute", left: 140, bottom: 48, fontFamily: mono, fontSize: 22, color: C.ink3, opacity: useIn(110, 20) }}>
+          Plus {realized} real positions opened and closed on the fork · rerun all of it: uv run python benchmarks/run_all.py --fork
         </div>
       </AbsoluteFill>
     </Backdrop>

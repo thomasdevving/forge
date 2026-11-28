@@ -9,6 +9,7 @@ import { FPS } from "./theme";
 import { RangeOption } from "./scenes/RangeOption";
 import { Compiler } from "./scenes/Compiler";
 import { X402 } from "./scenes/X402";
+import { Pricing } from "./scenes/Pricing";
 import { Proof } from "./scenes/Proof";
 import { LogoReveal, Outro, PartTitle } from "./scenes/Titles";
 
@@ -87,6 +88,7 @@ export const Root: React.FC = () => (
     {scene("RangeOption", RangeOption, 22)}
     {scene("Compiler", Compiler, 13)}
     {scene("X402", () => <X402 facts={{ path: "/x402/hedge", price: "0.01", tx: "2jGFVecbxi5x" }} />, 12)}
+    {scene("Pricing", Pricing, 14)}
     {scene("Proof", Proof, 12)}
     {scene("Outro", Outro, 8)}
   </>
