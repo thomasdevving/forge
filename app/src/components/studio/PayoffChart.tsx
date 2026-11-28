@@ -146,7 +146,7 @@ export function PayoffChart(p: Props) {
         const pv = lo + ((xv - M.l) / (W - M.l - M.r)) * (hi - lo);
         if (y(interp(p.points, pv)) < M.t + 92) return true;
       }
-      return p.points.some((q) => x(q[0]) >= x0 - 8 && x(q[0]) <= x1 + 8 && y(q[1]) < M.t + 100);
+      return p.points.some((q) => x(q[0]) >= x0 - 60 && x(q[0]) <= x1 + 60 && y(q[1]) < M.t + 150);
     };
     return covered(W * 0.08, W * 0.08 + 170) && !covered(W - M.r - 190, W - M.r);
   }, [p.points, lo, hi, x, y, W]);
@@ -167,6 +167,34 @@ export function PayoffChart(p: Props) {
     e.preventDefault();
     p.onChange(next);
   };
+
+  // price tags for the breakpoints you set (the end points are just the edges of the chart)
+  const tags = useMemo(() => {
+    const out: { i: number; px: number; py: number; tx: number; ty: number; w: number; price: string; sub: string }[] = [];
+    const TAG_H = 34, GAP = 12;
+    const plotTop = M.t, plotBottom = H - M.b;
+    p.points.forEach((q, i) => {
+      if (i === 0 || i === p.points.length - 1) return;
+      const px = x(q[0]), py = y(q[1]);
+      const price = fmtPrice(q[0]);
+      const pct = p.spot ? (q[0] / p.spot - 1) * 100 : null;
+      const sub = `${pct == null ? "" : `${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}% · `}${fmtUsd(q[1], 0)}`;
+      const w = Math.max(price.length * 7.6, sub.length * 6.2) + 18;
+      // above the point unless that leaves the plot; never over the previous tag
+      let ty = py - GAP - TAG_H;
+      if (ty < plotTop) ty = py + GAP;
+      if (ty + TAG_H > plotBottom) ty = plotBottom - TAG_H;
+      const tx = Math.min(W - M.r - w, Math.max(M.l + 2, px - w / 2));
+      const prev = out[out.length - 1];
+      if (prev && tx < prev.tx + prev.w + 4 && Math.abs(ty - prev.ty) < TAG_H + 4) {
+        ty = prev.ty < py ? py + GAP : py - GAP - TAG_H;
+        if (ty < plotTop) ty = py + GAP;
+        if (ty + TAG_H > plotBottom) ty = Math.max(plotTop, py - GAP - TAG_H);
+      }
+      out.push({ i, px, py, tx, ty, w, price, sub });
+    });
+    return out;
+  }, [p.points, p.spot, x, y, W, H]);
 
   const isChosen = (b: BucketInfo) => p.chosen.find((c) => Math.abs(c.priceLower - b.priceLower) < 1e-9);
 
@@ -259,6 +287,14 @@ export function PayoffChart(p: Props) {
         <rect data-track="1" x={M.l} y={M.t} width={W - M.l - M.r} height={H - M.t - M.b} fill="transparent" />
         <line x1={x(S)} x2={x(S)} y1={M.t} y2={H - M.b} stroke="var(--ink-2)" strokeWidth="1" strokeDasharray="2 3" pointerEvents="none" />
 
+        {/* breakpoint guides: down to the price axis, with the exact price marked on it */}
+        {tags.map((t) => (
+          <g key={`g${t.i}`} pointerEvents="none">
+            <line x1={t.px} x2={t.px} y1={t.py} y2={H - M.b} stroke="var(--accent)" strokeOpacity={selected === t.i || drag === t.i ? 0.8 : 0.4} strokeDasharray="2 3" />
+            <path d={`M${t.px - 4},${H - M.b} L${t.px + 4},${H - M.b} L${t.px},${H - M.b - 6} Z`} fill="var(--accent)" />
+          </g>
+        ))}
+
         {/* curves */}
         <path d={path([[lo, p.unhedgedUnits * lo], [hi, p.unhedgedUnits * hi]])} fill="none" stroke="var(--ink-3)" strokeWidth="1.5" strokeDasharray="2 6" pointerEvents="none" />
         {p.closest && <path d={path(p.closest)} fill="none" stroke="var(--warn)" strokeWidth="1.5" strokeDasharray="6 4" pointerEvents="none" />}
@@ -288,6 +324,16 @@ export function PayoffChart(p: Props) {
             />
           </g>
         ))}
+        {tags.map((t) => {
+          const on = selected === t.i || drag === t.i;
+          return (
+            <g key={`t${t.i}`} pointerEvents="none">
+              <rect x={t.tx} y={t.ty} width={t.w} height={34} rx={3} fill={on ? "var(--accent)" : "var(--bg)"} fillOpacity={on ? 1 : 0.94} stroke="var(--accent)" strokeOpacity={on ? 1 : 0.55} />
+              <text x={t.tx + t.w / 2} y={t.ty + 15} textAnchor="middle" fontSize="12.5" fontWeight="600" fill={on ? "var(--bg)" : "var(--ink)"} fontFamily="var(--font-mono)">{t.price}</text>
+              <text x={t.tx + t.w / 2} y={t.ty + 28} textAnchor="middle" fontSize="10.5" fill={on ? "var(--bg)" : "var(--ink-3)"} fontFamily="var(--font-mono)">{t.sub}</text>
+            </g>
+          );
+        })}
       </svg>
 
       {/* scenario readout */}
