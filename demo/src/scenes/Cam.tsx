@@ -12,12 +12,13 @@ const H = 380, W = (H * 1620) / 1080;
  * One voice-over line from a webcam take. With `show`, you appear in a round bubble (bottom right)
  * that pops in and out with the line; otherwise only the sound plays.
  */
-export const Cam: React.FC<{ take: string; from: number; to: number; show?: boolean }> = ({ take, from, to, show }) => {
+export const Cam: React.FC<{ take: string; from: number; to: number; show?: boolean; levelOf?: string }> = ({ take, from, to, show, levelOf }) => {
   const f = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
   const src = staticFile(`cam/${take}.mp4`);
   const trim = { trimBefore: Math.round(from * fps), trimAfter: Math.round(to * fps) };
-  const volume = gainFor(`${take}@${from}-${to}`);
+  // pieces of one sentence share a level (levelOf), so a cut-out slip doesn't change the loudness
+  const volume = gainFor(levelOf ?? `${take}@${from}-${to}`);
   if (!show) return <Audio src={src} {...trim} volume={volume} />;
   const pop = spring({ frame: f, fps, config: { damping: 18, stiffness: 160 } });
   const out = interpolate(f, [durationInFrames - 9, durationInFrames - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });

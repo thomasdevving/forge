@@ -233,6 +233,10 @@ const SHOTS = {
     await wait(900);
     await s.click(page.locator('[data-tour="earn-deposit"]').getByRole("button", { name: "Deposit" }), { ms: 800 });
     await page.getByText(/^Deposited/).waitFor({ timeout: 180_000 }).catch(() => {});
+    // after "Deposited." the page reloads the pool and the button says "Working…" until it is done;
+    // wait for that, and for the earnings to show, so the take doesn't end on a half-loaded page
+    await page.getByRole("button", { name: "Working…" }).waitFor({ state: "detached", timeout: 120_000 }).catch(() => {});
+    await page.locator('[data-tour="earn-earnings"]').getByText(/Nothing deposited/).waitFor({ state: "detached", timeout: 60_000 }).catch(() => {});
     mark("deposited");
     await wait(2000);
     mark("earnings");

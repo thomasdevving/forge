@@ -57,7 +57,6 @@ function take(id: string, src: string, from: number, segs: Seg[]): Item[] {
           src={src}
           from={t}
           speed={speed}
-          showSpeed={speed >= 1.9}
           zoom={g.zoom}
           zoomFrom={prev?.zoom}
           caption={g.cap}

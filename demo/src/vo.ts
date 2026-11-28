@@ -3,8 +3,9 @@
  * Each line plays from `from` to `to` seconds of its take and starts on the scene it describes:
  * `at` is a timeline item id, `offset` seconds after that item starts. A line never starts before
  * the previous one has finished, so pacing stays natural. `cam` shows you in a small bubble.
+ * `join` plays a line straight after the previous one with no pause: for cutting a slip out of a sentence.
  */
-export type Line = { take: string; from: number; to: number; at: string; offset?: number; cam?: boolean };
+export type Line = { take: string; from: number; to: number; at: string; offset?: number; cam?: boolean; join?: boolean };
 
 const T1 = "take-15h51", T3 = "take-15h53", T4a = "take-16h11-2", T4b = "take-16h11";
 
@@ -18,7 +19,8 @@ export const VO: Line[] = [
   { take: T1, from: 18.75, to: 21.2, at: "t-10" }, // compile and take the suggested budget
   { take: T1, from: 22.15, to: 25.95, at: "t-13" }, // the ranges, the cost, the certified worst-case error
   { take: T1, from: 26.8, to: 28.15, at: "t-14" }, // so I open it on chain
-  { take: T1, from: 28.3, to: 34.55, at: "t-16" }, // my position ends in seven days; paid, exposure
+  { take: T1, from: 28.3, to: 28.9, at: "t-16" }, // and…
+  { take: T1, from: 29.8, to: 34.55, at: "t-16", join: true }, // …my position ends in seven days (a false start cut out); paid, exposure
   { take: T1, from: 35.15, to: 38.35, at: "close-0" }, // closing gives the LPs their liquidity back
   { take: T1, from: 39.0, to: 44.9, at: "a-0" }, // or tell the Architect
   // 2 · LPs
@@ -47,7 +49,7 @@ export function placeLines(lines: Line[], startOf: (id: string) => number | unde
   return lines.flatMap((l) => {
     const anchor = startOf(l.at);
     if (anchor === undefined) return [];
-    const start = Math.max(anchor + (l.offset ?? 0), prevEnd + GAP);
+    const start = l.join ? prevEnd : Math.max(anchor + (l.offset ?? 0), prevEnd + GAP);
     prevEnd = start + (l.to - l.from);
     return [{ ...l, start }];
   });

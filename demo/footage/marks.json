@@ -124,23 +124,27 @@
     },
     {
       "label": "table",
-      "t": 5.47
+      "t": 5.49
     },
     {
       "label": "pick",
-      "t": 8.54
+      "t": 8.55
     },
     {
       "label": "deposit",
-      "t": 11.63
+      "t": 11.64
     },
     {
       "label": "deposited",
-      "t": 17.65
+      "t": 19.5
     },
     {
       "label": "earnings",
-      "t": 19.65
+      "t": 21.5
+    },
+    {
+      "label": "claim",
+      "t": 24.47
     }
   ],
   "agents": [

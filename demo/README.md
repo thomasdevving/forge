@@ -17,7 +17,7 @@ node record/record.mjs trader close architect earn agents
 Each take starts from a clean browser with its own demo wallet, on the hosted fork
 (`FORGE_URL` to point elsewhere). Every click happens on camera, dropdowns included. Beat timestamps
 go to `footage/marks.json`; the edit plays each take as one continuous shot and only changes its
-speed (waits on the network run faster, with a ×N badge), its framing and its captions on those beats.
+speed (waits on the network run faster), its framing and its captions on those beats.
 `proof`, `tour` and `addmarket` are extra takes the three-minute cut leaves out.
 
 The treasury agent's terminal run is captured with real output and timing:

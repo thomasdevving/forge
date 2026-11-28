@@ -61,11 +61,15 @@ export const Demo: React.FC<DemoProps> = ({ introSeconds }) => {
       {placeLines(VO.filter((l) => have.has(`cam/${l.take}.mp4`)), (id) => {
         const i = items.findIndex((it) => it.id === id);
         return i < 0 ? undefined : at[i]! / FPS;
-      }).map((l, i) => (
-        <Sequence key={`vo-line-${i}`} from={Math.round(l.start * FPS)} durationInFrames={Math.round((l.to - l.from) * FPS)} layout="none">
-          <Cam take={l.take} from={l.from} to={l.to} show={l.cam} />
-        </Sequence>
-      ))}
+      }).map((l, i, all) => {
+        const next = all[i + 1];
+        const levelOf = next?.join ? `${next.take}@${next.from}-${next.to}` : undefined;
+        return (
+          <Sequence key={`vo-line-${i}`} from={Math.round(l.start * FPS)} durationInFrames={Math.round((l.to - l.from) * FPS)} layout="none">
+            <Cam take={l.take} from={l.from} to={l.to} show={l.cam} levelOf={levelOf} />
+          </Sequence>
+        );
+      })}
       {/* or a separate voice-over file per part, starting at that part's title card */}
       {items.map((it, i) =>
         it.part && have.has(`vo-${it.part}.wav`) ? (

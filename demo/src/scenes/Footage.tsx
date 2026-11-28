@@ -17,8 +17,6 @@ export type FootageProps = {
   /** The caption is already on screen from the previous segment, or stays on into the next one. */
   captionIn?: boolean;
   captionOut?: boolean;
-  /** A small "×2" badge while sped up. */
-  showSpeed?: boolean;
 };
 
 const FULL: Zoom = { scale: 1, x: 0.5, y: 0.5 };
@@ -27,7 +25,7 @@ const FULL: Zoom = { scale: 1, x: 0.5, y: 0.5 };
  * A stretch of a real take, optionally sped up, with a camera that eases from the previous
  * segment's framing to this one's.
  */
-export const Footage: React.FC<FootageProps> = ({ src, from, speed = 1, zoom, zoomFrom, caption, captionIn = true, captionOut = true, showSpeed }) => {
+export const Footage: React.FC<FootageProps> = ({ src, from, speed = 1, zoom, zoomFrom, caption, captionIn = true, captionOut = true }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
   const a = zoomFrom ?? FULL, b = zoom ?? FULL;
@@ -45,11 +43,6 @@ export const Footage: React.FC<FootageProps> = ({ src, from, speed = 1, zoom, zo
       {/* a soft vignette keeps captions readable over bright UI */}
       <AbsoluteFill style={{ background: "linear-gradient(0deg, rgba(8,9,11,0.55) 0%, transparent 22%)", pointerEvents: "none" }} />
       {caption && <Caption {...caption} fadeIn={captionIn} fadeOut={captionOut} />}
-      {showSpeed && speed > 1.05 && (
-        <div style={{ position: "absolute", right: 48, bottom: 52, fontFamily: "monospace", fontSize: 22, color: C.ink2, padding: "8px 14px", border: `1px solid ${C.lineStrong}`, borderRadius: 5, background: "rgba(12,14,17,0.8)" }}>
-          ×{speed % 1 === 0 ? speed : speed.toFixed(1)}
-        </div>
-      )}
     </AbsoluteFill>
   );
 };
