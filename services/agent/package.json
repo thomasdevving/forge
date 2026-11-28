@@ -6,7 +6,8 @@
     "start": "tsx src/server.ts",
     "eval": "tsx eval/run.ts",
     "typecheck": "tsc --noEmit -p .",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests --dir test",
+    "test:fork": "vitest run --dir fork"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.8.0",

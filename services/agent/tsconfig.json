@@ -1,1 +1,1 @@
-{ "extends": "../../tsconfig.base.json", "compilerOptions": { "noEmit": true }, "include": ["src/**/*.ts", "test/**/*.ts", "eval/**/*.ts"] }
+{ "extends": "../../tsconfig.base.json", "compilerOptions": { "noEmit": true }, "include": ["src/**/*.ts", "test/**/*.ts", "fork/**/*.ts", "eval/**/*.ts"] }

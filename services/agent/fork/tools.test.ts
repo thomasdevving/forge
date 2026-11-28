@@ -1,5 +1,6 @@
 /**
- * The Architect's deterministic side against the local stack (fork, indexer, compiler). No model calls:
+ * The Architect's deterministic side against the local stack (fork, indexer, compiler); run it with
+ * `pnpm --filter @forge/agent test:fork` while the stack is up. No model calls:
  * the tools are driven directly, the way the model would call them, to check the numbers and the gates.
  */
 import { describe, expect, it } from "vitest";
