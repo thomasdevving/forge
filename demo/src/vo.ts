@@ -12,7 +12,7 @@ export const VO: Line[] = [
   // 1 · traders
   { take: T1, from: 0.4, to: 4.15, at: "p1", offset: 0.3, cam: true }, // first, the traders. From the landing page, I open the app.
   { take: T1, from: 4.35, to: 9.4, at: "t-3" }, // I pick JUP and connect the demo wallet. Mainnet fork, test money.
-  { take: T1, from: 9.9, to: 14.85, at: "t-7" }, // the hedge, a collar: floor and cap
+  { take: "take-16h35-2", from: 0.0, to: 10.45, at: "t-7" }, // the hedge, a collar: below the floor I get paid the difference; above the cap I give up the extra gains
   { take: T1, from: 15.35, to: 16.95, at: "t-8" }, // dragging the chart does the same thing
   { take: T1, from: 17.15, to: 18.35, at: "t-9" }, // and I want it for one week
   { take: T1, from: 18.75, to: 21.2, at: "t-10" }, // compile and take the suggested budget

@@ -112,8 +112,8 @@ export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS):
       { to: m("market", 10), speed: 1.2, fit: 3.2, cap: pick },
       { to: m("wallet", 11) + 1.6, speed: 1.2, cap: wallet },
       { to: m("funded", 15), fit: 1.2, cap: wallet },
-      { to: m("strategy", 18), speed: 1.6, cap: wallet },
-      { to: m("drag-cap", 30), speed: 1.3, zoom: FORM, cap: describe },
+      { to: m("strategy", 18), speed: 2, cap: wallet },
+      { to: m("drag-cap", 30), speed: 1, zoom: FORM, cap: describe },
       { to: m("duration", 34), speed: 1.2, zoom: CHART, cap: { n: "04", text: "Or drag it on the chart", sub: "the form follows" } },
       { to: m("compile", 37), speed: 1.3, zoom: FORM, cap: { n: "04", text: "Cover for one week", sub: "it closes automatically after 7 days" } },
       { to: m("compile", 37) + 1.4, speed: 1.2, cap: compile },
@@ -123,7 +123,7 @@ export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS):
       { to: m("open", 50) + 1.4, speed: 1.2, cap: open },
       { to: m("opened", 62), fit: 2, cap: open },
       { to: m("position", 66), speed: 1.3, fit: 2.4, cap: open },
-      { to: m("position", 66) + 7, speed: 1.5, cap: position },
+      { to: m("position", 66) + 6.4, speed: 1.5, cap: position },
     ]));
   }
   if (has("close.mp4")) {
@@ -141,7 +141,7 @@ export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS):
     push(...take("a", A, m("studio") + 0.6, [
       { to: m("send") + 0.8, speed: 3, cap: say },
       { to: m("options"), fit: 1.6, cap: say },
-      { to: m("choose", m("options") + 5) + 2.6, speed: 1.6, cap: choose },
+      { to: m("choose", m("options") + 5) + 2.2, speed: 1.6, cap: choose },
     ]));
   }
 
