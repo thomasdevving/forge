@@ -110,11 +110,11 @@
     },
     {
       "label": "closing",
-      "t": 3.15
+      "t": 3.11
     },
     {
       "label": "closed",
-      "t": 7.95
+      "t": 8.39
     }
   ],
   "earn": [
@@ -124,27 +124,27 @@
     },
     {
       "label": "table",
-      "t": 5.45
+      "t": 5.47
     },
     {
       "label": "pick",
-      "t": 8.62
+      "t": 8.55
     },
     {
       "label": "deposit",
-      "t": 11.73
+      "t": 11.65
     },
     {
       "label": "deposited",
-      "t": 17.72
+      "t": 18.25
     },
     {
       "label": "earnings",
-      "t": 19.73
+      "t": 20.25
     },
     {
       "label": "claim",
-      "t": 23
+      "t": 23.22
     }
   ],
   "agents": [

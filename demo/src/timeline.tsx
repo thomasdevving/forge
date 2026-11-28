@@ -1,7 +1,7 @@
 import React from "react";
 import marksJson from "../footage/marks.json";
 import agentLog from "../footage/term-agent.json";
-import { s } from "./theme";
+import { FPS, s } from "./theme";
 import { Footage, type FootageProps, type Zoom } from "./scenes/Footage";
 import { Terminal, timeline as termTimeline, type TermLog } from "./scenes/Terminal";
 import { Pace } from "./ui";
@@ -43,18 +43,30 @@ function take(id: string, src: string, from: number, segs: Seg[]): Item[] {
   return segs.map((g, i) => {
     const len = Math.max(0.1, g.to - t);
     const speed = g.fit ? Math.max(g.speed ?? 1, len / g.fit) : g.speed ?? 1;
+    // whole frames, and the next segment picks up exactly where this one's footage ends,
+    // so joins never skip or repeat a moment (a repeat looks like the cursor jumping back)
+    const dur = Math.max(6, Math.round((len / speed) * FPS));
     const prev = segs[i - 1], next = segs[i + 1];
-    const item = clip(`${id}-${i}`, src, t, g.to, {
-      speed,
-      showSpeed: speed >= 1.9,
-      zoom: g.zoom,
-      zoomFrom: prev?.zoom,
-      caption: g.cap,
-      captionIn: !(g.cap && prev?.cap === g.cap),
-      captionOut: !(g.cap && next?.cap === g.cap),
-    }, i === 0 ? "fade" : "cut");
-    if (i === 0) item.enterFrames = 12;
-    t = g.to;
+    const item: Item = {
+      id: `${id}-${i}`,
+      dur,
+      enter: i === 0 ? "fade" : "cut",
+      enterFrames: i === 0 ? 12 : 0,
+      el: (
+        <Footage
+          src={src}
+          from={t}
+          speed={speed}
+          showSpeed={speed >= 1.9}
+          zoom={g.zoom}
+          zoomFrom={prev?.zoom}
+          caption={g.cap}
+          captionIn={!(g.cap && prev?.cap === g.cap)}
+          captionOut={!(g.cap && next?.cap === g.cap)}
+        />
+      ),
+    };
+    t += (dur / FPS) * speed;
     return item;
   });
 }

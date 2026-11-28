@@ -77,10 +77,18 @@ export async function session({ name, storage = true }) {
     await writeFile(file, Buffer.from(f.data, "base64"));
   });
 
+  const realMove = page.mouse.move.bind(page.mouse), realClick = page.mouse.click.bind(page.mouse);
+  page.mouse.move = async (x, y, o) => { mouse = [x, y]; return realMove(x, y, o); };
+  page.mouse.click = async (x, y, o) => { mouse = [x, y]; return realClick(x, y, o); };
+
   const api = {
     page,
     ctx,
     async start() {
+      // Off-camera setup (clicks through Playwright) moves the real pointer without the drawn cursor
+      // knowing; put the pointer where the cursor thinks it is before filming, so it never jumps.
+      await page.mouse.move(mouse[0], mouse[1]);
+      await wait(120);
       await cdp.send("Page.startScreencast", { format: "jpeg", quality: 95, maxWidth: 1920, maxHeight: 1080, everyNthFrame: 1 });
       recording = true;
       // a heartbeat repaint so still moments still produce frames with timestamps
