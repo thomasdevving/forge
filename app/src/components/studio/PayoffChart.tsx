@@ -171,15 +171,15 @@ export function PayoffChart(p: Props) {
   // price tags for the breakpoints you set (the end points are just the edges of the chart)
   const tags = useMemo(() => {
     const out: { i: number; px: number; py: number; tx: number; ty: number; w: number; price: string; sub: string }[] = [];
-    const TAG_H = 34, GAP = 12;
-    const plotTop = M.t, plotBottom = H - M.b;
+    const TAG_H = 28, GAP = 10;
+    const plotTop = M.t + 24, plotBottom = H - M.b; // clear of the "Now" pill
     p.points.forEach((q, i) => {
       if (i === 0 || i === p.points.length - 1) return;
       const px = x(q[0]), py = y(q[1]);
       const price = fmtPrice(q[0]);
       const pct = p.spot ? (q[0] / p.spot - 1) * 100 : null;
       const sub = `${pct == null ? "" : `${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}% · `}${fmtUsd(q[1], 0)}`;
-      const w = Math.max(price.length * 7.6, sub.length * 6.2) + 18;
+      const w = Math.max(price.length * 6.7, sub.length * 5.5) + 14;
       // above the point unless that leaves the plot; never over the previous tag
       let ty = py - GAP - TAG_H;
       if (ty < plotTop) ty = py + GAP;
@@ -276,12 +276,18 @@ export function PayoffChart(p: Props) {
         )}
 
         {/* spot */}
-        {p.spot && p.spot > lo && p.spot < hi && (
-          <g>
-            <line x1={x(p.spot)} x2={x(p.spot)} y1={M.t} y2={H - 34} stroke="var(--ink-3)" strokeDasharray="3 5" />
-            <text x={x(p.spot) + 5} y={M.t + 12} fontSize="11" fill="var(--ink-2)" fontFamily="var(--font-mono)">spot {fmtPrice(p.spot)}</text>
-          </g>
-        )}
+        {p.spot && p.spot > lo && p.spot < hi && (() => {
+          const sx = x(p.spot), label = `Now ${fmtPrice(p.spot)}`, lw = label.length * 6.9 + 14;
+          const lx = Math.min(W - M.r - lw, Math.max(M.l, sx - lw / 2));
+          return (
+            <g pointerEvents="none">
+              <line x1={sx} x2={sx} y1={M.t + 20} y2={H - 34} stroke="var(--ink)" strokeOpacity="0.55" strokeWidth="1.25" />
+              <rect x={lx} y={M.t} width={lw} height={20} rx={3} fill="var(--ink)" />
+              <text x={lx + lw / 2} y={M.t + 14} textAnchor="middle" fontSize="11.5" fontWeight="600" fill="var(--bg)" fontFamily="var(--font-mono)">{label}</text>
+              <path d={`M${sx - 5},${H - M.b} L${sx + 5},${H - M.b} L${sx},${H - M.b - 7} Z`} fill="var(--ink)" />
+            </g>
+          );
+        })()}
 
         {/* scenario track (click anywhere in the plot to move the scenario line) */}
         <rect data-track="1" x={M.l} y={M.t} width={W - M.l - M.r} height={H - M.t - M.b} fill="transparent" />
@@ -328,9 +334,9 @@ export function PayoffChart(p: Props) {
           const on = selected === t.i || drag === t.i;
           return (
             <g key={`t${t.i}`} pointerEvents="none">
-              <rect x={t.tx} y={t.ty} width={t.w} height={34} rx={3} fill={on ? "var(--accent)" : "var(--bg)"} fillOpacity={on ? 1 : 0.94} stroke="var(--accent)" strokeOpacity={on ? 1 : 0.55} />
-              <text x={t.tx + t.w / 2} y={t.ty + 15} textAnchor="middle" fontSize="12.5" fontWeight="600" fill={on ? "var(--bg)" : "var(--ink)"} fontFamily="var(--font-mono)">{t.price}</text>
-              <text x={t.tx + t.w / 2} y={t.ty + 28} textAnchor="middle" fontSize="10.5" fill={on ? "var(--bg)" : "var(--ink-3)"} fontFamily="var(--font-mono)">{t.sub}</text>
+              <rect x={t.tx} y={t.ty} width={t.w} height={28} rx={3} fill={on ? "var(--accent)" : "var(--bg)"} fillOpacity={on ? 1 : 0.94} stroke="var(--accent)" strokeOpacity={on ? 1 : 0.55} />
+              <text x={t.tx + t.w / 2} y={t.ty + 12.5} textAnchor="middle" fontSize="11" fontWeight="600" fill={on ? "var(--bg)" : "var(--ink)"} fontFamily="var(--font-mono)">{t.price}</text>
+              <text x={t.tx + t.w / 2} y={t.ty + 23.5} textAnchor="middle" fontSize="9.5" fill={on ? "var(--bg)" : "var(--ink-3)"} fontFamily="var(--font-mono)">{t.sub}</text>
             </g>
           );
         })}
