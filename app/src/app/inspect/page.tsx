@@ -28,6 +28,12 @@ function Inner() {
     <AppShell>
       <Bar title="Transaction" meta={<><span className="num break-all text-ink-2">{sig || "—"}</span><span className="text-warn">Fork only</span></>} />
       {err && <div className="border-b border-line px-5 py-3 text-sm text-bad">{err}</div>}
+      {!sig && (
+        <div className="px-5 py-16 text-center text-sm text-ink-3">
+          No transaction to show. Open one from the <span className="text-ink-2">inspect</span> links in the Studio, Positions or Earn.
+        </div>
+      )}
+      {sig && !tx && !err && <div className="px-5 py-16 text-center text-sm text-ink-3">Loading the transaction…</div>}
       {tx && (
         <div className="grid min-h-0 flex-1 overflow-auto lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
           <div className="space-y-2 p-5 text-sm lg:border-r lg:border-line">

@@ -27,13 +27,15 @@ type Ctx = {
   mirrorOf: string | null;
   wallets: Wallet[];
   error: string | null;
-  connectDemo: () => Promise<void>;
+  /** Connect the demo key; resolves to its address. */
+  connectDemo: () => Promise<string>;
   /** Ask a wallet for its public address only, then mirror it. */
   connectWallet: (w: Wallet) => Promise<void>;
   /** Mirror any address typed by the user. */
   connectAddress: (owner: string) => Promise<void>;
   disconnect: () => void;
-  fundDemo: () => Promise<string>;
+  /** Fork faucet for the demo key (or `to`, right after connecting, before state has updated). */
+  fundDemo: (to?: string) => Promise<string>;
   /** Copy the real wallet's current mainnet balances onto the burner again. */
   resync: () => Promise<string>;
   execute: (txs: BuiltTx[], onStep?: (i: number, sig: string) => void) => Promise<string[]>;
@@ -41,6 +43,8 @@ type Ctx = {
 };
 
 const WalletCtx = createContext<Ctx | null>(null);
+/** Fired after test funds or a re-sync land, so pages can re-read balances right away. */
+export const BALANCES_EVENT = "forge:balances";
 const DEMO_KEY = "forge.demoSeed.v1";
 const SESSION_KEY = "forge.session.v1";
 const burnerKey = (owner: string) => `forge.burner.v1.${owner}`;
@@ -148,12 +152,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const connectDemo = useCallback(async () => {
     setError(null);
-    await loadSigner(seedFor(DEMO_KEY));
+    const a = await loadSigner(seedFor(DEMO_KEY));
     setKind("demo");
     setMirrorOf(null);
     setLabel("Demo wallet");
     store.set(SESSION_KEY, JSON.stringify({ kind: "demo" }));
+    return a;
   }, [loadSigner]);
+
+  const dropSession = useCallback(() => {
+    setAddress(null);
+    setKind(null);
+    setMirrorOf(null);
+    setKeys(null);
+    store.del(SESSION_KEY);
+  }, []);
 
   const connectAddress = useCallback(
     async (input: string) => {
@@ -168,10 +181,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       try {
         await startMirror(owner, true);
       } catch (e) {
-        setError((e as Error).message);
+        dropSession();
+        setError(`Could not copy that wallet's balances: ${(e as Error).message}`);
       }
     },
-    [startMirror],
+    [startMirror, dropSession],
   );
 
   const connectWallet = useCallback(
@@ -185,23 +199,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         if (!account) throw new Error("The wallet returned no account.");
         await startMirror(account.address, true);
       } catch (e) {
+        dropSession();
         setError((e as Error).message);
       }
     },
-    [startMirror],
+    [startMirror, dropSession],
   );
 
   const disconnect = useCallback(() => {
-    setAddress(null);
-    setKind(null);
-    setMirrorOf(null);
-    setKeys(null);
-    store.del(SESSION_KEY);
-  }, []);
+    dropSession();
+    setError(null);
+  }, [dropSession]);
 
-  const fundDemo = useCallback(async () => {
-    if (!address) throw new Error("Connect a wallet first.");
-    const r = await api<Record<string, unknown>>("control/faucet", { address });
+  const fundDemo = useCallback(async (to?: string) => {
+    const target = to ?? address;
+    if (!target) throw new Error("Connect a wallet first.");
+    const r = await api<Record<string, unknown>>("control/faucet", { address: target });
+    window.dispatchEvent(new Event(BALANCES_EVENT));
     // e.g. "20 SOL, 5,000 USDC, 6,097 JUP": wrapped SOL, quote, then each other market's base token
     const parts: string[] = [];
     for (const [k, v] of Object.entries(r)) {
@@ -213,7 +227,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const resync = useCallback(async () => {
     if (!mirrorOf) throw new Error("Not mirroring a wallet.");
-    return startMirror(mirrorOf, true);
+    const out = await startMirror(mirrorOf, true);
+    window.dispatchEvent(new Event(BALANCES_EVENT));
+    return out;
   }, [mirrorOf, startMirror]);
 
   const execute = useCallback(
@@ -229,6 +245,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         sigs.push(sig);
         onStep?.(i, sig);
       }
+      window.dispatchEvent(new Event(BALANCES_EVENT));
       return sigs;
     },
     [address, keys],

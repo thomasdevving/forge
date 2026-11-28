@@ -78,9 +78,15 @@ function AddMarket({ onAdded }: { onAdded: (name: string) => void }) {
   const [err, setErr] = useState<string | null>(null);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const close = (e: MouseEvent) => box.current && !box.current.contains(e.target as Node) && !job?.id && setOpen(false);
+    const busyJob = job?.state === "queued" || job?.state === "running";
+    const close = (e: MouseEvent) => box.current && !box.current.contains(e.target as Node) && !busyJob && setOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && !busyJob && setOpen(false);
     document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", esc);
+    };
   }, [job]);
   useEffect(() => {
     if (!job?.id || job.state === "done" || job.state === "failed") return;
@@ -98,17 +104,28 @@ function AddMarket({ onAdded }: { onAdded: (name: string) => void }) {
 
   const [hits, setHits] = useState<TokenHit[]>([]);
   const [searching, setSearching] = useState(false);
+  // the query the current hits answer (null: no search yet, or the search failed)
+  const [searched, setSearched] = useState<string | null>(null);
   useEffect(() => {
     const q = mint.trim();
-    if (q.length < 2 || looksLikeMint(q)) return setHits([]);
+    if (q.length < 2 || looksLikeMint(q)) {
+      setHits([]);
+      setSearched(null);
+      setSearching(false);
+      return;
+    }
     setSearching(true);
+    let live = true;
     const id = setTimeout(() => {
       searchTokens(q)
-        .then(setHits)
-        .catch(() => setHits([]))
-        .finally(() => setSearching(false));
+        .then((h) => live && (setHits(h), setSearched(q)))
+        .catch(() => live && (setHits([]), setSearched(null)))
+        .finally(() => live && setSearching(false));
     }, 300);
-    return () => clearTimeout(id);
+    return () => {
+      live = false;
+      clearTimeout(id);
+    };
   }, [mint]);
 
   const start = async (address = mint.trim()) => {
@@ -123,16 +140,40 @@ function AddMarket({ onAdded }: { onAdded: (name: string) => void }) {
     }
   };
   const busy = job?.state === "queued" || job?.state === "running";
+  // once the new market is live (and selected), the box has done its job
+  useEffect(() => {
+    if (job?.state !== "done") return;
+    const t = setTimeout(() => {
+      setOpen(false);
+      setJob(null);
+      setMint("");
+    }, 1800);
+    return () => clearTimeout(t);
+  }, [job?.state]);
   return (
     <div className="relative" ref={box}>
       <button className="btn btn-ghost !px-2 !py-0.5 !text-[12px]" onClick={() => setOpen((o) => !o)} title="Add any token as a market">+ Add</button>
       {open && (
         <div className="absolute left-0 top-full z-50 mt-2 w-80 border border-line-strong bg-bg p-3 text-[12px]">
           <div className="cap">Token name, symbol or mint</div>
-          <div className="mt-1 flex gap-2">
-            <input className="input" placeholder="e.g. Bonk or DezXAZ8z…" value={mint} onChange={(e) => setMint(e.target.value)} disabled={busy} autoFocus />
-            <button className="btn btn-primary !py-1" disabled={busy || !looksLikeMint(mint)} onClick={() => void start()}>{busy ? "…" : "Add"}</button>
-          </div>
+          <form
+            className="mt-1 flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (busy) return;
+              if (looksLikeMint(mint)) void start();
+              else if (hits.length === 1) {
+                setMint(hits[0]!.address);
+                void start(hits[0]!.address);
+              }
+            }}
+          >
+            <input className="input" placeholder="e.g. Bonk or DezXAZ8z…" aria-label="Token name, symbol or mint" value={mint} onChange={(e) => setMint(e.target.value)} disabled={busy} autoFocus spellCheck={false} autoComplete="off" />
+            <button type="submit" className="btn btn-primary !py-1" disabled={busy || !looksLikeMint(mint)} title={looksLikeMint(mint) ? "Set up this mint as a market" : "Pick a token from the list, or paste a mint address"}>{busy ? "…" : "Add"}</button>
+          </form>
+          {!searching && searched !== null && searched === mint.trim() && hits.length === 0 && (
+            <p className="mt-2 text-ink-2">No SPL token on Orca matches “{searched}”. Try the symbol, or paste the mint address.</p>
+          )}
           {(hits.length > 0 || searching) && (
             <ul className="mt-2 max-h-64 overflow-y-auto border border-line">
               {searching && !hits.length && <li className="cap px-2 py-2">Searching…</li>}

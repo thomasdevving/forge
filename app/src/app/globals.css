@@ -162,7 +162,9 @@ body {
 }
 
 /* Segmented control: joined square buttons. */
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+.seg { display: inline-flex; max-width: 100%; border: 1px solid var(--line); border-radius: 3px; overflow-x: auto; scrollbar-width: none; }
+.seg::-webkit-scrollbar { display: none; }
+.seg > button { white-space: nowrap; flex-shrink: 0; }
 .seg > button { padding: 0.35rem 0.7rem; font-size: 0.78rem; color: var(--ink-3); border-left: 1px solid var(--line); transition: color 120ms, background 120ms; }
 .seg > button:first-child { border-left: 0; }
 .seg > button:hover { color: var(--ink); }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { fmtPrice, fmtUsd } from "@/lib/format";
@@ -56,7 +56,7 @@ const EXAMPLES = [
  * "Describe what you want": the FORGE Architect as a side panel of the Studio. The model's text is
  * shown as written; every number on the cards comes from the compiler through the agent service.
  */
-export function Architect({ open, onClose, owner, onLoad }: { open: boolean; onClose: () => void; owner: string | null; onLoad: (d: Design) => void }) {
+export function Architect({ open, onClose, owner, onLoad, hint }: { open: boolean; onClose: () => void; owner: string | null; onLoad: (d: Design) => void; hint?: ReactNode }) {
   const [session, setSession] = useState<{ id: string; model: string; configured: boolean; owner: string | null } | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [input, setInput] = useState("");
@@ -64,16 +64,29 @@ export function Architect({ open, onClose, owner, onLoad }: { open: boolean; onC
   const [status, setStatus] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [unreachable, setUnreachable] = useState(false);
 
   // one conversation per wallet
   useEffect(() => {
     if (!open || (session && session.owner === owner)) return;
     setItems([]);
+    setUnreachable(false);
     fetch("/api/agent/sessions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(owner ? { owner } : {}) })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Architect unavailable (${r.status})`))))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((s) => setSession({ ...s, owner }))
-      .catch((e: Error) => setErr(e.message));
-  }, [open, owner, session]);
+      .catch(() => setUnreachable(true));
+  }, [open, owner, session, attempt]);
+
+  // Esc closes the panel
+  useEffect(() => {
+    if (!open) return;
+    const on = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !document.querySelector("[data-tour-overlay]")) onClose();
+    };
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, [open, onClose]);
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
@@ -101,7 +114,15 @@ export function Architect({ open, onClose, owner, onLoad }: { open: boolean; onC
       });
       if (!res.ok || !res.body) {
         const j = await res.json().catch(() => null);
-        throw new Error(j?.error ?? `HTTP ${res.status}`);
+        // nothing ran: give the text back so it need not be typed again
+        setItems((p) => (p[p.length - 1]?.kind === "user" ? p.slice(0, -1) : p));
+        setInput(text);
+        if (res.status === 404) {
+          // sessions live in the service's memory; after a restart start a new one
+          setSession(null);
+          throw new Error("This conversation expired because the service restarted. Send it again to start a new one.");
+        }
+        throw new Error(res.status === 429 ? "Too many requests right now. Wait a minute and send again." : j?.error ?? `The Architect answered with an error (HTTP ${res.status}).`);
       }
       const reader = res.body.getReader();
       const dec = new TextDecoder();
@@ -164,18 +185,26 @@ export function Architect({ open, onClose, owner, onLoad }: { open: boolean; onC
 
   if (!open) return null;
   return (
-    <aside className="fixed inset-y-0 right-0 z-40 flex w-full max-w-[460px] flex-col border-l border-line bg-bg shadow-[-24px_0_48px_rgba(0,0,0,0.35)]">
+    <aside aria-label="Architect" className="fixed inset-y-0 right-0 z-40 flex w-full max-w-[460px] flex-col border-l border-line bg-bg shadow-[-24px_0_48px_rgba(0,0,0,0.35)]">
       <div className="flex min-h-12 shrink-0 items-center gap-3 border-b border-line px-4">
         <h2 className="text-[13px] font-semibold">Architect</h2>
         <span className="cap">Describe what you want</span>
         {session && <span className="cap ml-auto num">{session.model}</span>}
-        <button className="btn btn-ghost !px-2 !py-1 text-[12px]" onClick={onClose} aria-label="Close the Architect">Close</button>
+        <button className="btn btn-ghost !px-2 !py-1 text-[12px]" onClick={onClose} aria-label="Close the Architect" title="Close (Esc). The conversation is kept.">Close</button>
       </div>
 
       <div ref={scroller} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 text-[13px] leading-relaxed">
         {session && !session.configured && (
           <p className="border border-warn/50 p-3 text-warn">The Architect is not configured on this server (no model key). The Studio works as before.</p>
         )}
+        {unreachable && (
+          <div className="border border-warn/50 p-3 text-warn">
+            The Architect is unreachable right now. You can still draw and compile in the Studio.{" "}
+            <button className="underline underline-offset-2 hover:text-ink" onClick={() => setAttempt((n) => n + 1)}>Try again</button>
+          </div>
+        )}
+        {!session && !unreachable && <p className="cap">Connecting…</p>}
+        {hint && <div className="border border-line p-3 text-ink-2">{hint}</div>}
         {items.length === 0 && session?.configured && (
           <div className="space-y-2">
             <p className="text-ink-2">

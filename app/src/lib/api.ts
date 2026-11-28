@@ -1,3 +1,12 @@
+/** A failed simulation as a sentence: "simulation failed: StaleReference (Reference price is stale)"
+ * becomes "Reference price is stale (StaleReference)." */
+function readable(msg: string): string {
+  const m = msg.match(/^simulation failed: (\w+) \((.+)\)$/s);
+  if (!m) return msg;
+  const why = m[2]!.charAt(0).toUpperCase() + m[2]!.slice(1);
+  return `${why} (${m[1]}).`;
+}
+
 /** Same-origin service calls (rewritten to the hosted services). */
 export async function api<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`/api/${path}`, {
@@ -15,8 +24,8 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
   }
   if (!res.ok) {
     const d = data as { error?: string; detail?: unknown; code?: string };
-    const msg = d?.code ? `${d.code}: ${d.error}` : d?.error ?? JSON.stringify(d?.detail ?? d);
-    throw new Error(msg);
+    const raw = d?.error ? (d.code && !d.error.includes(d.code) ? `${d.code}: ${d.error}` : d.error) : JSON.stringify(d?.detail ?? d);
+    throw new Error(readable(raw));
   }
   return data as T;
 }

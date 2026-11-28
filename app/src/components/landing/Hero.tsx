@@ -186,7 +186,7 @@ export function Hero() {
                 <Link href="/docs/agents" className="btn btn-primary !px-6 !py-3 !text-[15px]">
                   Read the agent docs <span aria-hidden>→</span>
                 </Link>
-                <Link href="/studio" className="btn btn-ghost !px-6 !py-3 !text-[15px]">Ask the Architect</Link>
+                <Link href="/studio?architect=1" className="btn btn-ghost !px-6 !py-3 !text-[15px]">Ask the Architect</Link>
               </div>
             </Layer>
           </div>

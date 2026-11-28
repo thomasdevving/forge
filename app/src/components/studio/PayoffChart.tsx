@@ -28,7 +28,8 @@ type Props = {
   liquidityScale: number;
 };
 
-const W = 920;
+// drawing width in view units: the box's own width on phones (so text stays readable), at most 920
+const W_MAX = 920, W_MIN = 340;
 const M = { l: 64, r: 18, t: 18, b: 92 };
 const BAR_H = 46;
 
@@ -36,12 +37,17 @@ export function PayoffChart(p: Props) {
   const svg = useRef<SVGSVGElement>(null);
   // the drawing takes the shape of its box: height in view units follows the box's aspect ratio
   const [H, setH] = useState(440);
+  const [W, setW] = useState(W_MAX);
   useEffect(() => {
     const el = svg.current;
     if (!el) return;
     const ro = new ResizeObserver(([e]) => {
       const r = e!.contentRect;
-      if (r.width > 0 && r.height > 0) setH(Math.round(Math.min(760, Math.max(300, (W * r.height) / r.width))));
+      if (r.width > 0 && r.height > 0) {
+        const w = Math.round(Math.min(W_MAX, Math.max(W_MIN, r.width)));
+        setW(w);
+        setH(Math.round(Math.min(760, Math.max(300, (w * r.height) / r.width))));
+      }
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -57,7 +63,7 @@ export function PayoffChart(p: Props) {
     return [mn - pad * 0.2, mx + pad] as const;
   }, [p.points, p.compiled, p.unhedgedUnits, lo, hi]);
 
-  const x = useCallback((v: number) => M.l + ((v - lo) / (hi - lo)) * (W - M.l - M.r), [lo, hi]);
+  const x = useCallback((v: number) => M.l + ((v - lo) / (hi - lo)) * (W - M.l - M.r), [lo, hi, W]);
   const y = useCallback((v: number) => M.t + (1 - (v - yRange[0]) / (yRange[1] - yRange[0])) * (H - M.t - M.b), [yRange, H]);
   const toData = (clientX: number, clientY: number) => {
     const el = svg.current!;
@@ -103,10 +109,10 @@ export function PayoffChart(p: Props) {
   const path = (pts: Point[]) => pts.map((q, i) => `${i ? "L" : "M"}${x(q[0]).toFixed(1)},${y(q[1]).toFixed(1)}`).join("");
   const maxBorrow = Math.max(1, ...p.buckets.map((b) => Number(BigInt(b.borrowable))));
   const ticksX = useMemo(() => {
-    const n = 6, out: number[] = [];
+    const n = W < 560 ? 3 : 6, out: number[] = [];
     for (let i = 0; i <= n; i++) out.push(lo + ((hi - lo) * i) / n);
     return out;
-  }, [lo, hi]);
+  }, [lo, hi, W]);
   const ticksY = useMemo(() => {
     const n = 5, out: number[] = [];
     for (let i = 0; i <= n; i++) out.push(yRange[0] + ((yRange[1] - yRange[0]) * i) / n);
@@ -132,6 +138,36 @@ export function PayoffChart(p: Props) {
     ? `M${x(density.pts[0]![0]).toFixed(1)},${base}` + density.pts.map(([px, v]) => `L${x(px).toFixed(1)},${(base - v * DH).toFixed(1)}`).join("") + `L${x(density.pts[density.pts.length - 1]![0]).toFixed(1)},${base}Z`
     : null;
 
+  // the readout sits top-left unless the curve passes under it there; then top-right
+  const readoutRight = useMemo(() => {
+    const covered = (x0: number, x1: number) => {
+      for (let i = 0; i <= 12; i++) {
+        const xv = x0 + ((x1 - x0) * i) / 12;
+        const pv = lo + ((xv - M.l) / (W - M.l - M.r)) * (hi - lo);
+        if (y(interp(p.points, pv)) < M.t + 92) return true;
+      }
+      return p.points.some((q) => x(q[0]) >= x0 - 8 && x(q[0]) <= x1 + 8 && y(q[1]) < M.t + 100);
+    };
+    return covered(W * 0.08, W * 0.08 + 170) && !covered(W - M.r - 190, W - M.r);
+  }, [p.points, lo, hi, x, y, W]);
+
+  // keyboard editing of a focused point: arrows move it, Shift for bigger steps
+  const nudge = (i: number, e: React.KeyboardEvent) => {
+    const big = e.shiftKey ? 10 : 1;
+    const dy = (yRange[1] - yRange[0]) / 100, dx = (hi - lo) / 200;
+    const next = p.points.map((q) => [...q] as Point);
+    const isEnd = i === 0 || i === next.length - 1;
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      next[i]![1] = Math.max(0, next[i]![1] + (e.key === "ArrowUp" ? 1 : -1) * dy * big);
+    } else if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && !isEnd) {
+      const gap = (hi - lo) * 0.01;
+      const want = next[i]![0] + (e.key === "ArrowRight" ? 1 : -1) * dx * big;
+      next[i]![0] = Math.min(next[i + 1]![0] - gap, Math.max(next[i - 1]![0] + gap, want));
+    } else return;
+    e.preventDefault();
+    p.onChange(next);
+  };
+
   const isChosen = (b: BucketInfo) => p.chosen.find((c) => Math.abs(c.priceLower - b.priceLower) < 1e-9);
 
   return (
@@ -141,7 +177,7 @@ export function PayoffChart(p: Props) {
         viewBox={`0 0 ${W} ${H}`}
         className="min-h-0 w-full flex-1 touch-none select-none"
         role="application"
-        aria-label="Payoff editor. Drag points to shape the payoff; double-click to add a point; select a point and press Delete to remove it."
+        aria-label="Payoff editor. Drag points to shape the payoff, or focus one and use the arrow keys; double-click to add a point; select a point and press Delete to remove it."
         onDoubleClick={(e) => {
           const [px, py] = toData(e.clientX, e.clientY);
           if (px <= lo || px >= hi) return;
@@ -167,8 +203,8 @@ export function PayoffChart(p: Props) {
             <text x={M.l - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill="var(--ink-3)" fontFamily="var(--font-mono)">{fmtNum(v, 0)}</text>
           </g>
         ))}
-        {ticksX.map((v) => (
-          <text key={`x${v}`} x={x(v)} y={H - M.b + 18} textAnchor="middle" fontSize="11" fill="var(--ink-3)" fontFamily="var(--font-mono)">{(hi - lo) / 6 < 1 ? fmtPrice(v) : fmtUsd(v, 0)}</text>
+        {ticksX.map((v, i) => (
+          <text key={`x${v}`} x={x(v)} y={H - M.b + 18} textAnchor={i === ticksX.length - 1 ? "end" : "middle"} fontSize="11" fill="var(--ink-3)" fontFamily="var(--font-mono)">{(hi - lo) / 6 < 1 ? fmtPrice(v) : fmtUsd(v, 0)}</text>
         ))}
         <text x={14} y={M.t + 8} fontSize="11" fill="var(--ink-3)" transform={`rotate(-90 14 ${M.t + 8})`} textAnchor="end" fontFamily="var(--font-mono)">USD</text>
 
@@ -241,7 +277,8 @@ export function PayoffChart(p: Props) {
               strokeWidth={1.5}
               className="cursor-grab"
               tabIndex={0}
-              aria-label={`Breakpoint at ${fmtPrice(q[0])}, value ${fmtNum(q[1], 0)}`}
+              aria-label={`Breakpoint at ${fmtPrice(q[0])}, value ${fmtNum(q[1], 0)}. Arrow keys move it.`}
+              onKeyDown={(e) => nudge(i, e)}
               onPointerDown={(e) => {
                 e.stopPropagation();
                 setDrag(i);
@@ -254,7 +291,7 @@ export function PayoffChart(p: Props) {
       </svg>
 
       {/* scenario readout */}
-      <div className="pointer-events-none absolute left-[8%] top-3 rounded-[3px] border border-line bg-bg/90 px-3 py-2 text-[11px] backdrop-blur">
+      <div className={`pointer-events-none absolute top-3 rounded-[3px] ${readoutRight ? "right-[3%]" : "left-[8%]"} border border-line bg-bg/90 px-3 py-2 text-[11px] backdrop-blur`}>
         <div className="num text-ink-2">Close at <span className="text-ink">{fmtPrice(S)}</span></div>
         <div className="num mt-1 grid grid-cols-[auto_auto] gap-x-3">
           <span className="text-ink-3">Target</span><span className="text-right">{fmtUsd(tS)}</span>

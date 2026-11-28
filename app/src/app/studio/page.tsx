@@ -11,7 +11,7 @@ import { ago, fmtNum, fmtPrice, fmtUsd, short } from "@/lib/format";
 import { KIND_LABEL, kindTag, type Point, PRESETS } from "@/lib/payoff";
 import { tokenAccount, tokenBalance } from "@/lib/rpc";
 import { baseSymbol, defaultUnits, MarketPicker, pickMarket, quoteSymbol, useMarketChoice } from "@/lib/market";
-import { useWallet } from "@/lib/wallet";
+import { BALANCES_EVENT, useWallet } from "@/lib/wallet";
 
 const HOLDING_DAYS = 30;
 
@@ -39,6 +39,18 @@ export default function Studio() {
   const [steps, setSteps] = useState<Step[]>([]);
   const [opened, setOpened] = useState<string | null>(null);
   const [walletBal, setWalletBal] = useState<{ base: number; quote: number } | null>(null);
+  const [funding, setFunding] = useState(false);
+  const getFunds = async () => {
+    setFunding(true);
+    setErr(null);
+    try {
+      await wallet.fundDemo();
+    } catch (e) {
+      setErr(/funded recently/i.test((e as Error).message) ? "This wallet was funded in the last 10 minutes. Lower the size or try again later." : (e as Error).message);
+    } finally {
+      setFunding(false);
+    }
+  };
   const [markets, setMarkets] = useState<MarketInfo[]>([]);
   const [marketName, chooseMarket] = useMarketChoice();
   const [moves, setMoves] = useState<Moves | null>(null);
@@ -49,11 +61,14 @@ export default function Studio() {
   }, []);
   // a design handed over by the Architect, applied once its market has loaded
   const pendingDesign = useRef<Design | null>(null);
+  // a design from the Architect is compiled as soon as it is on the chart, so it is one click from opening
+  const autoCompile = useRef(false);
   const applyDesign = (d: Design) => {
     setBaseHoldings(d.limits.base);
     setQuoteHoldings(d.limits.quote);
     setBudget(d.limits.budget);
     setPoints(d.payoff);
+    autoCompile.current = true;
   };
 
   // market + buckets
@@ -65,9 +80,12 @@ export default function Studio() {
         const ms = await api<MarketInfo[]>("indexer/markets");
         const pick = pickMarket(ms, marketName);
         if (!alive || !pick) return;
+        // market and its ladder change together, so nothing compiles against another market's buckets
+        const bs = await api<BucketInfo[]>(`indexer/markets/${pick.address}/buckets`);
+        if (!alive) return;
         setMarkets(ms);
         setMarket(pick);
-        setBuckets(await api<BucketInfo[]>(`indexer/markets/${pick.address}/buckets`));
+        setBuckets(bs);
         setLoadErr(null);
       } catch (e) {
         if (alive) setLoadErr((e as Error).message);
@@ -88,7 +106,7 @@ export default function Studio() {
     const units = defaultUnits(market);
     setFeas(null);
     const d = pendingDesign.current;
-    if (d && d.market === market.name) {
+    if (d && d.market.toUpperCase() === market.name.toUpperCase()) {
       pendingDesign.current = null;
       applyDesign(d);
     } else {
@@ -110,7 +128,11 @@ export default function Studio() {
     const read = () => void Promise.all([tokenBalance(addr, market.baseMint), tokenBalance(addr, market.quoteMint)]).then(([base, quote]) => setWalletBal({ base, quote })).catch(() => setWalletBal(null));
     read();
     const t = setInterval(read, 8_000);
-    return () => clearInterval(t);
+    window.addEventListener(BALANCES_EVENT, read);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener(BALANCES_EVENT, read);
+    };
   }, [wallet.address, opened, marketAddr]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const request = useCallback(
@@ -145,6 +167,8 @@ export default function Studio() {
   const requestRef = useRef(request);
   requestRef.current = request;
   const ready = Boolean(market) && buckets.length > 0;
+  // the market has loaded but its ladder is empty (buckets for a market arrive with it)
+  const noLadder = Boolean(market) && buckets.length === 0 && !loadErr;
   // re-check when the ladder changes (it arrives after the market, and borrowable liquidity moves)
   const ladderKey = buckets.map((b) => b.borrowable).join(",");
   useEffect(() => {
@@ -182,6 +206,13 @@ export default function Studio() {
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    if (!autoCompile.current || !points || !ready) return;
+    autoCompile.current = false;
+    void compile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points, ready, baseHoldings, quoteHoldings, budget]);
 
   const legs = compiled?.result.construction?.legs ?? [];
   const borrowedLegs = legs.filter((l) => l.kind.startsWith("borrow"));
@@ -227,8 +258,10 @@ export default function Studio() {
   const cert = compiled?.certificate ?? null;
   const c = compiled?.result.construction;
 
+  const opening = useRef(false);
   const open = async () => {
-    if (!compiled?.result.construction || !market || !points || !wallet.address) return;
+    if (!compiled?.result.construction || !market || !points || !wallet.address || opening.current) return;
+    opening.current = true;
     setErr(null);
     setOpened(null);
     const plan: Step[] = [
@@ -275,12 +308,43 @@ export default function Studio() {
     } catch (e) {
       setSteps((prev) => prev.map((x) => (x.state === "doing" ? { ...x, state: "error", detail: (e as Error).message } : x)));
       setErr((e as Error).message);
+    } finally {
+      opening.current = false;
     }
   };
 
   const status = feas?.status;
   const certOk = cert ? (cert.liquidity_check.length ? cert.liquidity_check.every((l) => l.ok) : null) : null;
   const busyOpen = steps.some((s) => s.state === "doing");
+  // what opening takes from the wallet: the premium budget, the restoration buffers and the provided ranges
+  const B = baseSymbol(market), Q = quoteSymbol(market);
+  const needQuote = c ? budget + c.buffer_quote + c.provided_quote : 0;
+  const needBase = c ? c.buffer_base + c.provided_base : 0;
+  const refAge = market?.reference?.ageSeconds ?? 0;
+  const refStale = Boolean(market?.reference) && refAge > (market?.params.ref_max_age_s ?? Infinity) * 2;
+  const blocker: string | null = !c
+    ? null
+    : market?.opensPaused
+      ? "New opens are paused in this market."
+      : market?.borrowPaused && borrowedLegs.length
+        ? "Borrowing is paused in this market pending a shortfall review. Pick another market."
+        : refStale
+          ? `The price reference is ${ago(refAge)} old, so the program refuses to open. Try again once it refreshes.`
+          : borrowedLegs.length && budget <= 0
+            ? "Set a max premium above $0: borrowed ranges pay LPs a premium."
+            : walletBal && (walletBal.quote + 1e-9 < needQuote || walletBal.base + 1e-9 < needBase)
+              ? `Needs ${fmtNum(needBase, needBase < 10 ? 4 : 0)} ${B} and ${fmtNum(needQuote, 2)} ${Q}; the wallet has ${fmtNum(walletBal.base, walletBal.base < 10 ? 4 : 0)} ${B} and ${fmtNum(walletBal.quote, 2)} ${Q}.`
+              : null;
+  // the compiler speaks of base and quote; say the token names, and say which limit to change
+  const say = (r: string) => {
+    const t = r
+      .replace(/quote holdings \(after the premium budget\) are fully used/, `all of ${Q} held (after the max premium) is used: raise ${Q} held or lower the curve`)
+      .replace(/base holdings are fully used/, `all of ${B} held is used: raise ${B} held or lower the curve`)
+      .replace(/\bquote holdings\b/g, `${Q} held`)
+      .replace(/\bbase holdings\b/g, `${B} held`);
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  };
+  const walletEmpty = walletBal !== null && walletBal.base === 0 && walletBal.quote === 0;
   return (
     <AppShell>
       <Bar
@@ -294,6 +358,7 @@ export default function Studio() {
               {market?.reference && <span className="ml-1.5">{market.reference.kind === "PythPair" ? "Pyth" : "scenario"} · {ago(market.reference.ageSeconds)}</span>}
             </span>
             {(market?.borrowPaused || market?.opensPaused) && <span className="text-warn">{market.opensPaused ? "Opens paused" : "Borrowing paused"}</span>}
+            {refStale && <span className="text-warn" title="The program only opens against a fresh reference price">Reference stale</span>}
           </>
         }
       >
@@ -316,7 +381,7 @@ export default function Studio() {
           ))}
         </div>
       </Bar>
-      {loadErr && !market && <div className="shrink-0 border-b border-line px-5 py-2 text-sm text-bad">Indexer unreachable: {loadErr}</div>}
+      {loadErr && !market && <div className="shrink-0 border-b border-line px-5 py-2 text-sm text-bad" role="alert">Market data is unreachable right now, retrying every 15 s. <span className="text-ink-3">({loadErr})</span></div>}
 
       <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_320px] lg:grid-rows-[minmax(0,1fr)_auto]">
         {/* chart */}
@@ -366,15 +431,15 @@ export default function Studio() {
         <aside className="flex min-h-0 flex-col border-t border-line text-sm lg:row-span-2 lg:border-t-0">
           <div data-tour="limits" className="border-b border-line p-4 sm:p-5">
             <div className="label">Limits</div>
-            <div className="mt-2.5 grid grid-cols-3 gap-2">
+            <div className="mt-2.5 grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
               {[
                 [`${baseSymbol(market)} held`, baseHoldings, market && market.poolPrice < 1 ? 100 : 0.5, setBaseHoldings],
                 [`${quoteSymbol(market)} held`, quoteHoldings, 50, setQuoteHoldings],
                 ["Max premium", budget, 1, setBudget],
               ].map(([k, v, step, set]) => (
                 <label key={k as string} className="block">
-                  <span className="cap">{k as string}</span>
-                  <input className="input mt-1" type="number" min={0} step={step as number} value={v as number} onChange={(e) => (set as (n: number) => void)(Math.max(0, Number(e.target.value)))} />
+                  <span className="cap block truncate">{k as string}</span>
+                  <input className="input mt-1 !px-2" type="number" inputMode="decimal" min={0} step={step as number} value={v as number} onChange={(e) => (set as (n: number) => void)(Math.max(0, Number(e.target.value) || 0))} />
                 </label>
               ))}
             </div>
@@ -387,15 +452,30 @@ export default function Studio() {
                 Suggested for {HOLDING_DAYS} days: {fmtUsd(suggestion.budget)}
               </button>
             )}
-            <div className="kv mt-2"><span>Wallet</span><span>{walletBal ? `${fmtNum(walletBal.base, 2)} ${baseSymbol(market)} · ${fmtNum(walletBal.quote, 0)} ${quoteSymbol(market)}` : "—"}</span></div>
+            <div className="kv mt-2">
+              <span>Wallet</span>
+              <span>
+                {!wallet.address ? "not connected" : walletBal ? `${fmtNum(walletBal.base, 2)} ${B} · ${fmtNum(walletBal.quote, 0)} ${Q}` : "…"}
+              </span>
+            </div>
+            {wallet.kind === "demo" && walletEmpty && (
+              <button className="mt-1 block w-full text-right text-[11px] text-ink-2 underline decoration-dotted underline-offset-2 hover:text-ink disabled:opacity-50" disabled={funding} onClick={getFunds}>
+                {funding ? "Funding…" : "Empty. Get test funds"}
+              </button>
+            )}
             <div className="kv">
               <span className="flex items-center gap-2">
                 <span className={`size-1.5 ${status === "ok" ? "bg-good" : status === "infeasible" ? "bg-warn" : "bg-ink-3"}`} />
-                <span className={status === "ok" ? "text-good" : status === "infeasible" ? "text-warn" : ""}>{status === "ok" ? "Feasible" : status === "infeasible" ? "Not feasible" : feas ? "Checking" : "—"}</span>
+                <span className={status === "ok" ? "text-good" : status === "infeasible" ? "text-warn" : status === "invalid" ? "text-bad" : ""}>{status === "ok" ? "Feasible" : status === "infeasible" ? "Not feasible" : status === "invalid" ? "Cannot check" : noLadder ? "No funded ranges" : points && market ? "Checking…" : "—"}</span>
               </span>
               <span>{feas && Number.isFinite(feas.sampled_max_error) ? `${fmtUsd(feas.sampled_max_error)} / ${fmtUsd(feas.tolerance)}` : ""}</span>
             </div>
-            {status !== "ok" && feas?.reasons?.length ? <p className="mt-1 line-clamp-2 text-[12px] text-ink-2" title={feas.reasons.join("\n")}>{feas.reasons[0]}</p> : null}
+            {noLadder && (
+              <p className="mt-1 text-[12px] text-ink-2">
+                Nobody has deposited liquidity in {market?.name} yet, so there is nothing to borrow. <Link href="/earn" className="underline underline-offset-2 hover:text-ink">Add some in Earn</Link> or pick another market.
+              </p>
+            )}
+            {status !== "ok" && feas?.reasons?.length ? <p className="mt-1 line-clamp-2 text-[12px] text-ink-2" title={feas.reasons.map(say).join("\n")}>{say(feas.reasons[0]!)}</p> : null}
             <button data-tour="compile" className="btn btn-primary mt-3 w-full" disabled={!points || busy || !market} onClick={compile}>
               {busy ? "Compiling…" : "Compile"}
             </button>
@@ -407,13 +487,24 @@ export default function Studio() {
             {!c ? (
               <p className="cap mt-2">Compile first.</p>
             ) : !wallet.address ? (
-              <p className="cap mt-2">Connect a wallet to open.</p>
+              <p className="cap mt-2">Connect a wallet to open (top right).</p>
             ) : (
-              <button className="btn btn-primary mt-3 w-full" disabled={compiled?.result.status !== "ok" || busyOpen} onClick={open}>
-                Open position
+              <button className="btn btn-primary mt-3 w-full" disabled={compiled?.result.status !== "ok" || busyOpen || Boolean(opened) || (Boolean(blocker) && !busyOpen)} onClick={open}>
+                {busyOpen ? "Opening…" : opened ? "Opened" : "Open position"}
               </button>
             )}
             {c && compiled?.result.status !== "ok" && <p className="mt-2 text-[12px] text-warn">Outside tolerance. Adjust the payoff or limits.</p>}
+            {c && wallet.address && compiled?.result.status === "ok" && blocker && !busyOpen && !opened && (
+              <p className="mt-2 text-[12px] text-warn" role="status">
+                {blocker}
+                {wallet.kind === "demo" && /wallet has/.test(blocker) && (
+                  <>
+                    {" "}
+                    <button className="underline underline-offset-2 hover:text-ink disabled:opacity-50" disabled={funding} onClick={getFunds}>{funding ? "Funding…" : "Get test funds"}</button>
+                  </>
+                )}
+              </p>
+            )}
             <ol className="mt-3 min-h-0 overflow-y-auto">
               {(steps.length ? steps : [{ label: "Simulate", state: "todo" }, { label: "Certify", state: "todo" }, { label: "Build", state: "todo" }, { label: "Sign and send", state: "todo" }] as Step[]).map((s, i) => (
                 <li key={i} className="flex gap-3 border-t border-line py-2 first:border-t-0">
@@ -462,7 +553,7 @@ export default function Studio() {
                 </table>
               </div>
             ) : (
-              <p className="cap px-4 pb-4 pt-1 sm:px-5">Compile to see the ranges.</p>
+              <p className="cap px-4 pb-4 pt-1 sm:px-5">{compiled ? "No ranges: this result is just what you hold." : "Compile to see the ranges."}</p>
             )}
           </section>
 
@@ -513,8 +604,19 @@ export default function Studio() {
         open={architectOpen}
         onClose={() => setArchitectOpen(false)}
         owner={wallet.address ?? null}
+        hint={
+          !wallet.address ? (
+            <>No wallet connected. Connect one (top right) so the Architect can read your balances; opening a position needs one too.</>
+          ) : wallet.kind === "demo" && walletEmpty ? (
+            <>
+              Your demo wallet is empty, so nothing can be built for it yet.{" "}
+              <button className="underline underline-offset-2 hover:text-ink disabled:opacity-50" disabled={funding} onClick={getFunds}>{funding ? "Funding…" : "Get test funds"}</button>
+            </>
+          ) : null
+        }
         onLoad={(d) => {
-          if (market && d.market === market.name) applyDesign(d);
+          setArchitectOpen(false);
+          if (market && d.market.toUpperCase() === market.name.toUpperCase()) applyDesign(d);
           else {
             pendingDesign.current = d;
             chooseMarket(d.market);

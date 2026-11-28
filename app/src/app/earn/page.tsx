@@ -5,9 +5,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell, Bar } from "@/components/AppShell";
 import { api, type BucketInfo, type BuiltTx, type LpView, type MarketInfo } from "@/lib/api";
 import { atoms, fmtCompact, fmtNum, fmtPct, fmtPrice, fmtUsd } from "@/lib/format";
-import { tokenAccount } from "@/lib/rpc";
+import { tokenAccount, tokenBalance } from "@/lib/rpc";
 import { baseSymbol, MarketPicker, pickMarket, quoteSymbol, useMarketChoice } from "@/lib/market";
-import { useWallet } from "@/lib/wallet";
+import { BALANCES_EVENT, useWallet } from "@/lib/wallet";
 
 type Stats = { price: number; outOfRange: { outOfRangeQuoteValue: number; belowPriceQuote: number; abovePriceBaseValued: number; window: { low: number; high: number } } };
 
@@ -31,6 +31,31 @@ export default function Earn() {
   const [depValue, setDepValue] = useState(500);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string; sig?: string } | null>(null);
+  const [walletBal, setWalletBal] = useState<{ base: number; quote: number } | null>(null);
+  const [funding, setFunding] = useState(false);
+  const mAddr = m?.address;
+  useEffect(() => {
+    if (!wallet.address || !m) return setWalletBal(null);
+    const addr = wallet.address, bm = m.baseMint, qm = m.quoteMint;
+    const read = () => void Promise.all([tokenBalance(addr, bm), tokenBalance(addr, qm)]).then(([base, quote]) => setWalletBal({ base, quote })).catch(() => setWalletBal(null));
+    read();
+    const t = setInterval(read, 10_000);
+    window.addEventListener(BALANCES_EVENT, read);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener(BALANCES_EVENT, read);
+    };
+  }, [wallet.address, mAddr]); // eslint-disable-line react-hooks/exhaustive-deps
+  const getFunds = async () => {
+    setFunding(true);
+    try {
+      await wallet.fundDemo();
+    } catch (e) {
+      setMsg({ ok: false, text: /funded recently/i.test((e as Error).message) ? "This wallet was funded in the last 10 minutes. Try a smaller amount." : (e as Error).message });
+    } finally {
+      setFunding(false);
+    }
+  };
 
   const load = useCallback(async () => {
     if (!marketName) return;
@@ -42,7 +67,9 @@ export default function Earn() {
     // the out-of-range scan is slow; never let it hold up the ladder
     void api<Stats>(`indexer/markets/${mk.address}/stats`).then(setStats).catch(() => {});
     setBuckets(await api<BucketInfo[]>(`indexer/markets/${mk.address}/buckets`));
-    if (wallet.address) setMine((await api<LpView[]>(`indexer/lp?owner=${wallet.address}`)).filter((l) => l.market === mk.address));
+    // a fully withdrawn and claimed position stays on chain with nothing in it: leave it out
+    const live = (l: LpView) => BigInt(l.liquidity) > 0n || BigInt(l.premiumOwedNow) > 0n || BigInt(l.feesOwedQuoteNow) > 0n || BigInt(l.feesOwedBaseNow) > 0n;
+    if (wallet.address) setMine((await api<LpView[]>(`indexer/lp?owner=${wallet.address}`)).filter((l) => l.market === mk.address && live(l)));
   }, [wallet.address, marketName]);
 
   useEffect(() => {
@@ -70,6 +97,12 @@ export default function Earn() {
     }
   };
 
+  // picking a range: where the deposit form sits under the table (narrow screens), bring it into view
+  const pick = (addr: string) => {
+    setDepBucket(addr);
+    if (window.innerWidth < 1280) document.querySelector('[data-tour="earn-deposit"]')?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+
   const qd = m?.quoteDecimals ?? 6, bd = m?.baseDecimals ?? 9;
   const P = m?.poolPrice ?? 0;
   const byAddr = useMemo(() => new Map(buckets.map((b) => [b.address, b])), [buckets]);
@@ -89,6 +122,11 @@ export default function Earn() {
   const dep = buckets.find((b) => b.address === depBucket) ?? buckets.find((b) => b.side === "below");
   const depLiquidity = m && dep ? BigInt(Math.floor(depValue / valuePerUnit(m, dep, P))) : 0n;
   const notice = m ? m.params.notice_period_s / 3600 : 24;
+  // time left on a withdrawal notice, on the fork's clock
+  const noticeLeft = (since: number) => {
+    const left = since + (m?.params.notice_period_s ?? 86_400) - (m?.now ?? Date.now() / 1000);
+    return left <= 0 ? "notice passed: a keeper closes the borrowers" : `withdrawal requested · ${left >= 3600 ? `${Math.ceil(left / 3600)}h` : `${Math.ceil(left / 60)}m`} left`;
+  };
 
   const claimPremium = mine.reduce((a, l) => a + atoms(l.premiumOwedNow, qd), 0);
   const claimBase = mine.reduce((a, l) => a + atoms(l.feesOwedBaseNow, bd), 0);
@@ -105,6 +143,10 @@ export default function Earn() {
   const floorPct = m ? m.params.floor_rate_bps / 100 : 5;
   const B = baseSymbol(m), Q = quoteSymbol(m);
   const earnedTotal = compare.fees + compare.premium;
+  // single-sided ranges take one token; the range at the price takes both, in proportions the pool decides
+  const depShort = !dep || !walletBal || dep.side === "spot" || P <= 0 ? null
+    : dep.side === "below" ? (walletBal.quote + 1e-9 < depValue ? Q : null)
+    : walletBal.base * P + 1e-9 < depValue ? B : null;
   const depTokens = dep && P > 0 ? (dep.side === "below" ? `${fmtNum(depValue, 2)} ${Q}` : dep.side === "above" ? `${fmtNum(depValue / P, P < 1 ? 0 : 4)} ${B}` : `${B} and ${Q}`) : "";
 
   return (
@@ -171,8 +213,14 @@ export default function Earn() {
                   return (
                     <tr
                       key={b.address}
-                      onClick={() => setDepBucket(b.address)}
-                      className={`cursor-pointer ${selected ? "bg-accent-soft" : b.side === "spot" ? "bg-sunk" : ""}`}
+                      onClick={() => pick(b.address)}
+                      onKeyDown={(e) => {
+                        if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
+                        e.preventDefault();
+                        pick(b.address);
+                      }}
+                      tabIndex={0}
+                      className={`cursor-pointer focus-visible:outline focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent ${selected ? "bg-accent-soft" : b.side === "spot" ? "bg-sunk" : "hover:bg-sunk"}`}
                       aria-selected={selected}
                     >
                       <td className="num">
@@ -191,12 +239,16 @@ export default function Earn() {
                       </td>
                       <td className="num text-ink-2">{b.side === "spot" ? "not lendable" : `${multiplier(b.utilization).toFixed(2)}× fees`}</td>
                       <td className="num">{fmtUsd(paid, 2)}</td>
-                      <td className="num">{lp ? fmtPct(lp.shareOfBucket, 1) : "—"}{noticeSince > 0 && <div className="font-sans text-[11px] text-warn">withdrawal requested</div>}</td>
+                      <td className="num">{lp ? fmtPct(lp.shareOfBucket, 1) : "—"}{noticeSince > 0 && lp && BigInt(lp.withdrawal_liquidity) > 0n && (
+                          BigInt(b.borrowed) + BigInt(b.reserved) === 0n
+                            ? <div className="font-sans text-[11px] text-good">ready to withdraw</div>
+                            : <div className="font-sans text-[11px] text-warn" title="Once the notice has passed, keepers close the positions borrowing this range; then it can be withdrawn.">{noticeLeft(noticeSince)}</div>
+                        )}</td>
                       <td onClick={(e) => e.stopPropagation()}>
                         {lp && (
                           <div data-tour="earn-claim" className="flex gap-1.5">
                             <button className="btn btn-ghost !px-2 !py-1 !text-[12px]" disabled={busy} onClick={() => run("tx/build/claim", { bucket: b.address }, "Claimed.")}>Claim</button>
-                            {BigInt(b.borrowed) + BigInt(b.reserved) === 0n ? (
+                            {BigInt(lp.liquidity) === 0n ? null : BigInt(b.borrowed) + BigInt(b.reserved) === 0n ? (
                               <button className="btn btn-ghost !px-2 !py-1 !text-[12px]" disabled={busy} onClick={() => run("tx/build/withdraw", { bucket: b.address, liquidity: lp.liquidity }, "Withdrawn.")}>Withdraw</button>
                             ) : (
                               <button className="btn btn-ghost !px-2 !py-1 !text-[12px]" disabled={busy || BigInt(lp.withdrawal_liquidity) > 0n} title={`Lent-out liquidity needs ${notice}h notice`} onClick={() => run("tx/build/request-withdrawal", { bucket: b.address, liquidity: lp.liquidity }, `Requested. Withdrawable after ${notice}h.`)}>
@@ -236,13 +288,19 @@ export default function Earn() {
                   <input className="input mt-1" type="number" min={1} value={depValue} onChange={(e) => setDepValue(Math.max(0, Number(e.target.value)))} />
                 </label>
                 <div className="kv mt-1"><span>You add</span><span>{depTokens}</span></div>
+                {walletBal && <div className="kv"><span>Wallet</span><span>{fmtNum(walletBal.quote, 2)} {Q} · {fmtNum(walletBal.base, P < 1 ? 0 : 4)} {B}</span></div>}
                 <button
                   className="btn btn-primary mt-3 w-full"
-                  disabled={!wallet.address || busy || depLiquidity <= 0n}
+                  disabled={!wallet.address || busy || depLiquidity <= 0n || Boolean(depShort)}
                   onClick={() => run("tx/build/deposit", { bucket: dep.address, liquidity: depLiquidity.toString() }, "Deposited. Your liquidity is in the pool and earning fees.")}
                 >
-                  {wallet.address ? "Deposit" : "Connect a wallet to deposit"}
+                  {!wallet.address ? "Connect a wallet to deposit" : busy ? "Working…" : depLiquidity <= 0n ? "Enter an amount" : depShort ? `Not enough ${depShort}` : "Deposit"}
                 </button>
+                {depShort && wallet.kind === "demo" && (
+                  <button className="mt-1.5 block w-full text-right text-[11px] text-ink-2 underline decoration-dotted underline-offset-2 hover:text-ink disabled:opacity-50" disabled={funding} onClick={getFunds}>
+                    {funding ? "Funding…" : "Get test funds"}
+                  </button>
+                )}
               </>
             ) : (
               <p className="cap mt-2">Loading ranges…</p>

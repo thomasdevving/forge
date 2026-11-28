@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { AppShell, Bar } from "@/components/AppShell";
 import { api, type BuiltTx, type MarketInfo, type StrategyView } from "@/lib/api";
 import { atoms, fmtNum, fmtPct, fmtPrice, fmtUsd, short } from "@/lib/format";
@@ -25,7 +25,7 @@ const STATE_NOTE: Record<string, string> = {
   Recovery: "Restoration blocked. Escrow stays locked; top up or retry.",
 };
 
-function PositionCard({ s, m, onAction, busy, tour }: { s: StrategyView; m: MarketInfo; onAction: (kind: "close" | "abort", s: StrategyView) => void; busy: boolean; tour?: boolean }) {
+function PositionCard({ s, m, onAction, busy, working, tour }: { s: StrategyView; m: MarketInfo; onAction: (kind: "close" | "abort", s: StrategyView) => void; busy: boolean; working?: string | null; tour?: boolean }) {
   const t = (id: string) => (tour ? id : undefined); // walkthrough anchors, on one card only
   const bd = m.baseDecimals, qd = m.quoteDecimals;
   const P = m.poolPrice;
@@ -61,11 +61,11 @@ function PositionCard({ s, m, onAction, busy, tour }: { s: StrategyView; m: Mark
           )}
           {(s.state === "Open" || s.state === "PendingClose" || s.state === "Recovery") && (
             <button data-tour={t("pos-close")} className="btn btn-primary !py-1.5" disabled={busy} onClick={() => onAction("close", s)}>
-              {s.state === "Open" ? "Close" : "Continue close"}
+              {working === "close" ? "Closing…" : s.state === "Open" ? "Close" : "Continue close"}
             </button>
           )}
           {s.state === "PendingOpen" && (
-            <button className="btn btn-ghost !py-1.5" disabled={busy} onClick={() => onAction("abort", s)}>Cancel</button>
+            <button className="btn btn-ghost !py-1.5" disabled={busy} onClick={() => onAction("abort", s)}>{working === "abort" ? "Cancelling…" : "Cancel"}</button>
           )}
         </div>
       </header>
@@ -111,7 +111,7 @@ function PositionCard({ s, m, onAction, busy, tour }: { s: StrategyView; m: Mark
                 <div className="kv"><span>At</span><span>{fmtPrice(P)}</span></div>
                 <div className="kv"><span>Delta</span><span>{fmtNum(g.delta, 3)} {baseSymbol(m)}</span></div>
                 <div className="kv"><span>Gamma</span><span>{fmtNum(g.gamma, 4)}</span></div>
-                <div className="kv"><span>P&amp;L</span><span className={pnl >= 0 ? "!text-good" : "!text-bad"}>{fmtUsd(pnl)}</span></div>
+                <div className="kv"><span>P&amp;L</span><span className={Math.abs(pnl) < 0.005 ? "" : pnl > 0 ? "!text-good" : "!text-bad"}>{fmtUsd(Math.abs(pnl) < 0.005 ? 0 : pnl)}</span></div>
               </div>
             </>
           ) : (
@@ -143,6 +143,7 @@ function PositionsInner() {
   const [markets, setMarkets] = useState<MarketInfo[] | null>(null);
   const [list, setList] = useState<StrategyView[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [working, setWorking] = useState<{ address: string; kind: "close" | "abort" } | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string; sig?: string } | null>(null);
 
   const load = useCallback(async () => {
@@ -158,13 +159,20 @@ function PositionsInner() {
     return () => clearInterval(t);
   }, [load]);
 
+  // scroll to ?focus= once, when it first appears; later refreshes leave the scroll alone
+  const focused = useRef<string | null>(null);
   useEffect(() => {
-    if (focus && list) document.getElementById(focus)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!focus || !list || focused.current === focus) return;
+    const el = document.getElementById(focus);
+    if (!el) return;
+    focused.current = focus;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [focus, list]);
 
   const act = async (kind: "close" | "abort", s: StrategyView) => {
-    if (!wallet.address) return;
+    if (!wallet.address || busy) return;
     setBusy(true);
+    setWorking({ address: s.address, kind });
     setMsg(null);
     try {
       const mk = markets?.find((x) => x.address === s.market);
@@ -179,12 +187,13 @@ function PositionsInner() {
         const built = await api<{ transactions: BuiltTx[] }>("tx/build/abort", body);
         sigs = await wallet.execute(built.transactions);
       }
-      setMsg({ ok: true, text: kind === "close" ? "Settled." : "Cancelled. Continue close to unwind.", sig: sigs.at(-1) });
+      setMsg({ ok: true, text: kind === "close" ? "Closed and settled. The result is on the card." : "Cancelled. Continue close to unwind what was opened.", sig: sigs.at(-1) });
       await load();
     } catch (e) {
       setMsg({ ok: false, text: (e as Error).message });
     } finally {
       setBusy(false);
+      setWorking(null);
     }
   };
 
@@ -202,16 +211,16 @@ function PositionsInner() {
         </div>
       )}
       {!wallet.address ? (
-        <div data-tour="positions-list" className="px-5 py-16 text-center text-sm text-ink-3">Connect a wallet.</div>
+        <div data-tour="positions-list" className="px-5 py-16 text-center text-sm text-ink-3">Connect a wallet (top right) to see your positions.</div>
       ) : !list || !markets ? (
         <div data-tour="positions-list" className="px-5 py-16 text-center text-sm text-ink-3">Loading…</div>
       ) : list.length === 0 ? (
-        <div data-tour="positions-list" className="px-5 py-16 text-center text-sm text-ink-3">No positions. <Link href="/studio" className="text-ink underline underline-offset-4">Open one</Link></div>
+        <div data-tour="positions-list" className="px-5 py-16 text-center text-sm text-ink-3">No positions yet. <Link href="/studio" className="text-ink underline underline-offset-4">Design one in the Studio</Link></div>
       ) : (
         <div data-tour="positions-list" className="min-h-0 flex-1 overflow-y-auto">{list.map((s) => {
           const mk = markets.find((x) => x.address === s.market);
           const featured = (list.find((x) => x.state === "Open") ?? list[0])?.address === s.address;
-          return mk ? <PositionCard key={s.address} s={s} m={mk} onAction={act} busy={busy} tour={featured} /> : null;
+          return mk ? <PositionCard key={s.address} s={s} m={mk} onAction={act} busy={busy} working={working?.address === s.address ? working.kind : null} tour={featured} /> : null;
         })}</div>
       )}
     </AppShell>
