@@ -46,8 +46,12 @@ export const Proof: React.FC = () => {
             );
           })}
         </div>
-        <div style={{ position: "absolute", left: 140, bottom: 48, fontFamily: mono, fontSize: 22, color: C.ink3, opacity: useIn(110, 20) }}>
-          Plus {realized} real positions opened and closed on the fork · rerun all of it: uv run python benchmarks/run_all.py --fork
+        <div style={{ position: "absolute", left: 140, right: 140, bottom: 44, display: "flex", justifyContent: "space-between", alignItems: "flex-end", opacity: useIn(110, 20) }}>
+          <div style={{ fontFamily: mono, fontSize: 20, color: C.ink3 }}>Plus {realized} real positions opened and closed on the fork<br />rerun all of it: uv run python benchmarks/run_all.py --fork</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 18px", border: `1px solid ${C.lineStrong}`, borderRadius: 6, background: "rgba(20,23,28,0.8)" }}>
+            <span style={{ fontFamily: sans, fontSize: 22, color: C.ink2 }}>Method, charts and caveats:</span>
+            <span style={{ fontFamily: mono, fontSize: 22, color: C.ink }}>forge-agr18.vercel.app/proof</span>
+          </div>
         </div>
       </AbsoluteFill>
     </Backdrop>

@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, interpolate } from "remotion";
 import { C, mono, sans } from "../theme";
-import { Backdrop, ease, Kicker, useFrame, useIn, useOut } from "../ui";
+import { Backdrop, ease, Kicker, MoreAt, useFrame, useIn, useOut } from "../ui";
 
 export type X402Facts = { path: string; price: string; tx: string };
 
@@ -71,6 +71,7 @@ export const X402: React.FC<{ facts: X402Facts }> = ({ facts }) => {
           );
         })}
       </AbsoluteFill>
+      <MoreAt label="For agents:" path="/docs/agents" />
     </Backdrop>
   );
 };

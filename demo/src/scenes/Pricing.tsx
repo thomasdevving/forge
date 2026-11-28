@@ -2,7 +2,7 @@ import React from "react";
 import { AbsoluteFill, interpolate } from "remotion";
 import research from "../data/research.json";
 import { C, mono, sans } from "../theme";
-import { Backdrop, ease, Kicker, useFrame, useIn, useOut } from "../ui";
+import { Backdrop, ease, Kicker, MoreAt, useFrame, useIn, useOut } from "../ui";
 
 const P = research.pricing;
 const base = P.curve.base_ppm / 1e6, kink = P.curve.kink_ppm / 1e6, slope2 = P.curve.slope2_ppm / 1e6, cap = P.curve.cap_ppm / 1e6;
@@ -83,6 +83,7 @@ export const Pricing: React.FC = () => {
           </div>
         </div>
       </AbsoluteFill>
+      <MoreAt label="The LP's side in detail:" path="/docs/liquidity" />
     </Backdrop>
   );
 };

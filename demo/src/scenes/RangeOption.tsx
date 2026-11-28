@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, interpolate } from "remotion";
 import { C, mono, sans } from "../theme";
-import { Backdrop, ease, easeInOut, Kicker, useFrame, useIn, useOut } from "../ui";
+import { Backdrop, ease, easeInOut, Kicker, MoreAt, useFrame, useIn, useOut } from "../ui";
 
 // prices relative to today's (1.0); one Orca range just below, one above
 const LO = 0.55, HI = 1.45;
@@ -129,6 +129,7 @@ export const RangeOption: React.FC = () => {
           ))}
         </div>
       </AbsoluteFill>
+      <MoreAt label="The full math:" path="/docs/math" />
     </Backdrop>
   );
 };

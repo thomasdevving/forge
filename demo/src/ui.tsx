@@ -122,3 +122,14 @@ export const bladeWipe = (): TransitionPresentation<Record<string, unknown>> => 
 /** Number formatting used across the graphics. */
 export const fmt = (n: number, d = 0) => n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 export const usd = (n: number, d = 2) => `$${fmt(n, d)}`;
+
+/** A pointer to the page on the site that goes deeper, bottom right. */
+export const MoreAt: React.FC<{ label: string; path: string; at?: number }> = ({ label, path, at = 30 }) => {
+  const a = useIn(at, 20);
+  return (
+    <div style={{ position: "absolute", right: 110, bottom: 46, display: "flex", alignItems: "center", gap: 14, padding: "12px 18px", border: `1px solid ${C.lineStrong}`, borderRadius: 6, background: "rgba(20,23,28,0.8)", opacity: a, transform: `translateY(${(1 - a) * 10}px)` }}>
+      <span style={{ fontFamily: sans, fontSize: 22, color: C.ink2 }}>{label}</span>
+      <span style={{ fontFamily: mono, fontSize: 22, color: C.ink }}>forge-agr18.vercel.app{path}</span>
+    </div>
+  );
+};

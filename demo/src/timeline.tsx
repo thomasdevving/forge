@@ -61,7 +61,7 @@ function take(id: string, src: string, from: number, segs: Seg[]): Item[] {
 
 const paced = (k: number, el: React.ReactElement) => <Pace.Provider value={k}>{el}</Pace.Provider>;
 /** The agent run, faster than real reading speed: the voice-over carries it. */
-const TERM_PACE = { maxGap: 0.6, lead: 1.0, read: 0.45 };
+const TERM_PACE = { maxGap: 0.7, lead: 1.1, read: 0.52 };
 
 /** The intro's length when no recording exists yet; a recording sets its own. */
 export const INTRO_SECONDS = 18;
@@ -101,13 +101,13 @@ export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS):
       { to: m("wallet", 11) + 1.6, speed: 1.2, cap: wallet },
       { to: m("funded", 15), fit: 1.2, cap: wallet },
       { to: m("strategy", 18), speed: 1.6, cap: wallet },
-      { to: m("drag-cap", 30), speed: 1.45, zoom: FORM, cap: describe },
+      { to: m("drag-cap", 30), speed: 1.3, zoom: FORM, cap: describe },
       { to: m("duration", 34), speed: 1.2, zoom: CHART, cap: { n: "04", text: "Or drag it on the chart", sub: "the form follows" } },
       { to: m("compile", 37), speed: 1.3, zoom: FORM, cap: { n: "04", text: "Cover for one week", sub: "it closes automatically after 7 days" } },
       { to: m("compile", 37) + 1.4, speed: 1.2, cap: compile },
       { to: m("compiled", 40), fit: 0.8, cap: compile },
       { to: m("results", 44), speed: 1.3, fit: 3.5, cap: compile },
-      { to: m("open", 50), speed: 1.6, zoom: RESULTS, cap: results },
+      { to: m("open", 50), speed: 1.45, zoom: RESULTS, cap: results },
       { to: m("open", 50) + 1.4, speed: 1.2, cap: open },
       { to: m("opened", 62), fit: 2, cap: open },
       { to: m("position", 66), speed: 1.3, fit: 2.4, cap: open },
@@ -140,10 +140,10 @@ export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS):
     const bucket = { n: "01", text: "Deposit into a price bucket", sub: "idle, it earns normal Orca fees" };
     const paid = { n: "02", text: "When it's borrowed, the trader pays you", sub: "at least the fees you missed, more as the bucket fills" };
     push(...take("e", E, 0.6, [
-      { to: m("pick", 9.3) + 1.2, speed: 1.5, cap: bucket },
+      { to: m("pick", 9.3) + 1.2, speed: 1.3, cap: bucket },
       { to: m("deposit", 12.5) + 2.4, speed: 1.3, cap: paid },
       { to: m("deposited", 19.8), fit: 1.2, cap: paid },
-      { to: m("claim", 25) + 1.6, speed: 1.3, zoom: { scale: 1.45, x: 0.95, y: 0.75 }, cap: { n: "03", text: "Your earnings, line by line", sub: "Orca fees, premium, extra over plain Orca" } },
+      { to: m("claim", 25) + 2, speed: 1.15, zoom: { scale: 1.45, x: 0.95, y: 0.75 }, cap: { n: "03", text: "Your earnings, line by line", sub: "Orca fees, premium, extra over plain Orca" } },
     ]));
   }
 
@@ -152,7 +152,7 @@ export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS):
   if (has("agents.mp4")) {
     const cap = { text: "FORGE for agents", sub: "protect, price, check, discover" };
     push(...take("g", "agents", 0.4, [
-      { to: at("agents", "section", 8), speed: 2.2, cap },
+      { to: at("agents", "section", 8), speed: 1.8, cap },
       { to: at("agents", "section", 8) + 3.2, speed: 1.8, cap },
     ]));
   }
@@ -164,14 +164,14 @@ export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS):
 
   // 4 · why it works: the math, the LP's side, how it was tested, and the payment rail
   push(title(4, "04", "Why it works", "How it works.", "The math, the LP's side, and how we tested it."));
-  push({ id: "range", dur: s(13), el: paced(1.7, <RangeOption />), enter: "fade", enterFrames: 12 });
-  push({ id: "compiler", dur: s(8.5), el: paced(1.45, <Compiler />), enter: "fade", enterFrames: 12 });
-  push({ id: "pricing", dur: s(12), el: paced(1.3, <Pricing />), enter: "fade", enterFrames: 12 });
+  push({ id: "range", dur: s(12), el: paced(1.8, <RangeOption />), enter: "fade", enterFrames: 12 });
+  push({ id: "compiler", dur: s(8), el: paced(1.5, <Compiler />), enter: "fade", enterFrames: 12 });
+  push({ id: "pricing", dur: s(11), el: paced(1.4, <Pricing />), enter: "fade", enterFrames: 12 });
   // values for the x402 diagram, read from the agent's real run
   const paid = log.lines.find((l) => /402 Payment required/.test(l.line))?.line.match(/required: ([\d.]+) USDC/)?.[1] ?? "0.01";
   const tx = log.lines.find((l) => /settled on the fork/.test(l.line))?.line.match(/\(([1-9A-HJ-NP-Za-km-z]{6,})/)?.[1]?.slice(0, 12) ?? "";
-  push({ id: "x402", dur: s(6.5), el: paced(1.55, <X402 facts={{ path: "/x402/hedge", price: paid, tx }} />), enter: "fade", enterFrames: 12 });
-  push({ id: "proof", dur: s(11), el: paced(1.2, <Proof />), enter: "fade", enterFrames: 12 });
+  push({ id: "x402", dur: s(6), el: paced(1.7, <X402 facts={{ path: "/x402/hedge", price: paid, tx }} />), enter: "fade", enterFrames: 12 });
+  push({ id: "proof", dur: s(10.5), el: paced(1.2, <Proof />), enter: "fade", enterFrames: 12 });
 
   // outro
   push({ id: "outro", dur: s(4), el: paced(1.3, <Outro />), enter: "blade", enterFrames: 22 });

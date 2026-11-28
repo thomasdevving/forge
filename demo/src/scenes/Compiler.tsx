@@ -2,7 +2,7 @@ import React from "react";
 import { AbsoluteFill, interpolate } from "remotion";
 import meta from "../data/shot-meta.json";
 import { C, mono, sans } from "../theme";
-import { Backdrop, ease, Kicker, usd, useFrame, useIn, useOut } from "../ui";
+import { Backdrop, ease, Kicker, MoreAt, usd, useFrame, useIn, useOut } from "../ui";
 
 type Leg = { kind: string; priceLower: number; priceUpper: number };
 const legs = meta.legs as Leg[];
@@ -98,6 +98,7 @@ export const Compiler: React.FC = () => {
           <span><span style={{ display: "inline-block", width: 28, borderTop: `2px dashed ${C.ink3}`, verticalAlign: "middle", marginRight: 10 }} />just holding</span>
         </div>
       </AbsoluteFill>
+      <MoreAt label="How the compiler works:" path="/docs/math" />
     </Backdrop>
   );
 };
