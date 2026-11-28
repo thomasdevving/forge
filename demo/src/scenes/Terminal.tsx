@@ -11,17 +11,19 @@ const clean = (s: string) => s.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "").replace(/\[
  * Maps the run's real clock onto video time: output plays at real speed, and any silence longer than
  * `maxGap` (waiting on the network or the model) is shortened to `maxGap`, with a working indicator.
  */
-export function timeline(log: TermLog, maxGap = 1.4, lead = 1.6) {
+export function timeline(log: TermLog, maxGap = 1.4, lead = 1.8) {
   const out: { at: number; line: string; waited: number }[] = [];
   let real = 0, video = lead;
   for (const l of log.lines) {
+    const line = clean(l.line);
     const gap = l.t - real;
-    const shown = Math.min(gap, maxGap);
-    video += Math.max(0, shown);
-    out.push({ at: video, line: clean(l.line), waited: gap > maxGap ? gap : 0 });
+    // every line gets time to be read, longer lines more; long silences are shortened to maxGap
+    const read = line.trim() ? 0.3 + Math.min(1.4, line.length / 150) : 0.1;
+    video += Math.max(Math.min(Math.max(0, gap), maxGap), read);
+    out.push({ at: video, line, waited: gap > maxGap ? gap : 0 });
     real = l.t;
   }
-  return { rows: out, end: video + 2.5 };
+  return { rows: out, end: video + 3.5 };
 }
 
 const LABEL_COLOR: Record<string, string> = {
@@ -73,7 +75,7 @@ export const Terminal: React.FC<{ log: TermLog; title: string; caption?: { n?: s
             {[0, 1, 2].map((i) => <span key={i} style={{ width: 13, height: 13, borderRadius: 7, background: C.lineStrong }} />)}
             <span style={{ fontFamily: mono, fontSize: 18, color: C.ink3, marginLeft: 16 }}>{title}</span>
           </div>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "24px 30px", fontFamily: mono, fontSize: 21, overflow: "hidden" }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "24px 30px", fontFamily: mono, fontSize: 22, overflow: "hidden" }}>
             <div style={{ color: C.ink, lineHeight: 1.45 }}>
               <span style={{ color: C.good }}>$</span> {log.command.slice(0, typed)}
               {typed < log.command.length && <span style={{ background: C.ink, marginLeft: 2 }}>&nbsp;</span>}
