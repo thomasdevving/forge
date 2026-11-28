@@ -41,6 +41,9 @@ Your intro and voice-over come from webcam takes:
    starts on. `cam: true` shows you in a small round bubble for that line. To find the seconds, a
    transcript with timestamps helps: `whisper-cli -m ggml-base.en.bin -f take.wav -ojf`.
 
+4. Run `python3 record/levels.py`. It measures the intro and every line, and the edit then plays
+   each one at the same loudness (−17 LUFS), however loud the take was.
+
 The video takes its length from `intro.mp4`. Optional `music.mp3` in `footage/` is mixed in low.
 
 ## Render

@@ -1,6 +1,7 @@
 import React from "react";
 import { Audio, interpolate, OffthreadVideo, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { C } from "../theme";
+import { gainFor } from "../levels";
 
 const SIZE = 290;
 // where your face sits in the 1620×1080 take, as a share of width and height
@@ -16,7 +17,8 @@ export const Cam: React.FC<{ take: string; from: number; to: number; show?: bool
   const { fps, durationInFrames } = useVideoConfig();
   const src = staticFile(`cam/${take}.mp4`);
   const trim = { trimBefore: Math.round(from * fps), trimAfter: Math.round(to * fps) };
-  if (!show) return <Audio src={src} {...trim} />;
+  const volume = gainFor(`${take}@${from}-${to}`);
+  if (!show) return <Audio src={src} {...trim} volume={volume} />;
   const pop = spring({ frame: f, fps, config: { damping: 18, stiffness: 160 } });
   const out = interpolate(f, [durationInFrames - 9, durationInFrames - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const k = Math.min(pop, out);
@@ -31,6 +33,7 @@ export const Cam: React.FC<{ take: string; from: number; to: number; show?: bool
       <OffthreadVideo
         src={src}
         {...trim}
+        volume={volume}
         style={{ position: "absolute", height: H, width: W, maxWidth: "none", left: SIZE / 2 - FACE.x * W, top: SIZE / 2 - FACE.y * H }}
       />
     </div>

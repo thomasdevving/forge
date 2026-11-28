@@ -1,13 +1,14 @@
 import React from "react";
 import { AbsoluteFill, interpolate, OffthreadVideo, staticFile, useVideoConfig } from "remotion";
 import { C, mono, sans } from "../theme";
+import { gainFor } from "../levels";
 import { Backdrop, ease, Kicker, Mark, useFrame, useIn, useOut, Wordmark } from "../ui";
 
 /** Your on-camera intro (footage/intro.mp4), or a placeholder with the lines to say until it exists. */
 export const Intro: React.FC<{ hasVideo: boolean }> = ({ hasVideo }) => {
   const f = useFrame();
   const { durationInFrames } = useVideoConfig();
-  if (hasVideo) return <AbsoluteFill style={{ background: C.bg }}><OffthreadVideo src={staticFile("intro.mp4")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 0%" }} /></AbsoluteFill>;
+  if (hasVideo) return <AbsoluteFill style={{ background: C.bg }}><OffthreadVideo src={staticFile("intro.mp4")} volume={gainFor("intro")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 0%" }} /></AbsoluteFill>;
   const lines = [
     "Say you hold JUP and want protection from a crash.",
     "On ETH you'd buy a put. Most Solana tokens have no options market at all.",
