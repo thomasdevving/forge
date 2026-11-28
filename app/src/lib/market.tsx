@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type MarketInfo } from "./api";
+import { Select } from "@/components/Select";
 
 /** Every market is an Orca Whirlpool; SOL/USDC is only the default the app opens on. */
 export const DEFAULT_MARKET = "SOL/USDC";
@@ -219,9 +220,13 @@ export function MarketPicker({ markets: all, value, onChange }: { markets: Marke
   return (
     <span className="flex items-center gap-2" data-tour="market">
       {markets.length > 3 ? (
-        <select className="input !w-auto !py-0.5 !text-[12px]" value={value?.name ?? ""} onChange={(e) => onChange(e.target.value)} aria-label="Market">
-          {markets.map((m) => <option key={m.address} value={m.name}>{m.name}</option>)}
-        </select>
+        <Select
+          className="[&>button]:!py-0.5 [&>button]:!text-[12px] [&>button]:min-w-[118px]"
+          value={value?.name ?? ""}
+          onChange={onChange}
+          aria-label="Market"
+          options={markets.map((m) => ({ value: m.name, label: m.name }))}
+        />
       ) : markets.length > 1 ? (
         <span className="seg !text-[12px]" role="group" aria-label="Market">
           {markets.map((m) => (

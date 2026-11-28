@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { fmtPrice, fmtUsd } from "@/lib/format";
 import { clampLevels, PRESETS } from "@/lib/payoff";
 import { NumInput } from "@/components/NumInput";
+import { Select } from "@/components/Select";
 
 export const DURATIONS = [1, 7, 30, 90] as const;
 
@@ -74,15 +75,16 @@ export function HedgeForm(p: Props) {
   const custom = p.ready && p.levels === null;
   return (
     <div className="space-y-2.5">
-      <label data-tour="presets" className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-2">
+      <div data-tour="presets" className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-2">
         <span className="cap">Strategy</span>
-        <select className="input !py-1 !text-[13px]" value={custom ? "custom" : p.preset} onChange={(e) => p.onPreset(e.target.value)} aria-label="Strategy">
-          {custom && <option value="custom">Custom</option>}
-          {Object.entries(PRESETS).map(([k, v]) => (
-            <option key={k} value={k}>{v.label}</option>
-          ))}
-        </select>
-      </label>
+        <Select
+          className="[&>button]:!py-1 [&>button]:!text-[13px]"
+          value={custom ? "custom" : p.preset}
+          onChange={(v) => v !== "custom" && p.onPreset(v)}
+          aria-label="Strategy"
+          options={[...(custom ? [{ value: "custom", label: "Custom" }] : []), ...Object.entries(PRESETS).map(([k, v]) => ({ value: k, label: v.label }))]}
+        />
+      </div>
       <p className="pl-[96px] text-[11.5px] leading-snug text-ink-3">
         {custom ? "You reshaped the payoff on the chart. Pick a strategy to start from its levels again." : def?.hint}
       </p>
