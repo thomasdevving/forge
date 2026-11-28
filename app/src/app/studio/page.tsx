@@ -444,6 +444,7 @@ export default function Studio() {
               <HedgeForm
                 preset={preset}
                 levels={levels}
+                ready={!!points && !!spot}
                 spot={spot}
                 onPreset={(k) => {
                   if (!PRESETS[k]) return;

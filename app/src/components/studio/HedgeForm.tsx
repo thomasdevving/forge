@@ -10,6 +10,8 @@ type Props = {
   preset: string;
   /** Level prices read from the chart, or null when the curve was reshaped by hand. */
   levels: number[] | null;
+  /** False until the market (and so the curve) has loaded. */
+  ready: boolean;
   spot: number | null;
   onPreset: (key: string) => void;
   onLevels: (prices: number[]) => void;
@@ -68,7 +70,7 @@ function LevelRow({ label, price, spot, min, max, onChange }: { label: string; p
 /** The hedge as a few numbers: strategy, its levels, how long, how much. The chart follows. */
 export function HedgeForm(p: Props) {
   const def = PRESETS[p.preset];
-  const custom = p.levels === null;
+  const custom = p.ready && p.levels === null;
   return (
     <div className="space-y-2.5">
       <label data-tour="presets" className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-2">
