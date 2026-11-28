@@ -6,7 +6,10 @@
  *     and its fee payer is the connected wallet.
  */
 import {
+  address,
   createSolanaRpc,
+  getAddressEncoder,
+  getProgramDerivedAddress,
   getBase64Decoder,
   getBase64Encoder,
   getCompiledTransactionMessageDecoder,
@@ -70,17 +73,34 @@ export async function sendAndConfirm(signed: Uint8Array): Promise<string> {
   throw new Error(`Transaction ${sig} was not confirmed`);
 }
 
-export async function tokenBalance(owner: string, mint: string): Promise<number> {
-  const res = await rpc.getTokenAccountsByOwner(owner as never, { mint: mint as never }, { encoding: "jsonParsed" }).send();
-  let total = 0;
-  for (const a of res.value) {
-    const info = (a.account.data as unknown as { parsed: { info: { tokenAmount: { uiAmount: number } } } }).parsed.info;
-    total += info.tokenAmount.uiAmount ?? 0;
+const TOKEN_PROGRAMS = ["TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"];
+const addrEnc = getAddressEncoder();
+
+/**
+ * The owner's associated token account for a mint (classic SPL Token or Token-2022), read directly. A
+ * getTokenAccountsByOwner search would be forwarded by the fork to its mainnet datasource, which rate-limits it.
+ */
+async function ownTokenAccount(owner: string, mint: string): Promise<{ address: string; uiAmount: number } | null> {
+  const keys = await Promise.all(
+    TOKEN_PROGRAMS.map(async (program) => (await getProgramDerivedAddress({
+      programAddress: address("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
+      seeds: [addrEnc.encode(address(owner)), addrEnc.encode(address(program)), addrEnc.encode(address(mint))],
+    }))[0]),
+  );
+  const { value } = await rpc.getMultipleAccounts(keys, { encoding: "jsonParsed" }).send();
+  for (let i = 0; i < keys.length; i++) {
+    const acc = value[i];
+    if (!acc || String(acc.owner) !== TOKEN_PROGRAMS[i]) continue;
+    const info = (acc.data as unknown as { parsed?: { info?: { mint?: string; tokenAmount?: { uiAmount: number | null } } } }).parsed?.info;
+    if (info?.mint === mint) return { address: keys[i]!, uiAmount: info.tokenAmount?.uiAmount ?? 0 };
   }
-  return total;
+  return null;
+}
+
+export async function tokenBalance(owner: string, mint: string): Promise<number> {
+  return (await ownTokenAccount(owner, mint))?.uiAmount ?? 0;
 }
 
 export async function tokenAccount(owner: string, mint: string): Promise<string | null> {
-  const res = await rpc.getTokenAccountsByOwner(owner as never, { mint: mint as never }, { encoding: "base64" }).send();
-  return res.value[0]?.pubkey ?? null;
+  return (await ownTokenAccount(owner, mint))?.address ?? null;
 }

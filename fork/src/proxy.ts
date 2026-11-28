@@ -6,6 +6,7 @@
  */
 import http from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
+import { associatedTokenAddress, TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from "./tokens.js";
 
 const UPSTREAM = process.env.FORK_UPSTREAM_RPC ?? "http://127.0.0.1:8899";
 const UPSTREAM_WS = process.env.FORK_UPSTREAM_WS ?? "ws://127.0.0.1:8900";
@@ -61,6 +62,50 @@ function cors(req: http.IncomingMessage, res: http.ServerResponse) {
 
 const err = (id: unknown, message: string) => ({ jsonrpc: "2.0", id, error: { code: -32601, message } });
 
+const INDEXER = process.env.FORGE_INDEXER_URL ?? "http://127.0.0.1:8787";
+const USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", WSOL = "So11111111111111111111111111111111111111112";
+let mintCache: { at: number; mints: string[] } | null = null;
+/** Mints the fork knows about: every FORGE market's base and quote, plus USDC and wrapped SOL. */
+async function knownMints(): Promise<string[]> {
+  if (mintCache && Date.now() - mintCache.at < 60_000) return mintCache.mints;
+  const mints = new Set([USDC, WSOL]);
+  try {
+    const ms = (await (await fetch(`${INDEXER}/markets`, { signal: AbortSignal.timeout(10_000) })).json()) as { baseMint: string; quoteMint: string }[];
+    for (const m of ms) mints.add(m.baseMint).add(m.quoteMint);
+  } catch {
+    /* the two defaults still answer */
+  }
+  mintCache = { at: Date.now(), mints: [...mints] };
+  return mintCache.mints;
+}
+
+/**
+ * getTokenAccountsByOwner, answered from the fork's own state. Surfpool would forward it to the mainnet
+ * datasource, which rate-limits it (429, "Internal JSON-RPC error"). Every token account on this fork is an
+ * associated token account, so the owner's accounts are derived for the requested mint (or every known mint
+ * under the requested token program) and read with one getMultipleAccounts in the requested encoding.
+ */
+export async function tokenAccountsByOwner(r: Req): Promise<unknown> {
+  const [owner, filter, cfg] = (r.params ?? []) as [string, { mint?: string; programId?: string }, Record<string, unknown> | undefined];
+  try {
+    const programs: string[] = filter?.programId ? [filter.programId] : [TOKEN_PROGRAM, TOKEN_2022_PROGRAM];
+    if (!programs.every((p) => p === TOKEN_PROGRAM || p === TOKEN_2022_PROGRAM)) return { jsonrpc: "2.0", id: r.id, result: { context: { slot: 0 }, value: [] } };
+    const mints = filter?.mint ? [filter.mint] : await knownMints();
+    const keys: string[] = [];
+    for (const mint of mints) for (const program of programs) keys.push(await associatedTokenAddress(owner, mint, program));
+    const up = (await (await fetch(UPSTREAM, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getMultipleAccounts", params: [keys, { encoding: cfg?.encoding ?? "base64", commitment: cfg?.commitment }] }),
+    })).json()) as { result?: { context: unknown; value: ({ owner: string } | null)[] }; error?: unknown };
+    if (!up.result) return { jsonrpc: "2.0", id: r.id, error: up.error ?? { code: -32603, message: "Internal error" } };
+    const value = up.result.value.flatMap((account, i) => (account && programs.includes(account.owner) ? [{ pubkey: keys[i], account }] : []));
+    return { jsonrpc: "2.0", id: r.id, result: { context: up.result.context, value } };
+  } catch (e) {
+    return { jsonrpc: "2.0", id: r.id, error: { code: -32602, message: `invalid getTokenAccountsByOwner params: ${(e as Error).message}` } };
+  }
+}
+
 export function createProxy() {
   const server = http.createServer(async (req, res) => {
     cors(req, res);
@@ -85,6 +130,14 @@ export function createProxy() {
     const blocked = list.map((r) => check(r));
     if (blocked.some(Boolean)) {
       const out = list.map((r, i) => (blocked[i] ? err(r?.id, blocked[i]!) : err(r?.id, "batch rejected")));
+      return res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(Array.isArray(parsed) ? out : out[0]));
+    }
+    if (list.some((r) => r.method === "getTokenAccountsByOwner")) {
+      // answered here (see tokenAccountsByOwner); anything else in the batch is forwarded one by one
+      const out = await Promise.all(list.map(async (r) =>
+        r.method === "getTokenAccountsByOwner"
+          ? tokenAccountsByOwner(r)
+          : (await fetch(UPSTREAM, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(r) })).json()));
       return res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(Array.isArray(parsed) ? out : out[0]));
     }
     const up = await fetch(UPSTREAM, { method: "POST", headers: { "content-type": "application/json" }, body });

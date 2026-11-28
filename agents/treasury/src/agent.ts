@@ -26,7 +26,7 @@ import {
   signTransaction,
 } from "@solana/kit";
 import { z } from "zod";
-import { API, balances, get, log, markets, post, policy, rpc, rpcSubscriptions, treasuryKey, USDC } from "./common.js";
+import { API, balances, get, log, markets, post, policy, rpc, rpcSubscriptions, tokenAccount, treasuryKey, USDC } from "./common.js";
 
 const MODEL = process.env.TREASURY_MODEL ?? "claude-sonnet-5-5";
 const usd = (x: number) => `$${x.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
@@ -195,10 +195,8 @@ Work like this: read the treasury, decide which exposure the policy says to prot
 async function execute(key: KeyPairSigner, o: Option) {
   const ms = await markets();
   const m = ms.find((x) => x.name === o.facts.market)!;
-  const bal = await rpc.getTokenAccountsByOwner(key.address, { programId: address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") }, { encoding: "jsonParsed" }).send();
-  const acct = (mint: string) => bal.value.find((a) => (a.account.data.parsed.info as { mint: string }).mint === mint)?.pubkey;
   const sendAndConfirm = sendAndConfirmTransactionFactory({ rpc: rpc as never, rpcSubscriptions: rpcSubscriptions as never });
-  const body = { ...o.open, owner: key.address, nonce: String(Date.now()), userBase: acct(m.baseMint), userQuote: acct(USDC) };
+  const body = { ...o.open, owner: key.address, nonce: String(Date.now()), userBase: await tokenAccount(key.address, m.baseMint), userQuote: await tokenAccount(key.address, USDC) };
   for (let guard = 0; guard < 24; guard++) {
     const r = await post<{ transactions: { transaction: string; lastValidBlockHeight: string | null }[]; done: boolean; strategy?: string; steps?: number }>("/tx/build/open", body);
     if (r.done || r.transactions.length === 0) return log("Treasury Agent", `position ${r.strategy ?? ""} open`);

@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { address, createSolanaRpc, createSolanaRpcSubscriptions, createKeyPairSignerFromBytes } from "@solana/kit";
+import { tokenAccountsFor } from "@forge/fork/tokens";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, "..");
@@ -68,15 +69,16 @@ export async function markets(): Promise<MarketRow[]> {
 
 /** Token balances (ui amounts) by mint for an owner, through FORGE's public RPC proxy. */
 export async function balances(owner: string): Promise<Map<string, number>> {
+  // derived token accounts for the mints FORGE trades, read in one call (no getTokenAccountsByOwner search)
+  const mints = [USDC, ...(await markets()).flatMap((m) => [m.baseMint, String((m as Record<string, unknown>).quoteMint ?? USDC)])].filter(Boolean);
   const out = new Map<string, number>();
-  for (const programId of ["TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"]) {
-    const { value } = await rpc.getTokenAccountsByOwner(address(owner), { programId: address(programId) }, { encoding: "jsonParsed" }).send();
-    for (const a of value) {
-      const i = a.account.data.parsed.info as { mint: string; tokenAmount: { uiAmount: number | null } };
-      out.set(i.mint, (out.get(i.mint) ?? 0) + (i.tokenAmount.uiAmount ?? 0));
-    }
-  }
+  for (const a of await tokenAccountsFor(rpc as never, owner, mints)) out.set(a.mint, (out.get(a.mint) ?? 0) + a.uiAmount);
   return out;
+}
+
+/** The owner's token account for a mint (its associated token account), if it exists. */
+export async function tokenAccount(owner: string, mint: string): Promise<string | undefined> {
+  return (await tokenAccountsFor(rpc as never, owner, [mint]))[0]?.address;
 }
 
 const t0 = Date.now();

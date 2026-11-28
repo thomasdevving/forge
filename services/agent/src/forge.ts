@@ -6,7 +6,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { address, createSolanaRpc } from "@solana/kit";
+import { address, createSolanaRpc, getAddressEncoder, getProgramDerivedAddress, type Address } from "@solana/kit";
 import * as fv from "./fairvalue.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -106,6 +106,18 @@ export function moveQuantiles(m: Market) {
   };
 }
 
+const TOKEN_PROGRAM = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+const TOKEN_2022_PROGRAM = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
+const addrEnc = getAddressEncoder();
+/** Associated token account of owner for mint under a token program. */
+async function ata(owner: string, mint: string, program: string): Promise<Address> {
+  const [pda] = await getProgramDerivedAddress({
+    programAddress: address("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
+    seeds: [addrEnc.encode(address(owner)), addrEnc.encode(address(program)), addrEnc.encode(address(mint))],
+  });
+  return pda;
+}
+
 /** Token balances of an owner on the fork, for supported markets only (data minimization). */
 export async function holdings(owner: string) {
   const ms = await markets();
@@ -116,19 +128,22 @@ export async function holdings(owner: string) {
   }
   const out: { symbol: string; mint: string; amount: number; usd_value: number }[] = [];
   const rpc = createSolanaRpc(cfg.rpc);
-  // classic SPL Token and Token-2022 accounts, parsed by the RPC
-  for (const program of ["TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"]) {
-    const { value } = await rpc.getTokenAccountsByOwner(address(owner), { programId: address(program) }, { encoding: "jsonParsed" }).send();
-    for (const a of value) {
-      const info = a.account.data.parsed.info as { mint: string; tokenAmount: { uiAmount: number | null } };
-      const known = byMint.get(info.mint);
-      const amount = info.tokenAmount.uiAmount ?? 0;
-      if (!known || amount <= 0) continue;
-      const prev = out.find((o) => o.mint === info.mint);
-      if (prev) { prev.amount += amount; prev.usd_value = prev.amount * known.price; }
-      else out.push({ symbol: known.symbol, mint: info.mint, amount, usd_value: amount * known.price });
-    }
-  }
+  // the owner's associated token accounts for these mints (classic SPL Token and Token-2022), read in one
+  // call: a getTokenAccountsByOwner search is forwarded by Surfpool to its mainnet datasource, which rate-limits it
+  const keys: { key: Address; mint: string; program: string }[] = [];
+  for (const mint of byMint.keys()) for (const program of [TOKEN_PROGRAM, TOKEN_2022_PROGRAM]) keys.push({ key: await ata(owner, mint, program), mint, program });
+  const { value } = await rpc.getMultipleAccounts(keys.map((k) => k.key), { encoding: "jsonParsed" }).send();
+  value.forEach((acc, i) => {
+    const k = keys[i]!;
+    if (!acc || String(acc.owner) !== k.program) return;
+    const info = (acc.data as { parsed?: { info?: { mint?: string; tokenAmount?: { uiAmount: number | null } } } }).parsed?.info;
+    const known = byMint.get(k.mint);
+    const amount = info?.mint === k.mint ? info.tokenAmount?.uiAmount ?? 0 : 0;
+    if (!known || amount <= 0) return;
+    const prev = out.find((o) => o.mint === k.mint);
+    if (prev) { prev.amount += amount; prev.usd_value = prev.amount * known.price; }
+    else out.push({ symbol: known.symbol, mint: k.mint, amount, usd_value: amount * known.price });
+  });
   return out.sort((a, b) => b.usd_value - a.usd_value);
 }
 

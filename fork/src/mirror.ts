@@ -7,13 +7,13 @@
  * and the base and quote token of every listed market. Nothing else.
  */
 import { address, type Address, createSolanaRpc, type Instruction, type KeyPairSigner, type Rpc, type SolanaRpcApi } from "@solana/kit";
+import { tokenAccountsFor } from "./tokens.js";
 import { getTransferSolInstruction } from "@solana-program/system";
 import { getCreateAssociatedTokenIdempotentInstructionAsync, getSyncNativeInstruction } from "@solana-program/token";
 import { ata } from "./env.js";
 import { airdrop, sendInstructions, setTokenBalance, WSOL } from "./surfnet.js";
 
 const MAINNET_RPC = process.env.MAINNET_RPC_URL ?? process.env.FORK_RPC_URL ?? "https://api.mainnet-beta.solana.com";
-const SPL_TOKEN = address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const FEE_SOL = 0.05; // left as native SOL on the burner for transaction fees and rent
 
 /** Read-only mainnet RPC (typed @solana/kit client); never used to send anything. */
@@ -21,18 +21,31 @@ const mainnet = createSolanaRpc(MAINNET_RPC);
 
 export type MirrorToken = { symbol: string; mint: string; decimals: number; raw: bigint };
 
-/** The owner's mainnet balances of SOL and the given mints (atoms). */
+/** Retries a read that the public mainnet RPC may rate-limit (429), with a short backoff. */
+async function withRetry<T>(read: () => Promise<T>, tries = 4): Promise<T> {
+  for (let i = 0; ; i++) {
+    try {
+      return await read();
+    } catch (e) {
+      const msg = String((e as Error)?.message ?? e);
+      if (i >= tries - 1 || !/429|Too Many|rate/i.test(msg)) throw e;
+      await new Promise((r) => setTimeout(r, 600 * 2 ** i));
+    }
+  }
+}
+
+/**
+ * The owner's mainnet balances of SOL and the given mints (atoms). Token balances come from the owner's
+ * associated token accounts for those mints, read in one getMultipleAccounts: far lighter on the public
+ * mainnet RPC than a getTokenAccountsByOwner search, which it rate-limits.
+ */
 export async function readMainnetBalances(owner: Address, mints: { symbol: string; mint: string; decimals: number }[]) {
-  const signal = AbortSignal.timeout(15_000);
-  const [{ value: lamports }, { value: accounts }] = await Promise.all([
-    mainnet.getBalance(owner, { commitment: "confirmed" }).send({ abortSignal: signal }),
-    mainnet.getTokenAccountsByOwner(owner, { programId: SPL_TOKEN }, { encoding: "jsonParsed", commitment: "confirmed" }).send({ abortSignal: signal }),
+  const [{ value: lamports }, accounts] = await Promise.all([
+    withRetry(() => mainnet.getBalance(owner, { commitment: "confirmed" }).send({ abortSignal: AbortSignal.timeout(15_000) })),
+    withRetry(() => tokenAccountsFor(mainnet as never, owner, mints.map((m) => m.mint))),
   ]);
   const held = new Map<string, bigint>();
-  for (const a of accounts) {
-    const { mint, tokenAmount } = a.account.data.parsed.info;
-    held.set(mint, (held.get(mint) ?? 0n) + BigInt(tokenAmount.amount));
-  }
+  for (const a of accounts) held.set(a.mint, (held.get(a.mint) ?? 0n) + BigInt(a.amount));
   const tokens: MirrorToken[] = mints.map((m) => ({ ...m, raw: held.get(m.mint) ?? 0n }));
   return { lamports: BigInt(lamports), tokens };
 }
