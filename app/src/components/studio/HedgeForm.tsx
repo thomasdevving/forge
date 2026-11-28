@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fmtPrice, fmtUsd } from "@/lib/format";
 import { clampLevels, PRESETS } from "@/lib/payoff";
+import { NumInput } from "@/components/NumInput";
 
 export const DURATIONS = [1, 7, 30, 90] as const;
 
@@ -116,15 +117,14 @@ export function HedgeForm(p: Props) {
       <label className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-2">
         <span className="cap">Budget</span>
         <span className="relative block">
-          <input
+          <NumInput
             className="input !py-1 !pl-2 !pr-12 num"
-            type="number"
             inputMode="decimal"
             min={0}
             step={1}
             value={p.budget}
             aria-label={`Premium budget in ${p.quote}`}
-            onChange={(e) => p.onBudget(Math.max(0, Number(e.target.value) || 0))}
+            onValue={p.onBudget}
           />
           <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-ink-3">{p.quote}</span>
         </span>

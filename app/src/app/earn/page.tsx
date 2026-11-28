@@ -8,6 +8,7 @@ import { atoms, fmtCompact, fmtNum, fmtPct, fmtPrice, fmtUsd } from "@/lib/forma
 import { tokenAccount, tokenBalance } from "@/lib/rpc";
 import { baseSymbol, MarketPicker, pickMarket, quoteSymbol, useMarketChoice } from "@/lib/market";
 import { BALANCES_EVENT, useWallet } from "@/lib/wallet";
+import { NumInput } from "@/components/NumInput";
 
 type Stats = { price: number; outOfRange: { outOfRangeQuoteValue: number; belowPriceQuote: number; abovePriceBaseValued: number; window: { low: number; high: number } } };
 
@@ -285,7 +286,7 @@ export default function Earn() {
                 </ul>
                 <label className="mt-3 block">
                   <span className="cap">Amount (USD)</span>
-                  <input className="input mt-1" type="number" min={1} value={depValue} onChange={(e) => setDepValue(Math.max(0, Number(e.target.value)))} />
+                  <NumInput className="input mt-1" min={1} value={depValue} onValue={setDepValue} />
                 </label>
                 <div className="kv mt-1"><span>You add</span><span>{depTokens}</span></div>
                 {walletBal && <div className="kv"><span>Wallet</span><span>{fmtNum(walletBal.quote, 2)} {Q} · {fmtNum(walletBal.base, P < 1 ? 0 : 4)} {B}</span></div>}

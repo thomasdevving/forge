@@ -13,6 +13,7 @@ import { DURATIONS, HedgeForm } from "@/components/studio/HedgeForm";
 import { tokenAccount, tokenBalance } from "@/lib/rpc";
 import { baseSymbol, defaultUnits, MarketPicker, pickMarket, quoteSymbol, useMarketChoice } from "@/lib/market";
 import { BALANCES_EVENT, useWallet } from "@/lib/wallet";
+import { NumInput } from "@/components/NumInput";
 
 
 const KIND_NAME: Record<string, string> = { borrow_put: "BorrowQuote", borrow_call: "BorrowBase", provide_put: "ProvideQuote", provide_call: "ProvideBase" };
@@ -476,7 +477,7 @@ export default function Studio() {
               ] as const).map(([k, v, step, set]) => (
                 <label key={k} className="block">
                   <span className="cap block truncate">{k}</span>
-                  <input className="input mt-1 !px-2 !py-1" type="number" inputMode="decimal" min={0} step={step} value={v} onChange={(e) => set(Math.max(0, Number(e.target.value) || 0))} />
+                  <NumInput className="input mt-1 !px-2 !py-1" inputMode="decimal" min={0} step={step} value={v} onValue={set} />
                 </label>
               ))}
             </div>
