@@ -31,13 +31,17 @@ TERM_ANSWER="Authorize opening=>y" node ../../demo/record/term.mjs agent "pnpm -
 
 ## Add your parts
 
-Put these in `demo/footage/`; the edit picks them up automatically:
+Your intro and voice-over come from webcam takes:
 
-| File | What |
-|---|---|
-| `intro.mp4` | Your on-camera intro, 1920×1080, about 18 s. The video takes its length from the file, so a longer intro makes the whole video longer. Until it exists, a placeholder shows the lines. |
-| `vo-1.wav` … `vo-4.wav` | Voice-over for parts 1–4; each starts at its part's title card. |
-| `music.mp3` | Optional background music, mixed low. |
+1. Put the takes (any `.mov` or `.mp4`) in `demo/footage/raw/`.
+2. Run `record/takes.sh`. It cleans up the audio (rumble, noise, even loudness), copies every take to
+   `footage/cam/`, and cuts `footage/intro.mp4` from the intro take (`INTRO_TAKE`, `INTRO_FROM`,
+   `INTRO_TO` pick which take and where).
+3. `src/vo.ts` lists every voice-over line: which take, from and to which second, and the scene it
+   starts on. `cam: true` shows you in a small round bubble for that line. To find the seconds, a
+   transcript with timestamps helps: `whisper-cli -m ggml-base.en.bin -f take.wav -ojf`.
+
+The video takes its length from `intro.mp4`. Optional `music.mp3` in `footage/` is mixed in low.
 
 ## Render
 

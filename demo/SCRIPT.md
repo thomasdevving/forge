@@ -1,5 +1,8 @@
 # FORGE demo video: script
 
+> Recorded: your takes from 28 November are in the edit (see `src/vo.ts` for which line comes from
+> where). The timings below are the plan; the edit starts each line on the scene it describes.
+
 Length 2:59. Your intro on camera, then four parts: traders, LPs, agents, and why it works. All
 footage is real, recorded on the hosted app. Every number on screen comes from the app or the
 benchmark files.

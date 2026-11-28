@@ -170,11 +170,11 @@ export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS):
   // values for the x402 diagram, read from the agent's real run
   const paid = log.lines.find((l) => /402 Payment required/.test(l.line))?.line.match(/required: ([\d.]+) USDC/)?.[1] ?? "0.01";
   const tx = log.lines.find((l) => /settled on the fork/.test(l.line))?.line.match(/\(([1-9A-HJ-NP-Za-km-z]{6,})/)?.[1]?.slice(0, 12) ?? "";
-  push({ id: "x402", dur: s(6), el: paced(1.7, <X402 facts={{ path: "/x402/hedge", price: paid, tx }} />), enter: "fade", enterFrames: 12 });
-  push({ id: "proof", dur: s(10.5), el: paced(1.2, <Proof />), enter: "fade", enterFrames: 12 });
+  push({ id: "x402", dur: s(7), el: paced(1.7, <X402 facts={{ path: "/x402/hedge", price: paid, tx }} />), enter: "fade", enterFrames: 12 });
+  push({ id: "proof", dur: s(11), el: paced(1.2, <Proof />), enter: "fade", enterFrames: 12 });
 
   // outro
-  push({ id: "outro", dur: s(4), el: paced(1.3, <Outro />), enter: "blade", enterFrames: 22 });
+  push({ id: "outro", dur: s(4.5), el: paced(1.3, <Outro />), enter: "blade", enterFrames: 22 });
   return items;
 }
 

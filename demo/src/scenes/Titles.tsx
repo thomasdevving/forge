@@ -7,7 +7,7 @@ import { Backdrop, ease, Kicker, Mark, useFrame, useIn, useOut, Wordmark } from 
 export const Intro: React.FC<{ hasVideo: boolean }> = ({ hasVideo }) => {
   const f = useFrame();
   const { durationInFrames } = useVideoConfig();
-  if (hasVideo) return <AbsoluteFill style={{ background: C.bg }}><OffthreadVideo src={staticFile("intro.mp4")} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></AbsoluteFill>;
+  if (hasVideo) return <AbsoluteFill style={{ background: C.bg }}><OffthreadVideo src={staticFile("intro.mp4")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 0%" }} /></AbsoluteFill>;
   const lines = [
     "Say you hold JUP and want protection from a crash.",
     "On ETH you'd buy a put. Most Solana tokens have no options market at all.",

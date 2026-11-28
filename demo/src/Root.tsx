@@ -5,6 +5,8 @@ import { fade } from "@remotion/transitions/fade";
 import { linearTiming, TransitionSeries } from "@remotion/transitions";
 import { buildTimeline, INTRO_SECONDS, totalFrames } from "./timeline";
 import { bladeWipe } from "./ui";
+import { VO, placeLines } from "./vo";
+import { Cam } from "./scenes/Cam";
 import { FPS } from "./theme";
 import { RangeOption } from "./scenes/RangeOption";
 import { Compiler } from "./scenes/Compiler";
@@ -55,7 +57,16 @@ export const Demo: React.FC<DemoProps> = ({ introSeconds }) => {
           return nodes;
         })}
       </TransitionSeries>
-      {/* your voice-over, one file per part, starting at that part's title card */}
+      {/* your voice-over from the webcam takes, each line on the scene it describes */}
+      {placeLines(VO.filter((l) => have.has(`cam/${l.take}.mp4`)), (id) => {
+        const i = items.findIndex((it) => it.id === id);
+        return i < 0 ? undefined : at[i]! / FPS;
+      }).map((l, i) => (
+        <Sequence key={`vo-line-${i}`} from={Math.round(l.start * FPS)} durationInFrames={Math.round((l.to - l.from) * FPS)} layout="none">
+          <Cam take={l.take} from={l.from} to={l.to} show={l.cam} />
+        </Sequence>
+      ))}
+      {/* or a separate voice-over file per part, starting at that part's title card */}
       {items.map((it, i) =>
         it.part && have.has(`vo-${it.part}.wav`) ? (
           <Sequence key={`vo-${it.part}`} from={at[i]!}>
