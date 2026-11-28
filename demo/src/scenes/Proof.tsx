@@ -1,8 +1,8 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate } from "remotion";
 import bench from "../data/benchmarks.json";
 import { C, mono, sans } from "../theme";
-import { Backdrop, ease, fmt, Kicker, useIn, useOut } from "../ui";
+import { Backdrop, ease, fmt, Kicker, useFrame, useIn, useOut } from "../ui";
 
 type Summary = { payoffs: number; feasible: number };
 const rep = bench.replication as unknown as { summary: Record<string, Summary>; boundViolations: number };
@@ -13,7 +13,7 @@ const realized = (bench.realized as unknown as { rows: unknown[] }).rows.length;
 
 /** The measured results, every number read from app/src/data/benchmarks.json. */
 export const Proof: React.FC = () => {
-  const f = useCurrentFrame();
+  const f = useFrame();
   const title = useIn(0, 20);
   const out = useOut(14);
   const tiles = [

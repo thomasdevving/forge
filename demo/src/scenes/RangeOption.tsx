@@ -1,7 +1,7 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate } from "remotion";
 import { C, mono, sans } from "../theme";
-import { Backdrop, ease, easeInOut, Kicker, useIn, useOut } from "../ui";
+import { Backdrop, ease, easeInOut, Kicker, useFrame, useIn, useOut } from "../ui";
 
 // prices relative to today's (1.0); one Orca range just below, one above
 const LO = 0.55, HI = 1.45;
@@ -29,7 +29,7 @@ const curve = (from: number, to: number, f: (p: number) => number) => {
 
 /** "Concentrated liquidity already is an option": a range below the price, borrowed, becomes a put. */
 export const RangeOption: React.FC = () => {
-  const f = useCurrentFrame();
+  const f = useFrame();
   const title = useIn(0, 20);
   const axis = useIn(18, 30);
   const block = useIn(56, 22);

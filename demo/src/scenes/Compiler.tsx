@@ -1,8 +1,8 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate } from "remotion";
 import meta from "../data/shot-meta.json";
 import { C, mono, sans } from "../theme";
-import { Backdrop, ease, Kicker, useIn, useOut, usd } from "../ui";
+import { Backdrop, ease, Kicker, usd, useFrame, useIn, useOut } from "../ui";
 
 type Leg = { kind: string; priceLower: number; priceUpper: number };
 const legs = meta.legs as Leg[];
@@ -37,7 +37,7 @@ const path = (to: number) => {
 
 /** The compiler: ranges stacked to trace the payoff you drew, with a certified worst-case error. */
 export const Compiler: React.FC = () => {
-  const f = useCurrentFrame();
+  const f = useFrame();
   const title = useIn(0, 20);
   const draw = interpolate(f, [16, 70], [LO, HI], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });
   const compiled = interpolate(f, [70 + legs.length * 22, 110 + legs.length * 22], [LO, HI], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });

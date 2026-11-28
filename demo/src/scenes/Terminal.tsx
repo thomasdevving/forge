@@ -10,15 +10,19 @@ const clean = (s: string) => s.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "").replace(/\[
 /**
  * Maps the run's real clock onto video time: output plays at real speed, and any silence longer than
  * `maxGap` (waiting on the network or the model) is shortened to `maxGap`, with a working indicator.
+ * `read` scales the time each line stays before the next one appears.
  */
-export function timeline(log: TermLog, maxGap = 1.4, lead = 1.8) {
+export type TermPace = { maxGap: number; lead: number; read: number };
+export const NORMAL: TermPace = { maxGap: 1.4, lead: 1.8, read: 1 };
+
+export function timeline(log: TermLog, { maxGap, lead, read: readK }: TermPace = NORMAL) {
   const out: { at: number; line: string; waited: number }[] = [];
   let real = 0, video = lead;
   for (const l of log.lines) {
     const line = clean(l.line);
     const gap = l.t - real;
     // every line gets time to be read, longer lines more; long silences are shortened to maxGap
-    const read = line.trim() ? 0.3 + Math.min(1.4, line.length / 150) : 0.1;
+    const read = line.trim() ? (0.3 + Math.min(1.4, line.length / 150)) * readK : 0.1;
     video += Math.max(Math.min(Math.max(0, gap), maxGap), read);
     out.push({ at: video, line, waited: gap > maxGap ? gap : 0 });
     real = l.t;
@@ -57,19 +61,19 @@ function Row({ line }: { line: string }) {
 }
 
 /** A real terminal run, replayed with its own output and timing. */
-export const Terminal: React.FC<{ log: TermLog; title: string; caption?: { n?: string; text: string; sub?: string } }> = ({ log, title, caption }) => {
+export const Terminal: React.FC<{ log: TermLog; title: string; pace?: TermPace; caption?: { n?: string; text: string; sub?: string } }> = ({ log, title, pace = NORMAL, caption }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = f / fps;
-  const { rows } = timeline(log);
+  const { rows } = timeline(log, pace);
   const shown = rows.filter((r) => r.at <= t);
-  const typed = Math.floor(interpolate(t, [0.3, 1.3], [0, log.command.length], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
+  const typed = Math.floor(interpolate(t, [0.2, Math.max(0.6, pace.lead - 0.3)], [0, log.command.length], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
   const next = rows.find((r) => r.at > t);
-  const waiting = next && next.waited > 0 && t > next.at - 1.4;
+  const waiting = next && next.waited > 0 && t > next.at - pace.maxGap;
   const enter = useIn(0, 18);
   return (
     <Backdrop glow={0.7}>
-      <AbsoluteFill style={{ padding: "70px 110px 150px", opacity: enter, transform: `translateY(${(1 - enter) * 24}px)` }}>
+      <AbsoluteFill style={{ padding: "56px 110px 190px", opacity: enter, transform: `translateY(${(1 - enter) * 24}px)` }}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", border: `1px solid ${C.lineStrong}`, borderRadius: 10, background: C.sunk, boxShadow: "0 30px 80px rgba(0,0,0,0.5)", overflow: "hidden" }}>
           <div style={{ height: 52, display: "flex", alignItems: "center", gap: 10, padding: "0 20px", borderBottom: `1px solid ${C.line}`, background: C.elev }}>
             {[0, 1, 2].map((i) => <span key={i} style={{ width: 13, height: 13, borderRadius: 7, background: C.lineStrong }} />)}

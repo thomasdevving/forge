@@ -129,6 +129,16 @@ export async function session({ name, storage = true }) {
       await page.mouse.up();
       await wait(opts.after ?? 350);
     },
+    /** Opens one of the app's dropdowns, glides down the list and picks `option`, all on camera. */
+    async choose(button, option, { via = [] } = {}) {
+      await api.click(button, { ms: 800, after: 450 });
+      const list = page.getByRole("listbox");
+      for (const name of via) {
+        await api.to(list.getByRole("option", { name, exact: true }), { ms: 380, dx: 0.3 });
+        await wait(260);
+      }
+      await api.click(list.getByRole("option", { name: option, exact: true }), { ms: 500, dx: 0.3, after: 500 });
+    },
     async drag(x1, y1, ms = 900) {
       await page.mouse.down();
       await wait(120);

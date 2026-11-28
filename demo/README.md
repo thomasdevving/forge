@@ -11,11 +11,14 @@ the edit (motion graphics plus footage) in [Remotion](https://www.remotion.dev).
 
 ```bash
 cd demo && npm install
-node record/record.mjs trader architect close earn agents proof tour addmarket
+node record/record.mjs trader close architect earn agents
 ```
 
 Each take starts from a clean browser with its own demo wallet, on the hosted fork
-(`FORGE_URL` to point elsewhere). Beat timestamps go to `footage/marks.json`, and the edit cuts on them.
+(`FORGE_URL` to point elsewhere). Every click happens on camera, dropdowns included. Beat timestamps
+go to `footage/marks.json`; the edit plays each take as one continuous shot and only changes its
+speed (waits on the network run faster, with a ×N badge), its framing and its captions on those beats.
+`proof`, `tour` and `addmarket` are extra takes the three-minute cut leaves out.
 
 The treasury agent's terminal run is captured with real output and timing:
 
@@ -32,7 +35,7 @@ Put these in `demo/footage/`; the edit picks them up automatically:
 
 | File | What |
 |---|---|
-| `intro.mp4` | Your on-camera intro, 1920×1080, about 32 s. Until it exists, a placeholder shows the lines. |
+| `intro.mp4` | Your on-camera intro, 1920×1080, about 18 s. The video takes its length from the file, so a longer intro makes the whole video longer. Until it exists, a placeholder shows the lines. |
 | `vo-1.wav` … `vo-4.wav` | Voice-over for parts 1–4; each starts at its part's title card. |
 | `music.mp3` | Optional background music, mixed low. |
 

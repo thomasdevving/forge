@@ -1,20 +1,20 @@
 import React from "react";
-import { AbsoluteFill, interpolate, OffthreadVideo, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate, OffthreadVideo, staticFile, useVideoConfig } from "remotion";
 import { C, mono, sans } from "../theme";
-import { Backdrop, ease, Kicker, Mark, useIn, useOut, Wordmark } from "../ui";
+import { Backdrop, ease, Kicker, Mark, useFrame, useIn, useOut, Wordmark } from "../ui";
 
 /** Your on-camera intro (footage/intro.mp4), or a placeholder with the lines to say until it exists. */
 export const Intro: React.FC<{ hasVideo: boolean }> = ({ hasVideo }) => {
-  const f = useCurrentFrame();
+  const f = useFrame();
+  const { durationInFrames } = useVideoConfig();
   if (hasVideo) return <AbsoluteFill style={{ background: C.bg }}><OffthreadVideo src={staticFile("intro.mp4")} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></AbsoluteFill>;
   const lines = [
-    "You hold a token. The price could drop thirty percent next week.",
-    "On Bitcoin or ETH you'd buy a put option.",
-    "But most Solana tokens have no options market at all.",
-    "They do trade on Orca. That liquidity is all you need.",
-    "Built for the Dev3pack hackathon, from an empty repository.",
+    "Say you hold JUP and want protection from a crash.",
+    "On ETH you'd buy a put. Most Solana tokens have no options market at all.",
+    "But they do trade on Orca, and that's enough.",
+    "This is FORGE, built for the Dev3pack hackathon.",
   ];
-  const per = 180;
+  const per = Math.floor(durationInFrames / lines.length);
   const i = Math.min(lines.length - 1, Math.floor(f / per));
   const local = f - i * per;
   const a = interpolate(local, [0, 16, per - 16, per], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -59,7 +59,7 @@ export const LogoReveal: React.FC = () => {
 
 /** Section opener: big number, title, one line. */
 export const PartTitle: React.FC<{ n: string; kicker: string; title: string; sub: string }> = ({ n, kicker, title, sub }) => {
-  const f = useCurrentFrame();
+  const f = useFrame();
   const a = useIn(2, 20);
   const b = useIn(10, 22);
   const c = useIn(20, 22);

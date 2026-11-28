@@ -1,7 +1,7 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate } from "remotion";
 import { C, mono, sans } from "../theme";
-import { Backdrop, ease, Kicker, useIn, useOut } from "../ui";
+import { Backdrop, ease, Kicker, useFrame, useIn, useOut } from "../ui";
 
 export type X402Facts = { path: string; price: string; tx: string };
 
@@ -14,7 +14,7 @@ const lane = (k: string) => LANES.find((l) => l.key === k)!.x;
 
 /** The x402 exchange, as a sequence diagram, with the values from the real run. */
 export const X402: React.FC<{ facts: X402Facts }> = ({ facts }) => {
-  const f = useCurrentFrame();
+  const f = useFrame();
   const title = useIn(0, 20);
   const out = useOut(14);
   const msgs = [

@@ -37,7 +37,7 @@ async function openPosition(page) {
 }
 
 const SHOTS = {
-  /** Landing hero, into the Studio, demo wallet, draw a collar, compile, open, the position. */
+  /** Landing hero, into the Studio, demo wallet, describe a collar, compile, open, the position. */
   async trader(s) {
     const { page } = s;
     await page.goto(BASE);
@@ -45,119 +45,104 @@ const SHOTS = {
     await wait(1500);
     await s.start();
     mark("hero");
-    await s.move(600, 420, 1);
-    await wait(3200);
-    await s.move(380, 520, 1200);
-    await wait(600);
+    await s.move(760, 380, 1);
+    await wait(2200);
     mark("launch");
-    await s.click(page.getByRole("link", { name: /Launch App/ }).nth(1), { ms: 900 });
+    await s.click(page.getByRole("link", { name: /Launch App/ }).nth(1), { ms: 1100, pause: 350, after: 200 });
     await studioReady(page);
     await s.beat();
     mark("studio");
-    await wait(1500);
+    await wait(900);
 
-    // market
-    const sel = page.getByLabel("Market");
-    await s.to(sel, { ms: 800 });
-    await wait(300);
-    await sel.selectOption(MARKET);
+    // market, from the dropdown
+    await s.choose(page.getByLabel("Market"), MARKET);
     await studioReady(page);
     mark("market");
-    await wait(1200);
+    await wait(700);
 
     // wallet
     mark("wallet");
-    await s.click(btn(page, "Connect"));
-    await wait(500);
+    await s.click(btn(page, "Connect"), { ms: 800 });
+    await wait(350);
     await s.click(page.getByRole("button", { name: /Demo wallet with test funds/ }), { ms: 600 });
     await page.getByText(/^Funded/).waitFor({ timeout: 120_000 });
     mark("funded");
-    await wait(1600);
+    await wait(1100);
+    await s.move(700, 480, 600);
     await page.keyboard.press("Escape");
-    await s.move(700, 480, 700);
     await page.mouse.click(700, 480).catch(() => {});
     await page.getByText(/^[1-9][\d.,]* \S+ · [\d,]+ \S+$/).waitFor({ timeout: 60_000 }).catch(() => {});
     await s.saveState();
-    await wait(800);
+    await wait(400);
 
     // describe the hedge in the form
     const form = (label) => page.getByLabel(`${label}, percent from today's price`);
     const duration = (d) => page.getByRole("group", { name: "Duration" }).getByRole("button", { name: d, exact: true });
     mark("strategy");
-    const strat = page.getByLabel("Strategy");
-    await s.to(strat, { ms: 900 });
-    await wait(400);
-    await strat.selectOption("protective_put");
-    await wait(1500);
-    await strat.selectOption("collar");
-    await wait(1400);
+    await s.choose(page.getByLabel("Strategy"), "Collar", { via: ["Protective put", "Put spread"] });
+    await wait(500);
     mark("floor");
-    await s.type(form("Floor"), "-12", { clear: true, delay: 160 });
-    await wait(1200);
+    await s.type(form("Floor"), "-12", { clear: true, delay: 150 });
+    await wait(700);
     mark("cap");
-    await s.type(form("Cap"), "15", { clear: true, delay: 160 });
-    await wait(1400);
+    await s.type(form("Cap"), "15", { clear: true, delay: 150 });
+    await wait(900);
     // the chart and the form are the same thing: drag the cap and the form follows
     mark("drag-cap");
     const handle = (i) => page.locator('rect[data-handle="1"]').nth(i);
-    let b = await s.to(handle(2), { ms: 900 });
+    const b = await s.to(handle(2), { ms: 900 });
     await s.drag(b.x + b.width / 2 - 30, b.y + b.height / 2, 1100);
-    await wait(1200);
+    await wait(900);
     mark("duration");
     await s.click(duration("30d"), { ms: 800 });
-    await wait(900);
-    await s.click(duration("7d"), { ms: 500 });
-    await wait(1000);
-    // scrub the scenario line across the chart
-    mark("scenario");
-    const chart = await page.locator('svg[role="application"]').boundingBox();
-    await s.move(chart.x + chart.width * 0.3, chart.y + chart.height * 0.55, 800);
-    await s.move(chart.x + chart.width * 0.85, chart.y + chart.height * 0.55, 2200);
-    await wait(500);
+    await wait(700);
+    await s.click(duration("7d"), { ms: 450 });
+    await wait(600);
 
     // compile, take the suggested budget for the duration, compile again
     mark("compile");
     await s.click(btn(page, "Compile"), { ms: 900 });
     await page.getByText("Max error").waitFor({ timeout: 90_000 });
     mark("compiled");
-    await wait(1400);
+    await wait(900);
     const hint = page.getByText(/^Suggested for 7 days/);
     if (await hint.count()) {
       mark("budget");
-      await s.click(hint, { ms: 900 });
-      await wait(1000);
-      await s.click(btn(page, "Compile"), { ms: 800 });
+      await s.click(hint, { ms: 800 });
+      await wait(600);
+      await s.click(btn(page, "Compile"), { ms: 700 });
       await page.getByText("Max error").waitFor({ timeout: 90_000 });
-      await wait(1000);
+      await wait(600);
     }
     mark("results");
-    await s.to(page.locator('[data-tour="results"]'), { ms: 900, dx: 0.2, dy: 0.5 });
-    await wait(1600);
-    await s.to(page.locator('[data-tour="results"]'), { ms: 900, dx: 0.62, dy: 0.5 });
-    await wait(1400);
-    await s.to(page.locator('[data-tour="results"]'), { ms: 900, dx: 0.88, dy: 0.5 });
-    await wait(1800);
+    const results = page.locator('[data-tour="results"]');
+    await s.to(results, { ms: 900, dx: 0.2, dy: 0.5 });
+    await wait(1300);
+    await s.to(results, { ms: 900, dx: 0.62, dy: 0.5 });
+    await wait(1100);
+    await s.to(results, { ms: 900, dx: 0.88, dy: 0.5 });
+    await wait(1300);
 
     // open
     mark("open");
     await s.click(btn(page, "Open position"), { ms: 900 });
     await page.getByRole("link", { name: "View position" }).waitFor({ timeout: 240_000 });
     mark("opened");
-    await wait(2500);
+    await wait(1600);
     mark("view");
     await s.click(page.getByRole("link", { name: "View position" }), { ms: 800 });
     await page.getByText("Premium / cap").first().waitFor({ timeout: 90_000 });
     await s.beat();
     mark("position");
-    await wait(1500);
+    await wait(1100);
     await s.to(page.getByText(/^ends in/).first(), { ms: 900 }).catch(() => {});
-    await wait(1400);
+    await wait(1200);
     await s.to(page.getByText("Premium / cap").first(), { ms: 900 });
-    await wait(1500);
+    await wait(1200);
     await s.to(page.getByText("Delta").first(), { ms: 900 });
-    await wait(1500);
+    await wait(1200);
     await s.scroll(320, 1400);
-    await wait(2000);
+    await wait(1800);
   },
 
   /** Ask the Architect in words, read its options, load one into the Studio. */

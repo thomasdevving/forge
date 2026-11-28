@@ -2,12 +2,12 @@ import React from "react";
 import marksJson from "../footage/marks.json";
 import agentLog from "../footage/term-agent.json";
 import { s } from "./theme";
-import { Footage, type FootageProps } from "./scenes/Footage";
+import { Footage, type FootageProps, type Zoom } from "./scenes/Footage";
 import { Terminal, timeline as termTimeline, type TermLog } from "./scenes/Terminal";
+import { Pace } from "./ui";
 import { Intro, LogoReveal, Outro, PartTitle } from "./scenes/Titles";
 import { RangeOption } from "./scenes/RangeOption";
 import { Compiler } from "./scenes/Compiler";
-import { Pricing } from "./scenes/Pricing";
 import { X402 } from "./scenes/X402";
 import { Proof } from "./scenes/Proof";
 
@@ -28,86 +28,151 @@ function clip(id: string, src: string, from: number, to: number, props: Omit<Foo
   return { id, dur: Math.max(s(1), s((to - from) / speed)), el: <Footage src={src} from={from} {...props} />, enter, enterFrames: 8 };
 }
 
-/** The whole edit, in order. `files` is what exists in footage/, so missing takes are left out. */
-export function buildTimeline(files: Set<string>): Item[] {
+type Cap = { n?: string; text: string; sub?: string };
+/** One stretch of a take: plays up to `to`, at `speed` or fast enough to last `fit` seconds. */
+type Seg = { to: number; speed?: number; fit?: number; zoom?: Zoom; cap?: Cap };
+
+/**
+ * A take as one continuous shot: its segments follow each other with no gap in the footage, so
+ * the joins are invisible. Only speed, framing and captions change, and the camera eases between
+ * framings. The take as a whole fades in.
+ */
+function take(id: string, src: string, from: number, segs: Seg[]): Item[] {
+  let t = from;
+  return segs.map((g, i) => {
+    const len = Math.max(0.1, g.to - t);
+    const speed = g.fit ? Math.max(g.speed ?? 1, len / g.fit) : g.speed ?? 1;
+    const prev = segs[i - 1], next = segs[i + 1];
+    const item = clip(`${id}-${i}`, src, t, g.to, {
+      speed,
+      showSpeed: speed >= 1.9,
+      zoom: g.zoom,
+      zoomFrom: prev?.zoom,
+      caption: g.cap,
+      captionIn: !(g.cap && prev?.cap === g.cap),
+      captionOut: !(g.cap && next?.cap === g.cap),
+    }, i === 0 ? "fade" : "cut");
+    if (i === 0) item.enterFrames = 12;
+    t = g.to;
+    return item;
+  });
+}
+
+const paced = (k: number, el: React.ReactElement) => <Pace.Provider value={k}>{el}</Pace.Provider>;
+/** The agent run, faster than real reading speed: the voice-over carries it. */
+const TERM_PACE = { maxGap: 0.8, lead: 1.2, read: 0.6 };
+
+/** The intro's length when no recording exists yet; a recording sets its own. */
+export const INTRO_SECONDS = 18;
+
+/**
+ * The whole edit, in order, kept under three minutes. `files` is what exists in footage/, so missing
+ * takes are left out; `introSeconds` is the length of your recorded intro.
+ */
+export function buildTimeline(files: Set<string>, introSeconds = INTRO_SECONDS): Item[] {
   const has = (f: string) => files.has(f);
   const items: Item[] = [];
   const push = (...xs: Item[]) => items.push(...xs);
+  const title = (part: number, n: string, kicker: string, head: string, sub: string): Item =>
+    ({ id: `p${part}`, dur: s(2.2), el: paced(1.3, <PartTitle n={n} kicker={kicker} title={head} sub={sub} />), enter: "blade", enterFrames: 22, part });
 
   // 0 · intro on camera, then the logo
-  push({ id: "intro", dur: s(32), el: <Intro hasVideo={has("intro.mp4")} />, enter: "cut" });
-  push({ id: "logo", dur: s(4.2), el: <LogoReveal />, enter: "fade", enterFrames: 16 });
+  push({ id: "intro", dur: s(introSeconds), el: <Intro hasVideo={has("intro.mp4")} />, enter: "cut" });
+  push({ id: "logo", dur: s(2.6), el: paced(1.4, <LogoReveal />), enter: "fade", enterFrames: 14 });
 
   // 1 · traders
-  push({ id: "p1", dur: s(2.8), el: <PartTitle n="01" kicker="For traders" title="Protect any token." sub="A floor under what you hold, built from Orca liquidity." />, enter: "blade", enterFrames: 26, part: 1 });
+  push(title(1, "01", "For traders", "Protect any token.", "A floor under what you hold, built from Orca liquidity."));
   if (has("trader.mp4")) {
-    const T = "trader";
-    push(
-      clip("t-hero", T, 0.4, at(T, "launch", 7) + 1.4, { caption: { text: "The landing page", sub: "forge-agr18.vercel.app" } }),
-      clip("t-market", T, at(T, "studio", 13.7) - 0.2, at(T, "wallet", 17.8), { caption: { n: "01", text: "Pick a token", sub: "JUP: no options market anywhere" } }),
-      clip("t-wallet", T, at(T, "wallet", 17.8), at(T, "funded", 24.2) + 1.6, { speed: 1.6, showSpeed: true, caption: { n: "02", text: "Demo wallet with test funds", sub: "a fork of Solana mainnet · no real money" } }),
-      clip("t-form", T, at(T, "strategy", 27.6) - 0.2, at(T, "drag-cap", 39), { zoom: FORM, caption: { n: "03", text: "Describe the hedge", sub: "a collar: floor −12%, cap +15%, exact prices shown" } }),
-      clip("t-drag", T, at(T, "drag-cap", 39), at(T, "duration", 43.3), { zoom: CHART, caption: { n: "04", text: "Or drag it on the chart", sub: "the form follows" } }),
-      clip("t-duration", T, at(T, "duration", 43.3), at(T, "scenario", 48.2), { zoom: FORM, caption: { n: "05", text: "Cover for one week", sub: "it closes automatically after 7 days" } }),
-      clip("t-scenario", T, at(T, "scenario", 48.2), at(T, "compile", 52.8), { caption: { text: "What you get at any closing price" } }),
-      clip("t-compile", T, at(T, "compile", 52.8), at(T, "results", 62.7), { speed: 1.3, caption: { n: "06", text: "Compile", sub: "then take the suggested budget for 7 days" } }),
-      clip("t-results", T, at(T, "results", 62.7), at(T, "open", 71.3), { zoom: RESULTS, caption: { n: "07", text: "Ranges, cost and a certificate", sub: "the worst-case error, certified to the cent" } }),
-      clip("t-open", T, at(T, "open", 71.3), at(T, "opened", 84.5) + 1.2, { speed: 2.2, showSpeed: true, caption: { n: "08", text: "Open it on-chain", sub: "simulate, certify, then sign and send" } }),
-      clip("t-position", T, at(T, "view", 87) - 0.3, at(T, "position", 89.6) + 11.5, { caption: { n: "09", text: "Your position", sub: "ends in 7 days · premium against budget · exposure" } }),
-    );
+    const T = "trader", m = (l: string, d: number) => at(T, l, d);
+    const landing = { text: "The landing page", sub: "forge-agr18.vercel.app" };
+    const pick = { n: "01", text: "Pick a token", sub: "JUP: no options market anywhere" };
+    const wallet = { n: "02", text: "Demo wallet with test funds", sub: "a fork of Solana mainnet · no real money" };
+    const describe = { n: "03", text: "Describe the hedge", sub: "a collar: floor −12%, cap +15%, exact prices shown" };
+    const compile = { n: "05", text: "Compile", sub: "then take the suggested budget for 7 days" };
+    const results = { n: "06", text: "Ranges, cost and a certificate", sub: "the worst-case error, certified to the cent" };
+    const open = { n: "07", text: "Open it on-chain", sub: "simulate, certify, then sign and send" };
+    const position = { n: "08", text: "Your position", sub: "ends in 7 days · premium against budget · exposure" };
+    push(...take("t", T, m("hero", 0) + 0.3, [
+      { to: m("launch", 2.5), cap: landing },
+      { to: m("launch", 2.5) + 1.8, cap: landing },
+      { to: m("studio", 6), fit: 0.8, cap: landing },
+      { to: m("market", 10), speed: 1.2, fit: 3.2, cap: pick },
+      { to: m("wallet", 11) + 1.6, speed: 1.2, cap: wallet },
+      { to: m("funded", 15), fit: 1.2, cap: wallet },
+      { to: m("strategy", 18), speed: 1.6, cap: wallet },
+      { to: m("drag-cap", 30), speed: 1.3, zoom: FORM, cap: describe },
+      { to: m("duration", 34), speed: 1.2, zoom: CHART, cap: { n: "04", text: "Or drag it on the chart", sub: "the form follows" } },
+      { to: m("compile", 37), speed: 1.3, zoom: FORM, cap: { n: "04", text: "Cover for one week", sub: "it closes automatically after 7 days" } },
+      { to: m("compile", 37) + 1.4, speed: 1.2, cap: compile },
+      { to: m("compiled", 40), fit: 0.8, cap: compile },
+      { to: m("results", 44), speed: 1.3, fit: 3.5, cap: compile },
+      { to: m("open", 50), speed: 1.3, zoom: RESULTS, cap: results },
+      { to: m("open", 50) + 1.4, speed: 1.2, cap: open },
+      { to: m("opened", 62), fit: 2, cap: open },
+      { to: m("position", 66), speed: 1.3, fit: 2.4, cap: open },
+      { to: m("position", 66) + 9.5, speed: 1.45, cap: position },
+    ]));
   }
-  if (has("close.mp4")) push(clip("close", "close", at("close", "positions", 0) + 2.4, at("close", "closed", 7.6) + 5.5, { caption: { n: "10", text: "Close and settle", sub: "LP liquidity restored, payout from real balances" } }));
+  if (has("close.mp4")) {
+    const cap = { n: "09", text: "Close and settle", sub: "LP liquidity restored, payout from real balances" };
+    push(...take("close", "close", at("close", "positions", 0) + 0.8, [
+      { to: at("close", "closing", 3.3) + 0.6, speed: 1.2, cap },
+      { to: at("close", "closed", 7.6), fit: 1.5, cap },
+      { to: at("close", "closed", 7.6) + 4.5, speed: 1.4, cap },
+    ]));
+  }
   if (has("architect.mp4") && MARKS.architect?.some((m) => m.label === "options")) {
-    const A = "architect";
-    const send = at(A, "send"), opts = at(A, "options");
-    push(
-      clip("a-type", A, at(A, "type") - 1.6, send + 0.8, { caption: { n: "11", text: "Or just say it", sub: "the Architect compiles real options" } }),
-      clip("a-wait", A, send + 0.8, opts, { speed: Math.max(1, (opts - send - 0.8) / 4.5), showSpeed: true }, "cut"),
-      clip("a-options", A, opts, at(A, "choose", opts + 5) + 4.5, { caption: { n: "11", text: "Pick one, review it, sign it", sub: "every number comes from the compiler" } }, "cut"),
-    );
+    const A = "architect", m = (l: string, d = 0) => at(A, l, d);
+    const say = { n: "10", text: "Or just say it", sub: "the Architect compiles real options" };
+    const choose = { n: "10", text: "Pick one, review it, sign it", sub: "every number comes from the compiler" };
+    push(...take("a", A, m("studio") + 0.6, [
+      { to: m("send") + 0.8, speed: 2.2, cap: say },
+      { to: m("options"), fit: 2.2, cap: say },
+      { to: m("choose", m("options") + 5) + 3.2, speed: 1.35, cap: choose },
+    ]));
   }
-  if (has("tour.mp4")) push(clip("tour", "tour", at("tour", "tour", 0.8) + 0.4, at("tour", "tour", 0.8) + 8.5, { speed: 1.3, caption: { text: "New here? The tour walks you through it" } }));
 
   // 2 · LPs
-  push({ id: "p2", dur: s(2.8), el: <PartTitle n="02" kicker="For liquidity providers" title="The other side." sub="Your liquidity keeps earning, borrowed or not." />, enter: "blade", enterFrames: 26, part: 2 });
+  push(title(2, "02", "For liquidity providers", "The other side.", "Your liquidity keeps earning, borrowed or not."));
   if (has("earn.mp4")) {
-    const E = "earn";
-    push(
-      clip("e-how", E, 0.4, at(E, "pick", 9.4), { caption: { n: "01", text: "Deposit into a price bucket", sub: "idle, it earns normal Orca fees" } }),
-      clip("e-deposit", E, at(E, "pick", 9.4), at(E, "deposited", 19.3) + 1.5, { speed: 1.2, caption: { n: "02", text: "When it's borrowed, the trader pays you", sub: "at least the fees you missed, more as the bucket fills" } }),
-      clip("e-earnings", E, at(E, "deposited", 19.3) + 1.5, at(E, "claim", 24.5) + 2.8, { zoom: { scale: 1.45, x: 0.95, y: 0.75 }, caption: { n: "03", text: "Your earnings, line by line", sub: "Orca fees, premium, extra over plain Orca" } }),
-    );
+    const E = "earn", m = (l: string, d: number) => at(E, l, d);
+    const bucket = { n: "01", text: "Deposit into a price bucket", sub: "idle, it earns normal Orca fees" };
+    const paid = { n: "02", text: "When it's borrowed, the trader pays you", sub: "at least the fees you missed, more as the bucket fills" };
+    push(...take("e", E, 0.6, [
+      { to: m("pick", 9.3) + 1.2, speed: 1.5, cap: bucket },
+      { to: m("deposit", 12.5) + 2.4, speed: 1.3, cap: paid },
+      { to: m("deposited", 19.8), fit: 1.2, cap: paid },
+      { to: m("claim", 25) + 1.6, speed: 1.3, zoom: { scale: 1.45, x: 0.95, y: 0.75 }, cap: { n: "03", text: "Your earnings, line by line", sub: "Orca fees, premium, extra over plain Orca" } },
+    ]));
   }
 
   // 3 · agents
-  push({ id: "p3", dur: s(2.8), el: <PartTitle n="03" kicker="For agents" title="Built for agents." sub="Any program can buy a hedge, paid per request over x402." />, enter: "blade", enterFrames: 26, part: 3 });
+  push(title(3, "03", "For agents", "Built for agents.", "Any program can buy a hedge, paid per request over x402."));
   if (has("agents.mp4")) {
-    const G = "agents";
-    push(
-      clip("g-toggle", G, 0.4, at(G, "section", 8), { caption: { text: "FORGE for agents" } }),
-      clip("g-section", G, at(G, "section", 8), 22.5, { speed: 1.15, caption: { text: "What an agent can do", sub: "protect, price, check, discover" } }),
-    );
+    const cap = { text: "FORGE for agents", sub: "protect, price, check, discover" };
+    push(...take("g", "agents", 0.4, [
+      { to: at("agents", "section", 8), speed: 1.6, cap },
+      { to: at("agents", "section", 8) + 4.5, speed: 1.6, cap },
+    ]));
   }
   const log = agentLog as unknown as TermLog;
   push({
-    id: "terminal", dur: s(termTimeline(log).end), enter: "fade", enterFrames: 14,
-    el: <Terminal log={log} title="treasury-agent — a DAO treasury agent buying a hedge" caption={{ n: "→", text: "A treasury agent, end to end", sub: "pays $0.01 over x402, verifies, asks its human, opens" }} />,
+    id: "terminal", dur: s(termTimeline(log, TERM_PACE).end), enter: "fade", enterFrames: 12,
+    el: <Terminal log={log} pace={TERM_PACE} title="treasury-agent — a DAO treasury agent buying a hedge" caption={{ n: "→", text: "A treasury agent, end to end", sub: "pays $0.01 over x402, verifies, asks its human, opens" }} />,
   });
 
   // 4 · why it works
-  push({ id: "p4", dur: s(2.8), el: <PartTitle n="04" kicker="Why it works" title="How it works." sub="The idea, the math, the payment rail and the proof." />, enter: "blade", enterFrames: 26, part: 4 });
-  push({ id: "range", dur: s(22), el: <RangeOption />, enter: "fade", enterFrames: 14 });
-  push({ id: "compiler", dur: s(13), el: <Compiler />, enter: "fade", enterFrames: 14 });
-  push({ id: "pricing", dur: s(14), el: <Pricing />, enter: "fade", enterFrames: 14 });
+  push(title(4, "04", "Why it works", "How it works.", "The idea, the math, the payment rail and the proof."));
+  push({ id: "range", dur: s(13), el: paced(1.7, <RangeOption />), enter: "fade", enterFrames: 12 });
+  push({ id: "compiler", dur: s(8.5), el: paced(1.45, <Compiler />), enter: "fade", enterFrames: 12 });
   // values for the x402 diagram, read from the agent's real run
   const paid = log.lines.find((l) => /402 Payment required/.test(l.line))?.line.match(/required: ([\d.]+) USDC/)?.[1] ?? "0.01";
   const tx = log.lines.find((l) => /settled on the fork/.test(l.line))?.line.match(/\(([1-9A-HJ-NP-Za-km-z]{6,})/)?.[1]?.slice(0, 12) ?? "";
-  push({ id: "x402", dur: s(12), el: <X402 facts={{ path: "/x402/hedge", price: paid, tx }} />, enter: "fade", enterFrames: 14 });
-  push({ id: "proof", dur: s(12), el: <Proof />, enter: "fade", enterFrames: 14 });
-  if (has("proof.mp4")) push(clip("proof-page", "proof", 0.6, Math.max(6, (MARKS.proof?.at(-1)?.t ?? 14) + 2.4), { speed: 1.4, caption: { text: "Method, results and caveats", sub: "forge-agr18.vercel.app/proof" } }));
+  push({ id: "x402", dur: s(7.5), el: paced(1.4, <X402 facts={{ path: "/x402/hedge", price: paid, tx }} />), enter: "fade", enterFrames: 12 });
+  push({ id: "proof", dur: s(7.5), el: paced(1.35, <Proof />), enter: "fade", enterFrames: 12 });
 
   // outro
-  push({ id: "outro", dur: s(8), el: <Outro />, enter: "blade", enterFrames: 26 });
+  push({ id: "outro", dur: s(4), el: paced(1.3, <Outro />), enter: "blade", enterFrames: 22 });
   return items;
 }
 

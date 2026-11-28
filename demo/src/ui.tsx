@@ -7,9 +7,17 @@ import { MARK_BOTTOM, MARK_TOP, WORDMARK } from "./brand";
 export const ease = Easing.bezier(0.22, 1, 0.36, 1);
 export const easeInOut = Easing.bezier(0.65, 0, 0.35, 1);
 
-/** 0→1 over [start, start+dur] frames, eased. */
+/** How fast a scene's own animation runs: 1.5 plays it in two thirds of the time. Set per timeline item. */
+export const Pace = React.createContext(1);
+
+/** The scene's animation clock: the current frame times its pace. */
+export function useFrame() {
+  return useCurrentFrame() * React.useContext(Pace);
+}
+
+/** 0→1 over [start, start+dur] frames of the scene's clock, eased. */
 export function useIn(start: number, dur = 18, e = ease) {
-  const f = useCurrentFrame();
+  const f = useFrame();
   return interpolate(f, [start, start + dur], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: e });
 }
 
@@ -58,11 +66,14 @@ export const Kicker: React.FC<{ n?: string; children: React.ReactNode; style?: R
 );
 
 /** A caption chip over footage: what is happening, in a few words. */
-export const Caption: React.FC<{ n?: string; text: string; sub?: string; at?: number; dur?: number }> = ({ n, text, sub, at = 6, dur }) => {
+export const Caption: React.FC<{ n?: string; text: string; sub?: string; at?: number; dur?: number; fadeIn?: boolean; fadeOut?: boolean }> = ({ n, text, sub, at = 6, dur, fadeIn = true, fadeOut = true }) => {
   const f = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
   const end = dur ?? durationInFrames;
-  const a = interpolate(f, [at, at + 14, end - 12, end - 2], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });
+  const a = Math.min(
+    fadeIn ? interpolate(f, [at, at + 14], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease }) : 1,
+    fadeOut ? interpolate(f, [end - 12, end - 2], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease }) : 1,
+  );
   return (
     <div style={{ position: "absolute", left: 56, bottom: 52, opacity: a, transform: `translateY(${(1 - a) * 16}px)` }}>
       <div

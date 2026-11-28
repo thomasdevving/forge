@@ -1,8 +1,8 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate } from "remotion";
 import research from "../data/research.json";
 import { C, mono, sans } from "../theme";
-import { Backdrop, ease, Kicker, useIn, useOut } from "../ui";
+import { Backdrop, ease, Kicker, useFrame, useIn, useOut } from "../ui";
 
 const P = research.pricing;
 const base = P.curve.base_ppm / 1e6, kink = P.curve.kink_ppm / 1e6, slope2 = P.curve.slope2_ppm / 1e6, cap = P.curve.cap_ppm / 1e6;
@@ -14,7 +14,7 @@ const y = (v: number) => Y1 - ((v - 0.8) / (mCap + 0.2 - 0.8)) * (Y1 - Y0);
 
 /** How LPs are paid: the forgone fees, times a multiplier that rises as a bucket fills. */
 export const Pricing: React.FC = () => {
-  const f = useCurrentFrame();
+  const f = useFrame();
   const title = useIn(0, 20);
   const parts = [useIn(20, 18), useIn(44, 18), useIn(68, 18)];
   const draw = interpolate(f, [100, 190], [0, cap], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });
