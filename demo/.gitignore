@@ -1,0 +1,5 @@
+footage/*
+!footage/marks.json
+!footage/term-*.json
+out/
+node_modules/

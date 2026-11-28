@@ -1,0 +1,25 @@
+{
+  "name": "forge-demo-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "record": "node record/record.mjs",
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts Demo out/forge-demo.mp4",
+    "sync-data": "cp ../app/public/shots/meta.json src/data/shot-meta.json && cp ../app/src/data/benchmarks.json ../app/src/data/research.json src/data/"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.543",
+    "@remotion/transitions": "4.0.543",
+    "@remotion/google-fonts": "4.0.543",
+    "@remotion/media-utils": "4.0.543",
+    "remotion": "4.0.543",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "playwright": "1.65.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.8",
+    "typescript": "5.8.3"
+  }
+}

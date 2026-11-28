@@ -1,0 +1,126 @@
+{
+  "command": "pnpm --filter @forge/treasury-agent start",
+  "code": 0,
+  "lines": [
+    {
+      "t": 0.829,
+      "line": "\u001b[1G\u001b[0K   0.0s  Treasury Agent   Example DAO treasury (simulated) · J6y1cSvZ… · FORGE at https://forge-backend-production-54df0521.up.railway.app · claude-sonnet-5-5"
+    },
+    {
+      "t": 3.192,
+      "line": "   2.4s  FORGE API        discovered 4 markets: SOL/USDC, JUP/USDC, Bonk/USDC, KMNO/USDC"
+    },
+    {
+      "t": 3.598,
+      "line": "   2.8s  Treasury Agent   analyzing JUP $1,500.13, KMNO $0, JLP ?"
+    },
+    {
+      "t": 6.172,
+      "line": "   5.3s  Treasury Agent   Protect JUP, 6195 units. The floor should be at or above 70% of spot, which is about 0.1695."
+    },
+    {
+      "t": 6.917,
+      "line": "   6.1s  Treasury Agent   requesting a hedge: 6,195 JUP, premium ≤ $40"
+    },
+    {
+      "t": 7.158,
+      "line": "   6.3s  FORGE API        402 Payment required: 0.01 USDC (cap 0.0500)"
+    },
+    {
+      "t": 35.229,
+      "line": "  34.4s  Payment          settled on the fork (2jGFVecbxi5x…); API spend $0.01 of $0.25"
+    },
+    {
+      "t": 35.234,
+      "line": "  34.4s  FORGE Architect  ✓ get_market_data: JUP/USDC at 0.242152"
+    },
+    {
+      "t": 35.234,
+      "line": "  34.4s  FORGE Architect  ✓ get_wallet_holdings: 1 holdings"
+    },
+    {
+      "t": 35.235,
+      "line": "  34.4s  FORGE Architect  ✓ get_available_liquidity: 17 ranges on JUP/USDC"
+    },
+    {
+      "t": 35.235,
+      "line": "  34.4s  FORGE Architect  ✕ compile_strategy: lower_price must be below floor_price"
+    },
+    {
+      "t": 35.235,
+      "line": "  34.4s  FORGE Architect  ✓ compile_strategy: Floor 70%: infeasible, bound ±$51.1421"
+    },
+    {
+      "t": 35.235,
+      "line": "  34.4s  FORGE Architect  ✓ compile_strategy: Floor 80%: ok, bound ±$8.2506"
+    },
+    {
+      "t": 35.235,
+      "line": "  34.4s  FORGE Architect  ✓ compile_strategy: Floor 85%: ok, bound ±$3.6321"
+    },
+    {
+      "t": 35.235,
+      "line": "  34.4s  FORGE Architect  ✓ compile_strategy: Floor ~75%: infeasible, bound ±$38.9032"
+    },
+    {
+      "t": 35.235,
+      "line": "  34.4s  FORGE Architect  ✓ present_options: 2 options shown"
+    },
+    {
+      "t": 37.4,
+      "line": "  36.6s  Verifier         Floor 0.2058 (85% of spot): all policy checks pass · bound ±$3.63"
+    },
+    {
+      "t": 37.409,
+      "line": "  36.6s  Verifier         Floor 0.1943 (80% of spot): all policy checks pass · bound ±$8.25"
+    },
+    {
+      "t": 40.341,
+      "line": "  39.5s  Treasury Agent   constraints checked; awaiting authorization for \"Floor 0.1943 (80% of spot)\""
+    },
+    {
+      "t": 44.052,
+      "line": "  43.2s  Treasury Agent   I submitted the 80% floor on JUP to the human signer. Nothing is signed until they approve. - **Exposure:** JUP is the largest holding, at about 1,500 USD for 6,195 tokens. - **Floor:** 0.1943, which is 80% of spot. It caps the loss at about 20%, so the position is worth at least 1,203.69 USD. It meets the 30% policy limit, and upside above the floor is fully kept. - **Why not 70%:** FORGE could n"
+    },
+    {
+      "t": 44.052,
+      "line": "  43.2s  Ledger           API spend $0.01 over 1 paid call(s); budget $0.25"
+    },
+    {
+      "t": 44.052,
+      "line": ""
+    },
+    {
+      "t": 44.052,
+      "line": "Authorization request"
+    },
+    {
+      "t": 44.052,
+      "line": "  Floor 0.1943 (80% of spot): 6195 JUP, floor 0.1943, cap none, premium ≤ $40, bound ±$8.25"
+    },
+    {
+      "t": 44.052,
+      "line": "  certificate cc23ba173f0828a94bfeeef37c50d84b39d85770f03f5b142554e1cde5d70782"
+    },
+    {
+      "t": 44.052,
+      "line": "  JUP is the largest exposure (1500 USD). The 80% floor (0.1943) is the cheapest feasible floor that meets the 70% minimum. FORGE could not build a 70% or 75% floor. Loss is capped at about 20%, and the position is worth at least 1203.69 USD. Full upside is kept. Premium floor is 0.16 USD/day. The keeper closes at 31.68 USD, inside the 40 USD budget. Cover may end early because the 30-day estimate is 40.8 USD. The option passed inspection. The 85% floor costs more, and its 59 USD suggested budget is over the limit. API spend was 0.01 USD."
+    },
+    {
+      "t": 44.052,
+      "line": ""
+    },
+    {
+      "t": 45.859,
+      "line": "\u001b[1G\u001b[0JAuthorize opening it on the FORGE fork? [y/N] \u001b[47Gy"
+    },
+    {
+      "t": 48.225,
+      "line": "  47.4s  Solana (fork)    confirmed 5CF6mka7C619Q97s…"
+    },
+    {
+      "t": 48.225,
+      "line": "  47.4s  Treasury Agent   position 9dGitLPz179vEbgCTrdYiar4RzhemQSHwKUbunpQaxCY open"
+    }
+  ]
+}

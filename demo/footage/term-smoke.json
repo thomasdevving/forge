@@ -1,0 +1,26 @@
+{
+  "command": "pnpm --filter @forge/treasury-agent run smoke",
+  "code": 0,
+  "lines": [
+    {
+      "t": 1.11,
+      "line": "   0.3s  FORGE API        solana:forge-surfpool, test environment: true; compile costs $0.01"
+    },
+    {
+      "t": 2.633,
+      "line": "   1.8s  FORGE API        402 Payment required: 0.01 USDC"
+    },
+    {
+      "t": 4.114,
+      "line": "   3.3s  Payment          settled: true 2U5rsYRDf8cFxVzv…"
+    },
+    {
+      "t": 4.853,
+      "line": "   4.0s  Verifier         JUP/USDC collar: ok, bound ±$3.07, certificate verified"
+    },
+    {
+      "t": 4.853,
+      "line": "   4.0s  Ledger           USDC 5000 → 4999.99 (paid 0.010000)"
+    }
+  ]
+}

@@ -1,0 +1,206 @@
+{
+  "trader": [
+    {
+      "label": "hero",
+      "t": 0
+    },
+    {
+      "label": "launch",
+      "t": 6.99
+    },
+    {
+      "label": "studio",
+      "t": 13.71
+    },
+    {
+      "label": "market",
+      "t": 16.64
+    },
+    {
+      "label": "wallet",
+      "t": 17.84
+    },
+    {
+      "label": "funded",
+      "t": 24.25
+    },
+    {
+      "label": "strategy",
+      "t": 27.59
+    },
+    {
+      "label": "floor",
+      "t": 32.14
+    },
+    {
+      "label": "cap",
+      "t": 35.68
+    },
+    {
+      "label": "drag-cap",
+      "t": 39.03
+    },
+    {
+      "label": "duration",
+      "t": 43.26
+    },
+    {
+      "label": "scenario",
+      "t": 48.24
+    },
+    {
+      "label": "compile",
+      "t": 52.75
+    },
+    {
+      "label": "compiled",
+      "t": 55.39
+    },
+    {
+      "label": "budget",
+      "t": 56.8
+    },
+    {
+      "label": "results",
+      "t": 62.74
+    },
+    {
+      "label": "open",
+      "t": 71.28
+    },
+    {
+      "label": "opened",
+      "t": 84.49
+    },
+    {
+      "label": "view",
+      "t": 87
+    },
+    {
+      "label": "position",
+      "t": 89.55
+    }
+  ],
+  "architect": [
+    {
+      "label": "studio",
+      "t": 0
+    },
+    {
+      "label": "type",
+      "t": 3.52
+    },
+    {
+      "label": "send",
+      "t": 10.67
+    },
+    {
+      "label": "options",
+      "t": 27.44
+    },
+    {
+      "label": "choose",
+      "t": 32.61
+    },
+    {
+      "label": "close",
+      "t": 96.36
+    }
+  ],
+  "close": [
+    {
+      "label": "positions",
+      "t": 0
+    },
+    {
+      "label": "closing",
+      "t": 3.3
+    },
+    {
+      "label": "closed",
+      "t": 7.59
+    }
+  ],
+  "earn": [
+    {
+      "label": "earn",
+      "t": 0
+    },
+    {
+      "label": "table",
+      "t": 5.81
+    },
+    {
+      "label": "pick",
+      "t": 9.28
+    },
+    {
+      "label": "deposit",
+      "t": 12.52
+    },
+    {
+      "label": "deposited",
+      "t": 19.82
+    },
+    {
+      "label": "earnings",
+      "t": 21.82
+    },
+    {
+      "label": "claim",
+      "t": 25
+    }
+  ],
+  "agents": [
+    {
+      "label": "hero",
+      "t": 0
+    },
+    {
+      "label": "toggle",
+      "t": 1.48
+    },
+    {
+      "label": "section",
+      "t": 7.99
+    }
+  ],
+  "proof": [
+    {
+      "label": "top",
+      "t": 0
+    },
+    {
+      "label": "replication",
+      "t": 2.64
+    },
+    {
+      "label": "realized",
+      "t": 6.87
+    },
+    {
+      "label": "guarantee",
+      "t": 11.09
+    },
+    {
+      "label": "lp-returns",
+      "t": 15.31
+    },
+    {
+      "label": "recent",
+      "t": 19.52
+    }
+  ],
+  "tour": [
+    {
+      "label": "tour",
+      "t": 0.8
+    }
+  ],
+  "addmarket": [
+    {
+      "label": "add",
+      "t": 0.8
+    }
+  ]
+}
