@@ -25,6 +25,8 @@ const lp = bench.lpGuarantee as unknown as {
   summary: Record<string, { borrows: number; borrows_eligible: number; borrows_guarantee_holds: number; borrows_guarantee_violations: number; borrows_premium_shortfall: number; restoration_failures_total: number; paths: number }>;
 } | null;
 
+/** Screenshot URLs carry their capture time, so a cached copy from an older capture is never shown. */
+const shotUrl = (name: string) => `/shots/${name}.jpg?v=${encodeURIComponent((shotMeta as { capturedAt?: string }).capturedAt ?? "")}`;
 const snap = shotMeta as unknown as { market: string; base: string; holdings: { base: number }; openTransactions?: number; spot: number; target: [number, number][]; certifiedBound: number; capitalLocked: number; legs: { kind: string; priceLower: number; priceUpper: number }[] };
 const usd = (n: number, d = Math.abs(n) < 1 ? 4 : 2) => `$${n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
 const FLOOR = snap.target[1]!, CAP = snap.target[2]!;
@@ -53,23 +55,23 @@ function Head({ n, kicker, title, intro }: { n: React.ReactNode; kicker: string;
 const TRADER: Step[] = [
   {
     title: "Draw what you want",
-    body: `You hold ${UNITS} at ${usd(snap.spot, 4)}. You want it never worth less than ${usd(FLOOR[1], 0)}, and you're fine giving up gains above ${usd(CAP[1], 0)}. There is no ${snap.base} options market to buy that from. In FORGE you pick "Collar" or drag the points yourself.`,
-    shot: "/shots/studio-draw.jpg", path: "/studio", alt: "Studio with a collar drawn over the bucket ladder",
+    body: `You hold ${UNITS} at ${usd(snap.spot, 4)}. You want it never worth less than ${usd(FLOOR[1], 0)}, and you're fine giving up gains above ${usd(CAP[1], 0)}. There is no ${snap.base} options market to buy that from. In FORGE you pick "Collar" and type the floor and cap, or drag the points on the chart.`,
+    shot: shotUrl("studio-draw"), path: "/studio", alt: "Studio with a collar set in the form and drawn over the bucket ladder",
   },
   {
     title: "FORGE finds the ranges",
     body: `It borrows LP liquidity just below the floor (${PUTS.length ? `${usd(Math.min(...PUTS.map((l) => l.priceLower)), 4)}–${usd(Math.max(...PUTS.map((l) => l.priceUpper)), 4)}` : "below the price"}) and places your ${snap.base} in ranges around the cap. The result matches your line to within ±${usd(snap.certifiedBound)}, checked exactly and written into a certificate.`,
-    shot: "/shots/studio-compiled.jpg", path: "/studio", alt: "Compiled collar with cost and certificate",
+    shot: shotUrl("studio-compiled"), path: "/studio", alt: "Compiled collar with cost and certificate",
   },
   {
     title: "Open it on-chain",
     body: `The open is simulated first, then sent as a short series of transactions you sign${snap.openTransactions ? ` (${snap.openTransactions} for this collar)` : ""}. The certificate hash is stored in your position, so anyone can check what you agreed to.`,
-    shot: "/shots/studio-open.jpg", path: "/studio", alt: "Open flow with four confirmed steps",
+    shot: shotUrl("studio-open"), path: "/studio", alt: "Open flow with four confirmed steps",
   },
   {
     title: "Close and settle",
     body: "While it is open you see the premium paid against your cap and your current exposure. Closing gives LPs their liquidity back and pays out what the payoff says, from real token balances.",
-    shot: "/shots/positions.jpg", path: "/positions", alt: "Open position with legs, premium and greeks",
+    shot: shotUrl("positions"), path: "/positions", alt: "Open position with legs, premium and greeks",
   },
 ];
 
@@ -190,7 +192,7 @@ export default function Landing() {
                 <span className="flex gap-1.5" aria-hidden><span className="size-2 bg-line-strong" /><span className="size-2 bg-line-strong" /><span className="size-2 bg-line-strong" /></span>
                 <span className="num text-[11px] text-ink-3">forge/earn</span>
               </div>
-              <img src="/shots/earn.jpg" alt="Earn: out-of-range liquidity, deposit and the bucket ladder" className="aspect-[16/10] w-full object-cover object-top" loading="lazy" />
+              <img src={shotUrl("earn")} alt="Earn: out-of-range liquidity, deposit and the bucket ladder" className="aspect-[16/10] w-full object-cover object-top" loading="lazy" />
             </figure>
           </Reveal>
         </div>

@@ -196,7 +196,7 @@ export function Hero() {
         <div className="hero-stage relative z-0 mx-auto grid w-full grid-cols-[minmax(0,1fr)] max-w-[calc((100dvh-140px)*1.72)] lg:ml-[-2rem] lg:mr-auto lg:w-full">
           <Layer on={!agentsOn} ready={ready} className="relative [perspective:1800px]">
             <div className="hero-screen relative overflow-hidden rounded-[10px] border border-[rgba(183,196,214,0.16)] bg-bg shadow-[0_50px_140px_-30px_rgba(5,6,8,0.95),0_0_80px_-10px_rgba(183,196,214,0.10)]">
-              <img src="/shots/studio-compiled.jpg" alt={`The Studio after compiling a collar on ${units} ${m.base}: payoff chart, ranges, cost and certificate`} className="block w-full" />
+              <img src={`/shots/studio-compiled.jpg?v=${encodeURIComponent((meta as { capturedAt?: string }).capturedAt ?? "")}`} alt={`The Studio after compiling a collar on ${units} ${m.base}: payoff chart, ranges, cost and certificate`} className="block w-full" />
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(242,244,248,0.07),transparent_32%)]" />
               <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_60px_10px_rgba(16,18,22,0.85)]" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-bg/90 to-transparent" />
