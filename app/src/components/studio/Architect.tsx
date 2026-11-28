@@ -56,7 +56,7 @@ const EXAMPLES = [
  * "Describe what you want": the FORGE Architect as a side panel of the Studio. The model's text is
  * shown as written; every number on the cards comes from the compiler through the agent service.
  */
-export function Architect({ open, onClose, owner, onLoad, hint }: { open: boolean; onClose: () => void; owner: string | null; onLoad: (d: Design) => void; hint?: ReactNode }) {
+export function Architect({ open, onClose, owner, usdc, onLoad, hint }: { open: boolean; onClose: () => void; owner: string | null; usdc: number; onLoad: (d: Design) => void; hint?: ReactNode }) {
   const [session, setSession] = useState<{ id: string; model: string; configured: boolean; owner: string | null } | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [input, setInput] = useState("");
@@ -72,7 +72,7 @@ export function Architect({ open, onClose, owner, onLoad, hint }: { open: boolea
     if (!open || (session && session.owner === owner)) return;
     setItems([]);
     setUnreachable(false);
-    fetch("/api/agent/sessions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(owner ? { owner } : {}) })
+    fetch("/api/agent/sessions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(owner ? { owner, usdc } : { usdc }) })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((s) => setSession({ ...s, owner }))
       .catch(() => setUnreachable(true));
@@ -110,7 +110,7 @@ export function Architect({ open, onClose, owner, onLoad, hint }: { open: boolea
       const res = await fetch(`/api/agent/sessions/${session.id}/messages`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, usdc }),
       });
       if (!res.ok || !res.body) {
         const j = await res.json().catch(() => null);

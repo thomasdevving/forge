@@ -3,7 +3,7 @@
  *
  *  GET  /health                               model config and whether a key is set
  *  POST /sessions {owner?, tier?}             start a conversation (owner: wallet address read on the fork)
- *  POST /sessions/:id/messages {text}         one turn, streamed as server-sent events (AgentEvent JSON)
+ *  POST /sessions/:id/messages {text, usdc?}  one turn, streamed as server-sent events (AgentEvent JSON)
  *  GET  /sessions/:id/constructions/:cid      a construction's facts and its payoff/limits, for the Studio
  *  GET  /sessions/:id/prepared/:cid           the open template of a prepared construction
  *  POST /hedge {objective, portfolio?, usdc?, owner?, tier?}
@@ -43,16 +43,21 @@ await app.register(cors, { origin: ORIGINS });
 
 app.get("/health", async () => ({ ok: true, configured: hasKey(), models: MODELS }));
 
-app.post<{ Body: { owner?: string; tier?: string } }>("/sessions", async (req, reply) => {
+const usdcOf = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1e12 ? v : null);
+
+app.post<{ Body: { owner?: string; tier?: string; usdc?: number } }>("/sessions", async (req, reply) => {
   const owner = req.body?.owner;
   if (owner != null && !isAddress(owner)) return reply.code(400).send({ error: "owner must be a base58 address" });
-  const s = createSession({ owner: owner ?? null, portfolio: null, quoteHoldings: null, model: tierModel(req.body?.tier) });
+  // the USDC the Studio says you hold: used for compiles unless you name an amount yourself
+  const s = createSession({ owner: owner ?? null, portfolio: null, quoteHoldings: usdcOf(req.body?.usdc), model: tierModel(req.body?.tier) });
   return { id: s.id, model: s.model, configured: hasKey() };
 });
 
-app.post<{ Params: { id: string }; Body: { text?: string } }>("/sessions/:id/messages", async (req, reply) => {
+app.post<{ Params: { id: string }; Body: { text?: string; usdc?: number } }>("/sessions/:id/messages", async (req, reply) => {
   const s = getSession(req.params.id);
   if (!s) return reply.code(404).send({ error: "unknown session" });
+  // the Studio's current "USDC held", which may have changed since the session started
+  if (usdcOf(req.body?.usdc) != null) s.quoteHoldings = usdcOf(req.body?.usdc);
   const text = String(req.body?.text ?? "").trim();
   if (!text || text.length > MAX_TEXT) return reply.code(400).send({ error: `text must be 1-${MAX_TEXT} characters` });
   if (s.busy) return reply.code(409).send({ error: "a turn is already running" });

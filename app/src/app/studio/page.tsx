@@ -632,6 +632,7 @@ export default function Studio() {
         open={architectOpen}
         onClose={() => setArchitectOpen(false)}
         owner={wallet.address ?? null}
+        usdc={quoteHoldings}
         hint={
           !wallet.address ? (
             <>No wallet connected. Connect one (top right) so the Architect can read your balances; opening a position needs one too.</>
